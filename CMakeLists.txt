@@ -1,25 +1,74 @@
 cmake_minimum_required(VERSION 3.11)
 
-project(polyfill VERSION 0.0.0)
+project(polyfill VERSION 0.0.0 LANGUAGES CXX)
 
-add_library(polyfill INTERFACE)
+include(GNUInstallDirs)
 
-target_compile_features(polyfill INTERFACE cxx_std_11)
-
-target_include_directories(
-    polyfill
-    INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include
+list(
+    APPEND
+    YK_POLYFILL_CXX_VERSIONS
+    11
+    14
+    17
+    20
+    23
+    26
 )
 
-file(GLOB_RECURSE YK_POLYFILL_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp)
-source_group(
-    TREE ${CMAKE_CURRENT_SOURCE_DIR}/include
-    PREFIX yk_polyfill_headers
-    FILES ${YK_POLYFILL_HEADERS}
-)
-target_sources(polyfill INTERFACE ${YK_POLYFILL_HEADERS})
+add_library(yk_polyfill_common INTERFACE)
+file(GLOB YK_POLYFILL_COMMON_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp)
+target_sources(yk_polyfill_common INTERFACE ${YK_POLYFILL_COMMON_HEADERS})
 
-add_library(yk::polyfill ALIAS polyfill)
+foreach(YK_POLYFILL_CXX_VERSION ${YK_POLYFILL_CXX_VERSIONS})
+    set(YK_POLYFILL_LIBRARY yk_polyfill_cxx${YK_POLYFILL_CXX_VERSION})
+    set(YK_POLYFILL_SUBFOLDER yk/polyfill/cxx${YK_POLYFILL_CXX_VERSION})
+
+    add_library(${YK_POLYFILL_LIBRARY} INTERFACE)
+
+    target_compile_features(
+        ${YK_POLYFILL_LIBRARY}
+        INTERFACE cxx_std_${YK_POLYFILL_CXX_VERSION}
+    )
+
+    target_include_directories(
+        ${YK_POLYFILL_LIBRARY}
+        INTERFACE
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    )
+
+    file(
+        GLOB_RECURSE YK_POLYFILL_CXX${YK_POLYFILL_CXX_VERSION}_HEADERS
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/${YK_POLYFILL_SUBFOLDER}/*.hpp
+    )
+
+    source_group(
+        TREE ${CMAKE_CURRENT_SOURCE_DIR}/include/${YK_POLYFILL_SUBFOLDER}
+        PREFIX ${YK_POLYFILL_LIBRARY}_headers
+        FILES ${YK_POLYFILL_CXX${YK_POLYFILL_CXX_VERSION}_HEADERS}
+    )
+
+    target_sources(
+        ${YK_POLYFILL_LIBRARY}
+        INTERFACE ${YK_POLYFILL_CXX${YK_POLYFILL_CXX_VERSION}_HEADERS}
+    )
+
+    target_link_libraries(${YK_POLYFILL_LIBRARY} INTERFACE yk_polyfill_common)
+
+    list(APPEND YK_POLYFILL_LIBRARIES ${YK_POLYFILL_LIBRARY})
+endforeach()
+
+add_library(yk_polyfill INTERFACE)
+
+target_link_libraries(yk_polyfill INTERFACE ${YK_POLYFILL_LIBRARIES})
+
+add_library(yk::polyfill ALIAS yk_polyfill)
+foreach(YK_POLYFILL_CXX_VERSION ${YK_POLYFILL_CXX_VERSIONS})
+    add_library(
+        yk::polyfill::cxx${YK_POLYFILL_CXX_VERSION}
+        ALIAS yk_polyfill_cxx${YK_POLYFILL_CXX_VERSION}
+    )
+endforeach()
 
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     set(YK_POLYFILL_BUILD_TESTING_DEFAULT ON)
