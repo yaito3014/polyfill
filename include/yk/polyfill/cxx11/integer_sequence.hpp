@@ -13,7 +13,9 @@
 
 #include <cstddef>
 
-namespace yk::polyfill {
+namespace yk {
+
+namespace polyfill {
 
 #if defined(YK_POLYFILL_NO_STD_INTEGER_SEQUENCE) || !(YK_POLYFILL_STD_HAS_INTEGER_SEQUENCE)
 
@@ -53,11 +55,13 @@ using index_sequence_for = make_index_sequence<sizeof...(Ts)>;
 #else
 
 using std::index_sequence;
-using std::integer_sequence;
 using std::index_sequence_for;
+using std::integer_sequence;
 
 #endif
 
-}  // namespace yk::polyfill
+}  // namespace polyfill
+
+}  // namespace yk
 
 #endif  // YK_POLYFILL_CXX11_INTEGER_SEQUENCE_HPP
