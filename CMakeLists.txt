@@ -38,6 +38,7 @@ foreach(cxx_version ${YK_POLYFILL_CXX_VERSIONS})
         ${target_name}
         PROPERTIES EXPORT_NAME polyfill::cxx${cxx_version}
     )
+    target_compile_features(${target_name} INTERFACE cxx_std_${cxx_version})
     file(
         GLOB_RECURSE YK_POLYFILL_CXX${cxx_version}_HEADERS
         ${YK_POLYFILL_PREFIX}/${subfolder}/*.hpp
