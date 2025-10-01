@@ -15,3 +15,4 @@ if(NOT Catch2_FOUND)
 endif()
 
 add_subdirectory(cxx11)
+add_subdirectory(cxx23)
