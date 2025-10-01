@@ -1,23 +1,11 @@
 #ifndef YK_POLYFILL_CXX11_INTEGER_SEQUENCE_HPP
 #define YK_POLYFILL_CXX11_INTEGER_SEQUENCE_HPP
 
-#include <utility>
-
-#if __cpp_lib_integer_sequence >= 201304L
-#define YK_POLYFILL_STD_HAS_INTEGER_SEQUENCE 1
-#else
-#define YK_POLYFILL_STD_HAS_INTEGER_SEQUENCE 0
-#endif
-
-#include <yk/polyfill/config.hpp>
-
 #include <cstddef>
 
 namespace yk {
 
 namespace polyfill {
-
-#if defined(YK_POLYFILL_NO_STD_INTEGER_SEQUENCE) || !(YK_POLYFILL_STD_HAS_INTEGER_SEQUENCE)
 
 template<class T, T... Is>
 struct integer_sequence {
@@ -51,14 +39,6 @@ using make_index_sequence = make_integer_sequence<std::size_t, N>;
 
 template<class... Ts>
 using index_sequence_for = make_index_sequence<sizeof...(Ts)>;
-
-#else
-
-using std::index_sequence;
-using std::index_sequence_for;
-using std::integer_sequence;
-
-#endif
 
 }  // namespace polyfill
 

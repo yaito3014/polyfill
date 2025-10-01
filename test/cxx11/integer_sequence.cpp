@@ -1,6 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
 
-#define YK_POLYFILL_NO_STD_INTEGER_SEQUENCE
 #include <yk/polyfill/cxx11/integer_sequence.hpp>
 
 #include <type_traits>

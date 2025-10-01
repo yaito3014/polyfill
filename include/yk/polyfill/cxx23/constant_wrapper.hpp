@@ -1,20 +1,11 @@
-#ifndef YK_POLYFILL_CONSTANT_WRAPPER_HPP
-#define YK_POLYFILL_CONSTANT_WRAPPER_HPP
-
-#include <type_traits>
-
-#if __cpp_lib_constant_wrapper >= 202506L
-#define YK_POLYFILL_STD_HAS_CONSTANT_WRAPPER 1
-#else
-#define YK_POLYFILL_STD_HAS_CONSTANT_WRAPPER 0
-#endif
+#ifndef YK_POLYFILL_CXX23_CONSTANT_WRAPPER_HPP
+#define YK_POLYFILL_CXX23_CONSTANT_WRAPPER_HPP
 
 #include <cstddef>
 
 namespace yk {
-namespace polyfill {
 
-#if defined(YK_POLYFILL_NO_STD_CONSTANT_WRAPPER) || !(YK_POLYFILL_STD_HAS_CONSTANT_WRAPPER)
+namespace polyfill {
 
 namespace xo {
 
@@ -192,14 +183,8 @@ struct constant_wrapper : public xo::cw_operators {
 template<xo::cw_fixed_value X>
 inline constexpr auto cw = constant_wrapper<X>{};
 
-#else
-
-using std::constant_wrapper;
-
-#endif
-
 }  // namespace polyfill
 
 }  // namespace yk
 
-#endif  // YK_POLYFILL_CONSTANT_WRAPPER_HPP
+#endif  // YK_POLYFILL_CXX23_CONSTANT_WRAPPER_HPP
