@@ -19,6 +19,9 @@ struct integral_constant {
 template<bool X>
 using bool_constant = integral_constant<bool, X>;
 
+using true_type = bool_constant<true>;
+using false_type = bool_constant<false>;
+
 }  // namespace polyfill
 
 }  // namespace yk
