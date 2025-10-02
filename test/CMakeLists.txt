@@ -2,6 +2,7 @@ enable_testing()
 
 find_package(Catch2 2 CONFIG)
 
+set(CMP0077 NEW)
 if(NOT Catch2_FOUND)
     include(FetchContent)
 
