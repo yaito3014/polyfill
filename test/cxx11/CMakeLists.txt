@@ -1,6 +1,14 @@
 add_executable(yk_polyfill_cxx11_test)
 
-target_sources(yk_polyfill_cxx11_test PRIVATE integer_sequence.cpp)
+target_sources(
+    yk_polyfill_cxx11_test
+    PRIVATE
+        integer_sequence.cpp
+        integral_constant.cpp
+        is_null_pointer.cpp
+        is_bounded_array.cpp
+        is_unbounded_array.cpp
+)
 
 target_link_libraries(
     yk_polyfill_cxx11_test
