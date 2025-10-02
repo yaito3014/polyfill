@@ -11,8 +11,8 @@ TEST_CASE("integral_constant")
   {
     using IC = pf::integral_constant<int, 42>;
     STATIC_CHECK(IC::value == 42);
-    STATIC_CHECK(std::is_same_v<IC::type, IC>);
-    STATIC_CHECK(std::is_same_v<IC::value_type, int>);
+    STATIC_CHECK(std::is_same<IC::type, IC>::value);
+    STATIC_CHECK(std::is_same<IC::value_type, int>::value);
     IC ic;
     STATIC_CHECK(ic == 42);
     STATIC_CHECK(ic() == 42);
@@ -20,8 +20,8 @@ TEST_CASE("integral_constant")
   {
     using BC = pf::bool_constant<true>;
     STATIC_CHECK(BC::value == true);
-    STATIC_CHECK(std::is_same_v<BC::type, BC>);
-    STATIC_CHECK(std::is_same_v<BC::value_type, bool>);
+    STATIC_CHECK(std::is_same<BC::type, BC>::value);
+    STATIC_CHECK(std::is_same<BC::value_type, bool>::value);
     BC bc;
     STATIC_CHECK(bc == true);
     STATIC_CHECK(bc() == true);
