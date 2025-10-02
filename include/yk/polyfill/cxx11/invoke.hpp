@@ -258,13 +258,13 @@ template<class F, class... Args>
 struct invoke_result : invoke_detail::invoke_result_impl<F, void, Args...> {};
 
 template<class F, class... Args>
-constexpr typename invoke_result<F, Args...>::type invoke(F&& f, Args&&... args)
+constexpr typename invoke_result<F, Args...>::type invoke(F&& f, Args&&... args) noexcept(is_nothrow_invocable<F, Args>::value)
 {
   return invoke_detail::invoke_impl(static_cast<F&&>(f), static_cast<Args&&>(args)...);
 }
 
 template<class R, class F, class... Args>
-constexpr R invoke_r(F&& f, Args&&... args)
+constexpr R invoke_r(F&& f, Args&&... args) noexcept(is_nothrow_invocable_r<F, Args>::value)
 {
   return invoke_detail::invoke_r_impl<R>::apply(static_cast<F&&>(f), static_cast<Args&&>(args)...);
 }
