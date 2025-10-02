@@ -17,6 +17,7 @@ target_sources(
         void_t.cpp
         remove_cvref.cpp
         make_unique.cpp
+        negation.cpp
 )
 
 target_link_libraries(
