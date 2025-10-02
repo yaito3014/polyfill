@@ -14,6 +14,7 @@ target_sources(
         conjunction.cpp
         void_t.cpp
         remove_cvref.cpp
+        make_unique.cpp
 )
 
 target_link_libraries(
