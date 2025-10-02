@@ -17,6 +17,9 @@ namespace polyfill {
 
 namespace apply_detail {
 
+// injects `std::get`, since unqualified `get<I>(t)` call won't trigger ADL until C++20
+using std::get;
+
 template<class IndexSeq>
 struct apply_impl;
 
