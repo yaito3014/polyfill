@@ -1,5 +1,7 @@
 add_executable(yk_polyfill_cxx11_test)
 
+set_target_properties(yk_polyfill_cxx11_test PROPERTIES CXX_STANDARD 11)
+
 target_sources(
     yk_polyfill_cxx11_test
     PRIVATE
