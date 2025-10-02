@@ -22,6 +22,8 @@ namespace pf = yk::polyfill;
 
 TEST_CASE("disjunction")
 {
+  STATIC_CHECK(pf::disjunction<>::value == false);
+
   STATIC_CHECK(pf::disjunction<true_type>::value == true);
   STATIC_CHECK(pf::disjunction<false_type>::value == false);
 
