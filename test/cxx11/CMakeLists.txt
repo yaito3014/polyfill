@@ -11,6 +11,7 @@ target_sources(
         is_swappable_with.cpp
         is_swappable.cpp
         disjunction.cpp
+        conjunction.cpp
         void_t.cpp
 )
 
