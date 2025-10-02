@@ -19,6 +19,7 @@ target_sources(
         make_unique.cpp
         negation.cpp
         invoke.cpp
+        apply.cpp
 )
 
 target_link_libraries(
