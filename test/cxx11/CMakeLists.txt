@@ -13,6 +13,7 @@ target_sources(
         disjunction.cpp
         conjunction.cpp
         void_t.cpp
+        remove_cvref.cpp
 )
 
 target_link_libraries(
