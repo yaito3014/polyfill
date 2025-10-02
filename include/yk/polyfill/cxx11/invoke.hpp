@@ -90,6 +90,8 @@ constexpr auto invoke_impl(T (C::*f)(Params...) const, U&& u, Args&&... args) ->
   return (static_cast<U&&>(u).*f)(static_cast<Args&&>(args)...);
 }
 
+#if __cpp_noexcept_function_type >= 201510
+
 template<
     class T, class C, class... Params, class U, class... Args,
     typename std::enable_if<check_invoke_kind<C, typename remove_cvref<U>::type>::value == invoke_kind::reference_to_object, std::nullptr_t>::type = nullptr>
@@ -107,6 +109,8 @@ constexpr auto invoke_impl(T (C::*f)(Params...) const noexcept, U&& u, Args&&...
   return (static_cast<U&&>(u).*f)(static_cast<Args&&>(args)...);
 }
 
+#endif
+
 // member function pointer + reference_wrapper to object
 template<
     class T, class C, class... Params, class U, class... Args,
@@ -123,6 +127,8 @@ constexpr auto invoke_impl(T (C::*f)(Params...) const, U&& u, Args&&... args) ->
 {
   return (static_cast<U&&>(u).get().*f)(static_cast<Args&&>(args)...);
 }
+
+#if __cpp_noexcept_function_type >= 201510
 
 template<
     class T, class C, class... Params, class U, class... Args,
@@ -142,6 +148,8 @@ constexpr auto invoke_impl(T (C::*f)(Params...) const noexcept, U&& u, Args&&...
   return (static_cast<U&&>(u).get().*f)(static_cast<Args&&>(args)...);
 }
 
+#endif
+
 // member function pointer + other(dereferenceable)
 template<
     class T, class C, class... Params, class U, class... Args,
@@ -159,6 +167,8 @@ constexpr auto invoke_impl(T (C::*f)(Params...) const, U&& u, Args&&... args) ->
   return ((*static_cast<U&&>(u)).*f)(static_cast<Args&&>(args)...);
 }
 
+#if __cpp_noexcept_function_type >= 201510
+
 template<
     class T, class C, class... Params, class U, class... Args,
     typename std::enable_if<check_invoke_kind<C, typename remove_cvref<U>::type>::value == invoke_kind::other, std::nullptr_t>::type = nullptr>
@@ -175,6 +185,8 @@ constexpr auto invoke_impl(T (C::*f)(Params...) const noexcept, U&& u, Args&&...
 {
   return ((*static_cast<U&&>(u)).*f)(static_cast<Args&&>(args)...);
 }
+
+#endif
 
 template<class R>
 struct invoke_r_impl {
