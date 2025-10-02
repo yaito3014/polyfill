@@ -8,6 +8,10 @@ target_sources(
         is_null_pointer.cpp
         is_bounded_array.cpp
         is_unbounded_array.cpp
+        is_swappable_with.cpp
+        is_swappable.cpp
+        disjunction.cpp
+        void_t.cpp
 )
 
 target_link_libraries(
