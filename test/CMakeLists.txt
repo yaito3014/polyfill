@@ -11,7 +11,7 @@ if(NOT Catch2_FOUND)
         GIT_TAG v2.13.10
     )
 
-    cmake_policy(SET CMP0077 NEW)
+    set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
     set(CATCH_BUILD_STATIC_LIBRARY ON)
     FetchContent_MakeAvailable(Catch2)
 endif()
