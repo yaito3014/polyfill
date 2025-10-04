@@ -10,7 +10,7 @@ jobs:
   check-changes:
     runs-on: ubuntu-latest
     outputs:
-      need_build: ${{ steps.changes.outputs.workflows == 'true' || steps.changes.outputs.headers == 'true' || steps.changes.outputs.sources == 'true}}
+      need_build: ${{ steps.changes.outputs.workflows == 'true' || steps.changes.outputs.headers == 'true' || steps.changes.outputs.sources == 'true' }}
     steps:
       - uses: actions/checkout@v5
       - id: changes
