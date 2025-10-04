@@ -84,11 +84,11 @@ jobs:
           sudo ./llvm.sh ${{ matrix.compiler.version }} all
       - name: Configure
         run: |
-          cmake -DCMAKE_CXX_STANDARD=${{ matrix.cxx-version }} -DCMAKE_CXX_COMPILER=${{ matrix.compiler.executable }} -Bbuild .
+          cmake -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_STANDARD=${{ matrix.cxx-version }} -DCMAKE_CXX_COMPILER=${{ matrix.compiler.executable }} -Bbuild .
       - name: Build tests
         run: |
           cmake --build build
       - name: Run test
         working-directory: build/test
         run: |
-          ctest
+          ctest -C${{ matrix.build-type }}
