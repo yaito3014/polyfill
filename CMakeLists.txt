@@ -8,7 +8,10 @@ include(GNUInstallDirs)
 
 # common headers
 add_library(yk_polyfill_common INTERFACE)
-set_target_properties(yk_polyfill_common PROPERTIES EXPORT_NAME polyfill::common)
+set_target_properties(
+    yk_polyfill_common
+    PROPERTIES EXPORT_NAME polyfill::common
+)
 file(GLOB YK_POLYFILL_COMMON_HEADERS ${YK_POLYFILL_PREFIX}/*.hpp)
 target_sources(
     yk_polyfill_common
@@ -30,13 +33,14 @@ list(
     23
     26
 )
+
 foreach(cxx_version ${YK_POLYFILL_CXX_VERSIONS})
     set(target_name yk_polyfill_cxx${cxx_version})
     set(subfolder cxx${cxx_version})
     add_library(${target_name} INTERFACE)
     set_target_properties(
         ${target_name}
-        PROPERTIES EXPORT_NAME polyfill::cxx${cxx_version}
+        PROPERTIES EXPORT_NAME polyfill::cxx${cxx_version} CXX_EXTENSIONS OFF
     )
     target_compile_features(${target_name} INTERFACE cxx_std_${cxx_version})
     file(
@@ -71,18 +75,9 @@ endforeach()
 add_library(yk::polyfill ALIAS yk_polyfill)
 
 # test
-if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-    set(YK_POLYFILL_BUILD_TESTING_DEFAULT ON)
-else()
-    set(YK_POLYFILL_BUILD_TESTING_DEFAULT OFF)
-endif()
-option(
-    YK_POLYFILL_BUILD_TESTING
-    "build tests"
-    ${YK_POLYFILL_BUILD_TESTING_DEFAULT}
-)
+option(YK_POLYFILL_BUILD_TESTING "build tests" ${PROJECT_IS_TOP_LEVEL})
 if(YK_POLYFILL_BUILD_TESTING)
-    add_subdirectory(test EXCLUDE_FROM_ALL)
+    add_subdirectory(test)
 endif()
 
 # install
