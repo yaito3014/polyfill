@@ -91,4 +91,4 @@ jobs:
       - name: Run test
         working-directory: build/test
         run: |
-          ctest -C${{ matrix.build-type }}
+          ctest -C ${{ matrix.build-type }}
