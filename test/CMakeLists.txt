@@ -22,6 +22,9 @@ foreach(required_cxx_version ${YK_POLYFILL_CXX_VERSIONS})
 
         set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
         set(CATCH_BUILD_STATIC_LIBRARY ON)
+        FetchContent_MakeAvailable(Catch2)
+
+        set(YK_POLYFILL_CATCH2_MAJOR_VERSION 2)
     else()
         FetchContent_Declare(
             Catch2
@@ -29,8 +32,10 @@ foreach(required_cxx_version ${YK_POLYFILL_CXX_VERSIONS})
             GIT_TAG v3.11.0
             GIT_SHALLOW ON
         )
+        FetchContent_MakeAvailable(Catch2)
+
+        set(YK_POLYFILL_CATCH2_MAJOR_VERSION 3)
     endif()
-    FetchContent_MakeAvailable(Catch2)
 
     set_target_properties(Catch2WithMain PROPERTIES CXX_EXTENSIONS OFF)
 
