@@ -70,12 +70,11 @@ jobs:
       - name: Init Ubuntu
         if: matrix.os.name == 'ubuntu'
         run: |
-          sudo apt update
-          sudo apt upgrade
+          sudo apt-get update
       - name: Setup GCC
         if: matrix.compiler.name == 'GCC'
         run: |
-          sudo apt install g++-${{ matrix.compiler.version }}
+          sudo apt-get install g++-${{ matrix.compiler.version }}
       - name: Setup Clang
         if: matrix.compiler.name == 'Clang'
         run: |
