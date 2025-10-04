@@ -1,0 +1,114 @@
+name: Test
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      need_build: ${{ steps.changes.outputs.workflows == 'true' || steps.changes.outputs.headers == 'true' || steps.changes.outputs.sources == 'true' }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            headers:
+              - 'include/**/*'
+            sources:
+              - 'test/**/*'
+            workflows:
+              - '.github/workflows/**/*'
+  build:
+    needs: check-changes
+    if: needs.check-changes.outputs.need_build
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - name: ubuntu
+            version: 24.04
+          - name: windows
+            version: 2022
+        build-type:
+          - Debug
+          - Release
+        compiler:
+          - name: GCC
+            version: 14
+            executable: g++-14
+          - name: Clang
+            version: 21
+            executable: clang++-21
+          - name: Clang
+            version: 22
+            executable: clang++-22
+          - name: MSVC
+            version: 2022
+            executable: cl
+        cxx-version: [11, 14, 17, 20, 23, 26]
+        exclude:
+          - os:
+              name: windows
+            compiler:
+              name: GCC
+          - os:
+              name: windows
+            compiler:
+              name: Clang
+          - os:
+              name: ubuntu
+            compiler:
+              name: MSVC
+    name: C++${{ matrix.cxx-version }} ${{ matrix.build-type }} (${{ matrix.compiler.name }} ${{ matrix.compiler.version }} on ${{ matrix.os.name }})
+    runs-on: ${{ matrix.os.name }}-${{ matrix.os.version }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Init Ubuntu
+        if: matrix.os.name == 'ubuntu'
+        run: |
+          echo "set man-db/auto-update false" | sudo debconf-communicate
+          sudo dpkg-reconfigure man-db
+          sudo apt-get update
+      - name: Setup GCC
+        if: matrix.compiler.name == 'GCC'
+        run: |
+          sudo apt-get install g++-${{ matrix.compiler.version }}
+      - name: Setup Clang
+        if: matrix.compiler.name == 'Clang'
+        run: |
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x ./llvm.sh
+          sudo ./llvm.sh ${{ matrix.compiler.version }} all
+      - name: Restore deps from cache
+        id: cache-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: build/_deps
+          key: ${{ matrix.cxx-version }}-${{ matrix.build-type }}-${{ matrix.compiler.name }}-${{ matrix.compiler.version }}-${{ matrix.os.name }}-${{ matrix.os.version }}
+      - name: Configure
+        run: |
+          cmake -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_STANDARD=${{ matrix.cxx-version }} -DCMAKE_CXX_COMPILER=${{ matrix.compiler.executable }} -Bbuild .
+      - name: Build tests
+        run: |
+          cmake --build build --config ${{ matrix.build-type }}
+      - name: Save deps to cache
+        if: steps.cache-restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: build/_deps
+          key: ${{ steps.cache-restore.outputs.cache-primary-key }}
+      - name: Run test
+        working-directory: build/test
+        run: |
+          ctest -C ${{ matrix.build-type }}
