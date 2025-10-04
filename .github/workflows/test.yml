@@ -92,15 +92,15 @@ jobs:
       - name: Configure
         run: |
           cmake -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_STANDARD=${{ matrix.cxx-version }} -DCMAKE_CXX_COMPILER=${{ matrix.compiler.executable }} -Bbuild .
+      - name: Build tests
+        run: |
+          cmake --build build --config ${{ matrix.build-type }}
       - name: Save deps to cache
         if: steps.cache-restore.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: build/_deps
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}
-      - name: Build tests
-        run: |
-          cmake --build build --config ${{ matrix.build-type }}
       - name: Run test
         working-directory: build/test
         run: |
