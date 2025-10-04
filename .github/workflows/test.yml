@@ -50,6 +50,9 @@ jobs:
           - name: Clang
             version: 21
             executable: clang++-21
+          - name: Clang
+            version: 22
+            executable: clang++-22
           - name: MSVC
             version: 2022
             executable: cl
