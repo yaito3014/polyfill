@@ -11,39 +11,26 @@ foreach(required_cxx_version ${YK_POLYFILL_CXX_VERSIONS})
         continue()
     endif()
 
-    if(${required_cxx_version} LESS 14)
-        find_package(Catch2 2 CONFIG)
+    include(FetchContent)
+    if(${YK_POLYFILL_CXX_STANDARD} LESS 14)
+        FetchContent_Declare(
+            Catch2
+            GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+            GIT_TAG v2.13.10
+            GIT_SHALLOW ON
+        )
 
-        if(NOT Catch2_FOUND)
-            include(FetchContent)
-
-            FetchContent_Declare(
-                Catch2
-                GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-                GIT_TAG v2.13.10
-                GIT_SHALLOW ON
-            )
-
-            set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
-            set(CATCH_BUILD_STATIC_LIBRARY ON)
-            FetchContent_MakeAvailable(Catch2)
-        endif()
+        set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+        set(CATCH_BUILD_STATIC_LIBRARY ON)
     else()
-        find_package(Catch2 3 CONFIG)
-
-        if(NOT Catch2_FOUND)
-            include(FetchContent)
-
-            FetchContent_Declare(
-                Catch2
-                GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-                GIT_TAG v3.11.0
-                GIT_SHALLOW ON
-            )
-
-            FetchContent_MakeAvailable(Catch2)
-        endif()
+        FetchContent_Declare(
+            Catch2
+            GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+            GIT_TAG v3.11.0
+            GIT_SHALLOW ON
+        )
     endif()
+    FetchContent_MakeAvailable(Catch2)
 
     set_target_properties(Catch2WithMain PROPERTIES CXX_EXTENSIONS OFF)
 
