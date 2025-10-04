@@ -7,6 +7,16 @@ namespace yk {
 
 namespace polyfill {
 
+namespace constant_wrapper_detail {
+
+// workaround for MSVC
+template<class X, class... Is>
+struct subscript {
+  static constexpr auto value = X::value[Is::value...];
+};
+
+}  // namespace constant_wrapper_detail
+
 namespace xo {
 
 template<class T>
@@ -141,7 +151,7 @@ struct cw_operators {
 #if __cpp_multidimensional_subscript >= 202211L
 
   template<constexpr_param T, constexpr_param... Args>
-  [[nodiscard]] constexpr auto operator[](this T, Args...) noexcept -> constant_wrapper<(T::value[Args::value...])>
+  [[nodiscard]] constexpr auto operator[](this T, Args...) noexcept -> constant_wrapper<constant_wrapper_detail::subscript<T, Args...>::value>
   {
     return {};
   }
