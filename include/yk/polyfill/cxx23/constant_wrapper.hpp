@@ -138,11 +138,15 @@ struct cw_operators {
     return constant_wrapper<T::value(Args::value...)>{};
   }
 
+#if __cpp_multidimensional_subscript >= 202211L
+
   template<constexpr_param T, constexpr_param... Args>
   [[nodiscard]] constexpr auto operator[](this T, Args...) noexcept -> constant_wrapper<(T::value[Args::value...])>
   {
     return {};
   }
+
+#endif
 
   YK_POLYFILL_CXX23_CONSTANT_WRAPPER_DETAIL_DEFINE_FIX_OPERATOR(++)
   YK_POLYFILL_CXX23_CONSTANT_WRAPPER_DETAIL_DEFINE_FIX_OPERATOR(--)
