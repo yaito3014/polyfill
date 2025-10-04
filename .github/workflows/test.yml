@@ -1,0 +1,92 @@
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      need_build: ${{ steps.changes.outputs.workflows == 'true' || steps.changes.outputs.headers == 'true' || steps.changes.outputs.sources == 'true}}
+    steps:
+      - uses: actions/checkout@v5
+      - id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            headers:
+              - 'include/**/*'
+            sources:
+              - 'test/**/*'
+            workflows:
+              - '.github/workflows/**/*'
+  build:
+    needs: check-changes
+    if: needs.check-changes.outputs.need_build
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - name: ubuntu
+            version: 24
+          - name: windows
+            version: 2022
+        build-type:
+          - Debug
+          - Release
+        compiler:
+          - name: GCC
+            version: 14
+            executable: g++-14
+          - name: Clang
+            version: 21
+            executable: clang++-21
+          - name: MSVC
+            version: 2022
+            executable: cl
+        cxx-version: [11, 14, 17, 20, 23, 26]
+        exclude:
+          - os:
+              name: windows
+            compiler:
+              name: GCC
+          - os:
+              name: windows
+            compiler:
+              name: Clang
+          - os:
+              name: ubuntu
+            compiler:
+              name: MSVC
+    name: C++${{ matrix.cxx-version }} ${{ matrix.build-type }} (${{ matrix.compiler.name }} ${{ matrix.compiler.version }} on ${{ matrix.os.name }})
+    runs-on: ${{ matrix.os.name }}-${{ matrix.os.version }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Init Ubuntu
+        if: matrix.os.name == 'ubuntu'
+        run: |
+          sudo apt update
+          sudo apt upgrade
+      - name: Setup GCC
+        if: matrix.compiler.name == 'GCC'
+        run: |
+          sudo apt install g++-${{ matrix.compiler.version }}
+      - name: Setup Clang
+        if: matrix.compiler.name == 'Clang'
+        run: |
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x ./llvm.sh
+          sudo ./llvm.sh ${{ matrix.compiler.version }} all
+      - name: Configure
+        run: |
+          cmake -DCMAKE_CXX_STANDARD=${{ matrix.cxx-version }} -DCMAKE_CXX_COMPILER=${{ matrix.compiler.executable }} -Bbuild .
+      - name: Build tests
+        run: |
+          cmake --build build
+      - name: Run test
+        working-directory: build/test
+        run: |
+          ctest
