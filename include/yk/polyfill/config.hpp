@@ -1,0 +1,8 @@
+#ifndef YK_POLYFILL_CONFIG_HPP
+#define YK_POLYFILL_CONFIG_HPP
+
+#if __cplusplus >= 201402L
+#define YK_POLYFILL_CXX14_CONSTEXPR
+#endif
+
+#endif  // YK_POLYFILL_CONFIG_HPP
