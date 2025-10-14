@@ -12,6 +12,9 @@ set_target_properties(
     yk_polyfill_common
     PROPERTIES EXPORT_NAME polyfill::common
 )
+if(MSVC)
+    target_compile_options(yk_polyfill_common INTERFACE /Zc:__cplusplus)
+endif()
 file(GLOB YK_POLYFILL_COMMON_HEADERS ${YK_POLYFILL_PREFIX}/*.hpp)
 target_sources(
     yk_polyfill_common
