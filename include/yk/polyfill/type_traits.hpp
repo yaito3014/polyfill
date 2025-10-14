@@ -74,7 +74,8 @@ struct is_nothrow_applicable : apply_detail::is_nothrow_applicable_impl<F, Tuple
 template<class F, class Tuple>
 struct apply_result : apply_detail::apply_result_impl<F, Tuple> {};
 
-#if __cplusplus >= 202302L
+// assume all C++20 features available
+#if __cplusplus >= 202002L
 
 #if __cpp_multidimensional_subscript >= 202211L
 
@@ -148,6 +149,8 @@ concept constexpr_param = requires { typename constant_wrapper<T::value>; };
     return {};                                                                                                          \
   }
 
+#if __cpp_explicit_this_parameter >= 202110L
+
 #define YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_FIX_OPERATOR(op) \
   template<constexpr_param T>                                             \
   [[nodiscard]] constexpr auto operator op(this T) noexcept               \
@@ -168,6 +171,7 @@ concept constexpr_param = requires { typename constant_wrapper<T::value>; };
     }()>{};                                                               \
   }
 
+
 #define YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_ASSIGNMENT_OPERATOR(op) \
   template<constexpr_param T, constexpr_param R>                                 \
   [[nodiscard]] constexpr auto operator op(this T, R) noexcept                   \
@@ -178,6 +182,8 @@ concept constexpr_param = requires { typename constant_wrapper<T::value>; };
       return v op R::value;                                                      \
     }()>{};                                                                      \
   }
+
+#endif
 
 struct cw_operators {
   YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_UNARY_OPERATOR(+)
@@ -214,6 +220,8 @@ struct cw_operators {
   YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_LOGICAL_OPERATOR(&&)
   YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_LOGICAL_OPERATOR(||)
 
+#if __cpp_explicit_this_parameter >= 202110L
+
   template<constexpr_param T, constexpr_param... Args>
   [[nodiscard]] constexpr auto operator()(this T, Args...) noexcept
     requires requires { constant_wrapper<T::value(Args::value...)>{}; }
@@ -234,6 +242,7 @@ struct cw_operators {
   YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_FIX_OPERATOR(++)
   YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_FIX_OPERATOR(--)
 
+
   YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_ASSIGNMENT_OPERATOR(+=)
   YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_ASSIGNMENT_OPERATOR(-=)
   YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_ASSIGNMENT_OPERATOR(*=)
@@ -243,6 +252,8 @@ struct cw_operators {
   YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_ASSIGNMENT_OPERATOR(^=)
   YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_ASSIGNMENT_OPERATOR(<<=)
   YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_ASSIGNMENT_OPERATOR(>>=)
+
+#endif
 };
 
 #undef YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_ASSIGNMENT_OPERATOR
