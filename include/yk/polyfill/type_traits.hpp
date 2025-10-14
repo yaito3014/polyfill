@@ -77,19 +77,30 @@ struct apply_result : apply_detail::apply_result_impl<F, Tuple> {};
 // assume all C++20 features available
 #if __cplusplus >= 202002L
 
-#if __cpp_multidimensional_subscript >= 202211L
-
 namespace constant_wrapper_detail {
 
-// workaround for MSVC
+template<class X, class... Is>
+struct subscript;
+
+#if __cpp_multidimensional_subscript >= 202211L
+
 template<class X, class... Is>
 struct subscript {
   static constexpr auto value = X::value[Is::value...];
 };
 
-}  // namespace constant_wrapper_detail
+#else
+
+// fallback specialization for pre-C++23
+template<class X, class I>
+struct subscript<X, I> {
+  static constexpr auto value = X::value[I::value];
+};
 
 #endif
+
+}  // namespace constant_wrapper_detail
+
 
 namespace xo {
 
@@ -229,15 +240,11 @@ struct cw_operators {
     return constant_wrapper<T::value(Args::value...)>{};
   }
 
-#if __cpp_multidimensional_subscript >= 202211L
-
   template<constexpr_param T, constexpr_param... Args>
   [[nodiscard]] constexpr auto operator[](this T, Args...) noexcept -> constant_wrapper<constant_wrapper_detail::subscript<T, Args...>::value>
   {
     return {};
   }
-
-#endif
 
   YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_FIX_OPERATOR(++)
   YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_FIX_OPERATOR(--)
