@@ -1,11 +1,114 @@
-#ifndef YK_POLYFILL_CXX23_CONSTANT_WRAPPER_HPP
-#define YK_POLYFILL_CXX23_CONSTANT_WRAPPER_HPP
+#ifndef YK_POLYFILL_TYPE_TRAITS_HPP
+#define YK_POLYFILL_TYPE_TRAITS_HPP
 
-#include <cstddef>
+#include <type_traits>
 
 namespace yk {
 
 namespace polyfill {
+
+template<class... Ts>
+using void_t = void;
+
+template<class T>
+struct remove_cvref {
+  using type = typename std::remove_cv<typename std::remove_reference<T>::type>::type;
+};
+
+template<class T, T X>
+struct integral_constant {
+  static constexpr T value = X;
+
+  using value_type = T;
+  using type = integral_constant;
+
+  constexpr operator value_type() const noexcept { return value; }
+  [[nodiscard]] constexpr value_type operator()() const noexcept { return value; }
+};
+
+template<bool X>
+using bool_constant = integral_constant<bool, X>;
+
+using true_type = bool_constant<true>;
+using false_type = bool_constant<false>;
+
+template<class Trait>
+struct negation : bool_constant<!Trait::value> {};
+
+template<class... Traits>
+struct conjunction;
+
+template<>
+struct conjunction<> : true_type {};
+
+template<class Trait, class... Traits>
+struct conjunction<Trait, Traits...> : std::conditional<Trait::value, conjunction<Traits...>, false_type>::type {};
+
+template<class... Traits>
+struct disjunction;
+
+template<>
+struct disjunction<> : false_type {};
+
+template<class Trait, class... Traits>
+struct disjunction<Trait, Traits...> : std::conditional<Trait::value, true_type, disjunction<Traits...>>::type {};
+
+template<class T>
+struct is_bounded_array : false_type {};
+
+template<class T, std::size_t N>
+struct is_bounded_array<T[N]> : true_type {};
+
+template<class T>
+struct is_unbounded_array : false_type {};
+
+template<class T>
+struct is_unbounded_array<T[]> : true_type {};
+
+template<class T>
+struct is_null_pointer : false_type {};
+
+template<>
+struct is_null_pointer<std::nullptr_t> : true_type {};
+
+template<>
+struct is_null_pointer<std::nullptr_t const> : true_type {};
+
+template<>
+struct is_null_pointer<std::nullptr_t volatile> : true_type {};
+
+template<>
+struct is_null_pointer<std::nullptr_t const volatile> : true_type {};
+
+namespace is_swappable_with_detail {
+
+using std::swap;
+
+template<class T, class U, class = void>
+struct is_swappable_with_impl : false_type {};
+
+template<class T, class U>
+struct is_swappable_with_impl<T, U, void_t<decltype(swap(std::declval<T>(), std::declval<U>()), swap(std::declval<U>(), std::declval<T>()))>> : true_type {};
+
+}  // namespace is_swappable_with_detail
+
+template<class T, class U>
+struct is_swappable_with : is_swappable_with_detail::is_swappable_with_impl<T, U> {};
+
+namespace is_swappable_detail {
+
+template<class T, class = void>
+struct is_swappable_impl : false_type {};
+
+template<class T>
+struct is_swappable_impl<T, typename std::enable_if<disjunction<std::is_object<T>, std::is_reference<T>>::value>::type> : is_swappable_with<T&, T&> {};
+
+}  // namespace is_swappable_detail
+
+template<class T>
+struct is_swappable : is_swappable_detail::is_swappable_impl<T> {};
+
+#if __cplusplus >= 202302L
 
 namespace constant_wrapper_detail {
 
@@ -203,8 +306,10 @@ struct constant_wrapper : public xo::cw_operators {
 template<xo::cw_fixed_value X>
 inline constexpr auto cw = constant_wrapper<X>{};
 
+#endif
+
 }  // namespace polyfill
 
 }  // namespace yk
 
-#endif  // YK_POLYFILL_CXX23_CONSTANT_WRAPPER_HPP
+#endif  // YK_POLYFILL_TYPE_TRAITS_HPP

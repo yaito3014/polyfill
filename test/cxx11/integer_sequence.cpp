@@ -4,7 +4,7 @@
 #include <catch2/catch_test_macros.hpp>
 #endif
 
-#include <yk/polyfill/cxx11/integer_sequence.hpp>
+#include <yk/polyfill/utility.hpp>
 
 #include <type_traits>
 

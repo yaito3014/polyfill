@@ -4,8 +4,7 @@
 #include <catch2/catch_test_macros.hpp>
 #endif
 
-#include <yk/polyfill/cxx11/apply.hpp>
-#include <yk/polyfill/cxx11/integral_constant.hpp>
+#include <yk/polyfill/tuple.hpp>
 
 #include <string>
 #include <tuple>

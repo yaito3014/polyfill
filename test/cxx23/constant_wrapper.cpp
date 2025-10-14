@@ -1,6 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include <yk/polyfill/cxx23/constant_wrapper.hpp>
+#include <yk/polyfill/type_traits.hpp>
 
 namespace pf = yk::polyfill;
 

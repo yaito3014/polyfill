@@ -4,7 +4,7 @@
 #include <catch2/catch_test_macros.hpp>
 #endif
 
-#include <yk/polyfill/cxx11/remove_cvref.hpp>
+#include <yk/polyfill/type_traits.hpp>
 
 #include <type_traits>
 

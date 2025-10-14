@@ -4,7 +4,7 @@
 #include <catch2/catch_test_macros.hpp>
 #endif
 
-#include <yk/polyfill/cxx11/is_swappable_with.hpp>
+#include <yk/polyfill/type_traits.hpp>
 
 namespace pf = yk::polyfill;
 

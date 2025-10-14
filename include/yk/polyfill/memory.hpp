@@ -1,8 +1,7 @@
-#ifndef YK_POLYFILL_CXX11_MAKE_UNIQUE_HPP
-#define YK_POLYFILL_CXX11_MAKE_UNIQUE_HPP
+#ifndef YK_POLYFILL_MEMORY_HPP
+#define YK_POLYFILL_MEMORY_HPP
 
-#include <yk/polyfill/cxx11/is_bounded_array.hpp>
-#include <yk/polyfill/cxx11/is_unbounded_array.hpp>
+#include <yk/polyfill/type_traits.hpp>
 
 #include <memory>
 #include <type_traits>
@@ -32,4 +31,4 @@ constexpr void make_unique(Args&&...) = delete;
 
 }  // namespace yk
 
-#endif  // YK_POLYFILL_CXX11_MAKE_UNIQUE_HPP
+#endif  // YK_POLYFILL_MEMORY_HPP

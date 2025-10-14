@@ -1,14 +1,10 @@
-#ifndef YK_POLYFILL_CXX11_INVOKE_HPP
-#define YK_POLYFILL_CXX11_INVOKE_HPP
+#ifndef YK_POLYFILL_FUNCTIONAL_HPP
+#define YK_POLYFILL_FUNCTIONAL_HPP
 
 #include <yk/polyfill/config.hpp>
 
-#include <yk/polyfill/cxx11/extension/specialization_of.hpp>
-
-#include <yk/polyfill/cxx11/disjunction.hpp>
-#include <yk/polyfill/cxx11/integral_constant.hpp>
-#include <yk/polyfill/cxx11/remove_cvref.hpp>
-#include <yk/polyfill/cxx11/void_t.hpp>
+#include <yk/polyfill/extension/specialization_of.hpp>
+#include <yk/polyfill/type_traits.hpp>
 
 #include <functional>
 #include <type_traits>
@@ -202,7 +198,9 @@ struct invoke_r_impl {
 template<>
 struct invoke_r_impl<void> {
   template<class F, class... Args>
-  static YK_POLYFILL_CXX14_CONSTEXPR void apply(F&& f, Args&&... args) noexcept(noexcept(invoke_detail::invoke_impl(static_cast<F&&>(f), static_cast<Args&&>(args)...)))
+  static YK_POLYFILL_CXX14_CONSTEXPR void apply(F&& f, Args&&... args) noexcept(
+      noexcept(invoke_detail::invoke_impl(static_cast<F&&>(f), static_cast<Args&&>(args)...))
+  )
   {
     static_cast<void>(invoke_detail::invoke_impl(static_cast<F&&>(f), static_cast<Args&&>(args)...));
   }
@@ -275,4 +273,4 @@ constexpr R invoke_r(F&& f, Args&&... args) noexcept(is_nothrow_invocable_r<F, A
 
 }  // namespace yk
 
-#endif  // YK_POLYFILL_CXX11_INVOKE_HPP
+#endif  // YK_POLYFILL_FUNCTIONAL_HPP

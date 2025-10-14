@@ -4,8 +4,7 @@
 #include <catch2/catch_test_macros.hpp>
 #endif
 
-#include <yk/polyfill/cxx11/make_unique.hpp>
-#include <yk/polyfill/cxx11/void_t.hpp>
+#include <yk/polyfill/memory.hpp>
 
 #include <type_traits>
 

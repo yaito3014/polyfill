@@ -4,7 +4,7 @@
 #include <catch2/catch_test_macros.hpp>
 #endif
 
-#include <yk/polyfill/cxx11/is_unbounded_array.hpp>
+#include <yk/polyfill/type_traits.hpp>
 
 namespace pf = yk::polyfill;
 

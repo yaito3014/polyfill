@@ -4,8 +4,8 @@
 #include <catch2/catch_test_macros.hpp>
 #endif
 
-#include <yk/polyfill/cxx11/invoke.hpp>
-#include <yk/polyfill/cxx11/make_unique.hpp>
+#include <yk/polyfill/functional.hpp>
+#include <yk/polyfill/memory.hpp>
 
 #include <functional>
 #include <memory>

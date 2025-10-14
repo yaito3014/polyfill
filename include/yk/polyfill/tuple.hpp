@@ -1,15 +1,8 @@
-#ifndef YK_POLYFILL_CXX11_APPLY_HPP
-#define YK_POLYFILL_CXX11_APPLY_HPP
+#ifndef YK_POLYFILL_TUPLE_HPP
+#define YK_POLYFILL_TUPLE_HPP
 
-#include <yk/polyfill/cxx11/integer_sequence.hpp>
-#include <yk/polyfill/cxx11/integral_constant.hpp>
-#include <yk/polyfill/cxx11/invoke.hpp>
-#include <yk/polyfill/cxx11/void_t.hpp>
-
-#include <tuple>
-#include <type_traits>
-
-#include <cstddef>
+#include <yk/polyfill/functional.hpp>
+#include <yk/polyfill/utility.hpp>
 
 namespace yk {
 
@@ -90,4 +83,4 @@ constexpr typename apply_result<F, Tuple>::type apply(F&& f, Tuple&& t) noexcept
 
 }  // namespace yk
 
-#endif  // YK_POLYFILL_CXX11_APPLY_HPP
+#endif  // YK_POLYFILL_TUPLE_HPP

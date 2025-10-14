@@ -4,7 +4,7 @@
 #include <catch2/catch_test_macros.hpp>
 #endif
 
-#include <yk/polyfill/cxx11/exchange.hpp>
+#include <yk/polyfill/utility.hpp>
 
 namespace pf = yk::polyfill;
 

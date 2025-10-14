@@ -4,7 +4,7 @@
 #include <catch2/catch_test_macros.hpp>
 #endif
 
-#include <yk/polyfill/cxx11/disjunction.hpp>
+#include <yk/polyfill/type_traits.hpp>
 
 struct true_type {
   static constexpr bool value = true;
