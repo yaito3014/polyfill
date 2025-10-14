@@ -10,7 +10,7 @@ namespace yk {
 namespace polyfill {
 
 template<class T, class U = T>
-YK_POLYFILL_CXX14_CONSTEXPR T exchange(T& obj, U&& new_value) noexcept(std::is_nothrow_move_constructible_v<T> && std::is_nothrow_assignable_v<T, U>)
+[[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR T exchange(T& obj, U&& new_value) noexcept(std::is_nothrow_move_constructible_v<T> && std::is_nothrow_assignable_v<T, U>)
 {
   T old_value = obj;
   obj = static_cast<U&&>(new_value);
