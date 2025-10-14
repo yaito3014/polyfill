@@ -76,6 +76,8 @@ struct apply_result : apply_detail::apply_result_impl<F, Tuple> {};
 
 #if __cplusplus >= 202302L
 
+#if __cpp_multidimensional_subscript >= 202211L
+
 namespace constant_wrapper_detail {
 
 // workaround for MSVC
@@ -85,6 +87,8 @@ struct subscript {
 };
 
 }  // namespace constant_wrapper_detail
+
+#endif
 
 namespace xo {
 
