@@ -3,8 +3,8 @@
 
 #include <yk/polyfill/config.hpp>
 
+#include <yk/polyfill/bits/core_traits.hpp>
 #include <yk/polyfill/extension/specialization_of.hpp>
-#include <yk/polyfill/type_traits.hpp>
 
 #include <functional>
 #include <type_traits>

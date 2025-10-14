@@ -1,57 +1,14 @@
 #ifndef YK_POLYFILL_TYPE_TRAITS_HPP
 #define YK_POLYFILL_TYPE_TRAITS_HPP
 
+#include <yk/polyfill/bits/apply_detail.hpp>
+#include <yk/polyfill/bits/core_traits.hpp>
+
 #include <type_traits>
 
 namespace yk {
 
 namespace polyfill {
-
-template<class... Ts>
-using void_t = void;
-
-template<class T>
-struct remove_cvref {
-  using type = typename std::remove_cv<typename std::remove_reference<T>::type>::type;
-};
-
-template<class T, T X>
-struct integral_constant {
-  static constexpr T value = X;
-
-  using value_type = T;
-  using type = integral_constant;
-
-  constexpr operator value_type() const noexcept { return value; }
-  [[nodiscard]] constexpr value_type operator()() const noexcept { return value; }
-};
-
-template<bool X>
-using bool_constant = integral_constant<bool, X>;
-
-using true_type = bool_constant<true>;
-using false_type = bool_constant<false>;
-
-template<class Trait>
-struct negation : bool_constant<!Trait::value> {};
-
-template<class... Traits>
-struct conjunction;
-
-template<>
-struct conjunction<> : true_type {};
-
-template<class Trait, class... Traits>
-struct conjunction<Trait, Traits...> : std::conditional<Trait::value, conjunction<Traits...>, false_type>::type {};
-
-template<class... Traits>
-struct disjunction;
-
-template<>
-struct disjunction<> : false_type {};
-
-template<class Trait, class... Traits>
-struct disjunction<Trait, Traits...> : std::conditional<Trait::value, true_type, disjunction<Traits...>>::type {};
 
 template<class T>
 struct is_bounded_array : false_type {};
@@ -107,6 +64,15 @@ struct is_swappable_impl<T, typename std::enable_if<disjunction<std::is_object<T
 
 template<class T>
 struct is_swappable : is_swappable_detail::is_swappable_impl<T> {};
+
+template<class F, class Tuple>
+struct is_applicable : apply_detail::is_applicable_impl<F, Tuple> {};
+
+template<class F, class Tuple>
+struct is_nothrow_applicable : apply_detail::is_nothrow_applicable_impl<F, Tuple> {};
+
+template<class F, class Tuple>
+struct apply_result : apply_detail::apply_result_impl<F, Tuple> {};
 
 #if __cplusplus >= 202302L
 

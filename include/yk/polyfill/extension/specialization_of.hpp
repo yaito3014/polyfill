@@ -1,7 +1,7 @@
 #ifndef YK_POLYFILL_CXX11_EXTENSION_SPECIALIZATION_OF_HPP
 #define YK_POLYFILL_CXX11_EXTENSION_SPECIALIZATION_OF_HPP
 
-#include <yk/polyfill/type_traits.hpp>
+#include <yk/polyfill/bits/core_traits.hpp>
 
 namespace yk {
 
