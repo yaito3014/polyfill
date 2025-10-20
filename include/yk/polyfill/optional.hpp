@@ -2,6 +2,7 @@
 #define YK_POLYFILL_OPTIONAL_HPP
 
 #include <yk/polyfill/bits/trivial_base.hpp>
+#include <yk/polyfill/utility.hpp>
 
 #include <yk/polyfill/config.hpp>
 
@@ -14,8 +15,6 @@ namespace yk {
 namespace polyfill {
 
 namespace optional_detail {
-
-struct in_place_t {};
 
 struct empty_type {};
 
@@ -190,7 +189,7 @@ public:
   constexpr optional(nullopt_t) noexcept {}
 
   template<class... Args, typename std::enable_if<std::is_constructible<T, Args...>::value, std::nullptr_t>::type = nullptr>
-  constexpr optional(in_place_t ip, Args&&... args) noexcept(std::is_nothrow_constructible<T, Args...>) : base(ip, std::forward<Args>(args)...)
+  constexpr optional(in_place_t ip, Args&&... args) noexcept(std::is_nothrow_constructible<T, Args...>::value) : base(ip, std::forward<Args>(args)...)
   {
   }
 
