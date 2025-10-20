@@ -19,6 +19,7 @@ target_sources(
         invoke.cpp
         apply.cpp
         exchange.cpp
+        optional.cpp
 )
 
 set_target_properties(yk_polyfill_cxx11_test PROPERTIES CXX_EXTENSIONS OFF)

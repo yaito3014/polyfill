@@ -65,7 +65,6 @@ exchange(T& obj, U&& new_value) noexcept(std::is_nothrow_move_constructible<T>::
   return old_value;
 }
 
-
 }  // namespace polyfill
 
 }  // namespace yk
