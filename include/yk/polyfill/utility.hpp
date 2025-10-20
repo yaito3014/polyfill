@@ -9,6 +9,22 @@ namespace yk {
 
 namespace polyfill {
 
+struct in_place_t {
+  explicit in_place_t() = default;
+};
+
+struct in_place_holder {
+  static constexpr in_place_t value{};
+};
+
+constexpr in_place_t in_place_holder::value;
+
+#if __cpp_inline_variables >= 201606L
+
+inline constexpr in_place_t in_place{};
+
+#endif
+
 template<class T, T... Is>
 struct integer_sequence {
   using value_type = T;
@@ -50,7 +66,6 @@ exchange(T& obj, U&& new_value) noexcept(std::is_nothrow_move_constructible<T>::
   obj = static_cast<U&&>(new_value);
   return old_value;
 }
-
 
 }  // namespace polyfill
 
