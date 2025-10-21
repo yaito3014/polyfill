@@ -30,5 +30,11 @@ TEST_CASE("optional")
     CHECK(*opt == 42);
   }
 
+  {
+    pf::optional<int> opt = 42;
+    CHECK(opt.has_value());
+    CHECK(*opt == 42);
+  }
+
   // TODO: add non trivial tests
 }
