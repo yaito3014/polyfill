@@ -251,7 +251,7 @@ public:
       class U, typename std::enable_if<
                    std::is_constructible<T, U>::value && optional_detail::allow_unwrapping<T, U>::value && std::is_convertible<U const&, T>::value,
                    std::nullptr_t>::type = nullptr>
-  constexpr optional(optional<U> const& rhs) noexcept(std::is_nothrow_constructible<T, U const&>::value)
+  YK_POLYFILL_CXX20_CONSTEXPR optional(optional<U> const& rhs) noexcept(std::is_nothrow_constructible<T, U const&>::value)
   {
     if (rhs.has_value()) {
       this->construct(*rhs);
@@ -262,7 +262,7 @@ public:
       class U, typename std::enable_if<
                    std::is_constructible<T, U>::value && optional_detail::allow_unwrapping<T, U>::value && !std::is_convertible<U const&, T>::value,
                    std::nullptr_t>::type = nullptr>
-  constexpr explicit optional(optional<U> const& rhs) noexcept(std::is_nothrow_constructible<T, U const&>::value)
+  YK_POLYFILL_CXX20_CONSTEXPR explicit optional(optional<U> const& rhs) noexcept(std::is_nothrow_constructible<T, U const&>::value)
   {
     if (rhs.has_value()) {
       this->construct(*rhs);
@@ -273,7 +273,7 @@ public:
       class U, typename std::enable_if<
                    std::is_constructible<T, U>::value && optional_detail::allow_unwrapping<T, U>::value && std::is_convertible<U, T>::value,
                    std::nullptr_t>::type = nullptr>
-  constexpr optional(optional<U>&& rhs) noexcept(std::is_nothrow_constructible<T, U>::value)
+  YK_POLYFILL_CXX20_CONSTEXPR optional(optional<U>&& rhs) noexcept(std::is_nothrow_constructible<T, U>::value)
   {
     if (rhs.has_value()) {
       this->construct(std::move(*rhs));
@@ -284,7 +284,7 @@ public:
       class U, typename std::enable_if<
                    std::is_constructible<T, U>::value && optional_detail::allow_unwrapping<T, U>::value && !std::is_convertible<U, T>::value,
                    std::nullptr_t>::type = nullptr>
-  constexpr explicit optional(optional<U>&& rhs) noexcept(std::is_nothrow_constructible<T, U>::value)
+  YK_POLYFILL_CXX20_CONSTEXPR explicit optional(optional<U>&& rhs) noexcept(std::is_nothrow_constructible<T, U>::value)
   {
     if (rhs.has_value()) {
       this->construct(std::move(*rhs));
