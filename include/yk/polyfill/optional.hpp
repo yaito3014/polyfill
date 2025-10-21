@@ -172,6 +172,18 @@ struct is_eligible_for_construction {
       && !(std::is_same<typename std::remove_cv<T>::type, bool>::value && extension::is_specialization_of<typename remove_cvref<U>::type, optional>::value);
 };
 
+template<class T, class W>
+struct converts_from_any_cvref {
+  static constexpr bool value = disjunction<
+      std::is_constructible<T, W&>, std::is_convertible<W&, T>, std::is_constructible<T, W>, std::is_convertible<W, T>, std::is_constructible<T, W const&>,
+      std::is_convertible<W const&, T>, std::is_constructible<T, W const>, std::is_convertible<W const, T>>::value;
+};
+
+template<class T, class U>
+struct allow_unwrapping {
+  static constexpr bool value = std::is_same<typename std::remove_cv<T>::type, bool>::value || !converts_from_any_cvref<T, optional<U>>::value;
+};
+
 }  // namespace optional_detail
 
 struct nullopt_t {
@@ -231,9 +243,55 @@ public:
   {
   }
 
+  template<
+      class U, typename std::enable_if<
+                   std::is_constructible<T, U>::value && optional_detail::allow_unwrapping<T, U>::value && std::is_convertible<U const&, T>::value,
+                   std::nullptr_t>::type = nullptr>
+  constexpr optional(optional<U> const& rhs) noexcept(std::is_nothrow_constructible<T, U const&>::value)
+  {
+    if (rhs.has_value()) {
+      this->construct(*rhs);
+    }
+  }
+
+  template<
+      class U, typename std::enable_if<
+                   std::is_constructible<T, U>::value && optional_detail::allow_unwrapping<T, U>::value && !std::is_convertible<U const&, T>::value,
+                   std::nullptr_t>::type = nullptr>
+  constexpr explicit optional(optional<U> const& rhs) noexcept(std::is_nothrow_constructible<T, U const&>::value)
+  {
+    if (rhs.has_value()) {
+      this->construct(*rhs);
+    }
+  }
+
+  template<
+      class U, typename std::enable_if<
+                   std::is_constructible<T, U>::value && optional_detail::allow_unwrapping<T, U>::value && std::is_convertible<U, T>::value,
+                   std::nullptr_t>::type = nullptr>
+  constexpr optional(optional<U>&& rhs) noexcept(std::is_nothrow_constructible<T, U>::value)
+  {
+    if (rhs.has_value()) {
+      this->construct(std::move(*rhs));
+    }
+  }
+
+  template<
+      class U, typename std::enable_if<
+                   std::is_constructible<T, U>::value && optional_detail::allow_unwrapping<T, U>::value && !std::is_convertible<U, T>::value,
+                   std::nullptr_t>::type = nullptr>
+  constexpr explicit optional(optional<U>&& rhs) noexcept(std::is_nothrow_constructible<T, U>::value)
+  {
+    if (rhs.has_value()) {
+      this->construct(std::move(*rhs));
+    }
+  }
+
   using base::has_value;
 
   using base::operator*;
+
+  constexpr explicit operator bool() const noexcept { return has_value(); }
 };
 
 }  // namespace polyfill
