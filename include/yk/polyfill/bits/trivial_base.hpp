@@ -96,6 +96,7 @@ struct non_trivial_copy_assignment : select_base_for_constructors<Base, Ts...> {
   )
   {
     Base::assign_from(static_cast<Base const&>(other));
+    return *this;
   }
 
   non_trivial_copy_assignment& operator=(non_trivial_copy_assignment&&) = default;
@@ -133,6 +134,7 @@ struct non_trivial_move_assignment : select_base_for_constructors_and_copy_assig
   constexpr non_trivial_move_assignment& operator=(non_trivial_move_assignment&& other) noexcept(noexcept(Base::assign_from(static_cast<Base&&>(other))))
   {
     Base::assign_from(static_cast<Base&&>(other));
+    return *this;
   }
 };
 
