@@ -6,6 +6,7 @@
 
 #include <yk/polyfill/config.hpp>
 
+#include <initializer_list>
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -190,6 +191,14 @@ public:
 
   template<class... Args, typename std::enable_if<std::is_constructible<T, Args...>::value, std::nullptr_t>::type = nullptr>
   constexpr optional(in_place_t ip, Args&&... args) noexcept(std::is_nothrow_constructible<T, Args...>::value) : base(ip, std::forward<Args>(args)...)
+  {
+  }
+
+  template<class U, class... Args, typename std::enable_if<std::is_constructible<T, std::initializer_list<U>&, Args...>::value, std::nullptr_t>::type = nullptr>
+  constexpr optional(in_place_t ip, std::initializer_list<U> il, Args&&... args) noexcept(
+      std::is_nothrow_constructible<T, std::initializer_list<U>&, Args...>::value
+  )
+      : base(ip, il, std::forward<Args>(args)...)
   {
   }
 
