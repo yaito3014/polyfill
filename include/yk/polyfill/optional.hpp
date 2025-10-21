@@ -213,6 +213,10 @@ private:
 public:
   using value_type = T;
 
+  using base::has_value;
+  using base::reset;
+  using base::operator*;
+
   constexpr optional() noexcept {}
   constexpr optional(nullopt_t) noexcept {}
 
@@ -286,10 +290,6 @@ public:
       this->construct(std::move(*rhs));
     }
   }
-
-  using base::has_value;
-
-  using base::operator*;
 
   constexpr explicit operator bool() const noexcept { return has_value(); }
 };
