@@ -1,7 +1,11 @@
 #ifndef YK_POLYFILL_OPTIONAL_HPP
 #define YK_POLYFILL_OPTIONAL_HPP
 
+#include <yk/polyfill/bits/core_traits.hpp>
 #include <yk/polyfill/bits/trivial_base.hpp>
+
+#include <yk/polyfill/extension/specialization_of.hpp>
+
 #include <yk/polyfill/utility.hpp>
 
 #include <yk/polyfill/config.hpp>
@@ -14,6 +18,9 @@
 namespace yk {
 
 namespace polyfill {
+
+template<class T>
+class optional;
 
 namespace optional_detail {
 
@@ -157,6 +164,14 @@ struct optional_storage_base<T, false> : public optional_destruct_base<T> {  // 
   [[nodiscard]] constexpr value_type const&& operator*() const&& noexcept { return std::move(this->value); }
 };
 
+template<class T, class U>
+struct is_eligible_for_construction {
+  static constexpr bool value =
+      std::is_constructible<T, U>::value && !std::is_same<typename remove_cvref<U>::type, in_place_t>::value
+      && !std::is_same<typename remove_cvref<U>::type, optional<T>>::value
+      && !(std::is_same<typename std::remove_cv<T>::type, bool>::value && extension::is_specialization_of<typename remove_cvref<U>::type, optional>::value);
+};
+
 }  // namespace optional_detail
 
 struct nullopt_t {
@@ -199,6 +214,20 @@ public:
       std::is_nothrow_constructible<T, std::initializer_list<U>&, Args...>::value
   )
       : base(ip, il, std::forward<Args>(args)...)
+  {
+  }
+
+  template<
+      class U = typename std::remove_cv<T>::type,
+      typename std::enable_if<optional_detail::is_eligible_for_construction<T, U>::value && std::is_convertible<U, T>::value, std::nullptr_t>::type = nullptr>
+  constexpr optional(U&& v) noexcept(std::is_nothrow_constructible<T, U>::value) : base(in_place_holder::value, std::forward<U>(v))
+  {
+  }
+
+  template<
+      class U = typename std::remove_cv<T>::type,
+      typename std::enable_if<optional_detail::is_eligible_for_construction<T, U>::value && !std::is_convertible<U, T>::value, std::nullptr_t>::type = nullptr>
+  constexpr explicit optional(U&& v) noexcept(std::is_nothrow_constructible<T, U>::value) : base(in_place_holder::value, std::forward<U>(v))
   {
   }
 
