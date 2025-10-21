@@ -29,4 +29,6 @@ TEST_CASE("optional")
     CHECK(opt.has_value());
     CHECK(*opt == 42);
   }
+
+  // TODO: add non trivial tests
 }
