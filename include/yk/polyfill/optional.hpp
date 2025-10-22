@@ -184,6 +184,13 @@ struct allow_unwrapping {
   static constexpr bool value = std::is_same<typename std::remove_cv<T>::type, bool>::value || !converts_from_any_cvref<T, optional<U>>::value;
 };
 
+template<class T, class U>
+struct allow_unwrapping_assignment {
+  static constexpr bool value = !disjunction<
+      converts_from_any_cvref<T, optional<U>>, std::is_assignable<T&, optional<U>&>, std::is_assignable<T&, optional<U>&&>,
+      std::is_assignable<T&, optional<U> const&>, std::is_assignable<T&, optional<U> const&&>>::value;
+};
+
 }  // namespace optional_detail
 
 struct nullopt_t {
@@ -289,6 +296,52 @@ public:
     if (rhs.has_value()) {
       this->construct(std::move(*rhs));
     }
+  }
+
+  YK_POLYFILL_CXX20_CONSTEXPR optional& operator=(nullopt_t) noexcept
+  {
+    reset();
+    return *this;
+  }
+
+  template<
+      class U, typename std::enable_if<
+                   !std::is_same<typename remove_cvref<U>::type, optional>::value && std::is_constructible<T, U>::value && std::is_assignable<T&, U>::value
+                       && !conjunction<std::is_scalar<U>, std::is_same<T, typename std::decay<T>::type>>::value,
+                   std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX20_CONSTEXPR optional& operator=(U&& v) noexcept(std::is_nothrow_constructible<T, U>::value && std::is_nothrow_assignable<T&, U>::value)
+  {
+    this->assign(std::forward<U>(v));
+    return *this;
+  }
+
+  template<
+      class U,
+      typename std::enable_if<
+          std::is_constructible<T, U const&>::value && std::is_assignable<T&, U const&>::value && optional_detail::allow_unwrapping_assignment<T, U>::value,
+          std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX20_CONSTEXPR optional& operator=(optional<U> const& rhs)
+  {
+    if (rhs.has_value()) {
+      this->assign(*rhs);
+    } else {
+      reset();
+    }
+    return *this;
+  }
+
+  template<
+      class U, typename std::enable_if<
+                   std::is_constructible<T, U>::value && std::is_assignable<T&, U>::value && optional_detail::allow_unwrapping_assignment<T, U>::value,
+                   std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX20_CONSTEXPR optional& operator=(optional<U>&& rhs)
+  {
+    if (rhs.has_value()) {
+      this->assign(std::move(*rhs));
+    } else {
+      reset();
+    }
+    return *this;
   }
 
   constexpr explicit operator bool() const noexcept { return has_value(); }
