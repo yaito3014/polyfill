@@ -16,6 +16,10 @@ struct has_deleted_adl_swap {
   friend void swap(has_deleted_adl_swap&, has_deleted_adl_swap&) = delete;
 };
 
+struct has_potentially_throwing_swap {
+  friend void swap(has_potentially_throwing_swap&, has_potentially_throwing_swap&) noexcept(false) {}
+};
+
 namespace pf = yk::polyfill;
 
 TEST_CASE("is_swappable")
@@ -29,4 +33,7 @@ TEST_CASE("is_swappable")
   STATIC_REQUIRE(pf::is_swappable<has_deleted_adl_swap>::value == false);
 
   STATIC_REQUIRE(pf::is_swappable<void>::value == false);
+
+  STATIC_REQUIRE(pf::is_nothrow_swappable<int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_swappable<has_potentially_throwing_swap>::value == false);
 }

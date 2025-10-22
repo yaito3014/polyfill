@@ -47,10 +47,20 @@ struct is_swappable_with_impl : false_type {};
 template<class T, class U>
 struct is_swappable_with_impl<T, U, void_t<decltype(swap(std::declval<T>(), std::declval<U>()), swap(std::declval<U>(), std::declval<T>()))>> : true_type {};
 
+template<class T, class U, class = void>
+struct is_nothrow_swappable_with_impl : false_type {};
+
+template<class T, class U>
+struct is_nothrow_swappable_with_impl<T, U, void_t<decltype(swap(std::declval<T>(), std::declval<U>()), swap(std::declval<U>(), std::declval<T>()))>>
+    : bool_constant<noexcept(swap(std::declval<T>(), std::declval<U>()), swap(std::declval<U>(), std::declval<T>()))> {};
+
 }  // namespace is_swappable_with_detail
 
 template<class T, class U>
 struct is_swappable_with : is_swappable_with_detail::is_swappable_with_impl<T, U> {};
+
+template<class T, class U>
+struct is_nothrow_swappable_with : is_swappable_with_detail::is_nothrow_swappable_with_impl<T, U> {};
 
 namespace is_swappable_detail {
 
@@ -60,10 +70,20 @@ struct is_swappable_impl : false_type {};
 template<class T>
 struct is_swappable_impl<T, typename std::enable_if<disjunction<std::is_object<T>, std::is_reference<T>>::value>::type> : is_swappable_with<T&, T&> {};
 
+template<class T, class = void>
+struct is_nothrow_swappable_impl : false_type {};
+
+template<class T>
+struct is_nothrow_swappable_impl<T, typename std::enable_if<disjunction<std::is_object<T>, std::is_reference<T>>::value>::type>
+    : is_nothrow_swappable_with<T&, T&> {};
+
 }  // namespace is_swappable_detail
 
 template<class T>
 struct is_swappable : is_swappable_detail::is_swappable_impl<T> {};
+
+template<class T>
+struct is_nothrow_swappable : is_swappable_detail::is_nothrow_swappable_impl<T> {};
 
 template<class F, class Tuple>
 struct is_applicable : apply_detail::is_applicable_impl<F, Tuple> {};
@@ -101,7 +121,6 @@ struct subscript<X, I> {
 
 }  // namespace constant_wrapper_detail
 
-
 namespace xo {
 
 template<class T>
@@ -138,21 +157,21 @@ namespace xo {
 template<class T>
 concept constexpr_param = requires { typename constant_wrapper<T::value>; };
 
-#define YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_UNARY_OPERATOR(op)                    \
+#define YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_UNARY_OPERATOR(op)                          \
   template<constexpr_param T>                                                                  \
   [[nodiscard]] friend constexpr auto operator op(T) noexcept -> constant_wrapper<+(T::value)> \
   {                                                                                            \
     return {};                                                                                 \
   }
 
-#define YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_BINARY_OPERATOR(op)                                 \
+#define YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_BINARY_OPERATOR(op)                                       \
   template<constexpr_param T, constexpr_param U>                                                             \
   [[nodiscard]] friend constexpr auto operator op(T, U) noexcept -> constant_wrapper<(T::value op U::value)> \
   {                                                                                                          \
     return {};                                                                                               \
   }
 
-#define YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_LOGICAL_OPERATOR(op)                                           \
+#define YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_LOGICAL_OPERATOR(op)                                                 \
   template<constexpr_param T, constexpr_param U>                                                                        \
     requires (!std::is_constructible_v<bool, decltype(T::value)> || !std::is_constructible_v<bool, decltype(U::value)>) \
   [[nodiscard]] friend constexpr auto operator op(T, U) noexcept -> constant_wrapper<(T::value op U::value)>            \
@@ -163,35 +182,34 @@ concept constexpr_param = requires { typename constant_wrapper<T::value>; };
 #if __cpp_explicit_this_parameter >= 202110L
 
 #define YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_FIX_OPERATOR(op) \
-  template<constexpr_param T>                                             \
-  [[nodiscard]] constexpr auto operator op(this T) noexcept               \
-    requires requires(T::value_type x) { op x; }                          \
-  {                                                                       \
-    return constant_wrapper<[] {                                          \
-      auto c = T::value;                                                  \
-      return op c;                                                        \
-    }()>{};                                                               \
-  }                                                                       \
-  template<constexpr_param T>                                             \
-  [[nodiscard]] constexpr auto operator op(this T, int) noexcept          \
-    requires requires(T::value_type x) { x op; }                          \
-  {                                                                       \
-    return constant_wrapper<[] {                                          \
-      auto c = T::value;                                                  \
-      return c op;                                                        \
-    }()>{};                                                               \
+  template<constexpr_param T>                                       \
+  [[nodiscard]] constexpr auto operator op(this T) noexcept         \
+    requires requires(T::value_type x) { op x; }                    \
+  {                                                                 \
+    return constant_wrapper<[] {                                    \
+      auto c = T::value;                                            \
+      return op c;                                                  \
+    }()>{};                                                         \
+  }                                                                 \
+  template<constexpr_param T>                                       \
+  [[nodiscard]] constexpr auto operator op(this T, int) noexcept    \
+    requires requires(T::value_type x) { x op; }                    \
+  {                                                                 \
+    return constant_wrapper<[] {                                    \
+      auto c = T::value;                                            \
+      return c op;                                                  \
+    }()>{};                                                         \
   }
 
-
 #define YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_ASSIGNMENT_OPERATOR(op) \
-  template<constexpr_param T, constexpr_param R>                                 \
-  [[nodiscard]] constexpr auto operator op(this T, R) noexcept                   \
-    requires requires(T::value_type x) { x op R::value; }                        \
-  {                                                                              \
-    return constant_wrapper<[] {                                                 \
-      auto v = T::value;                                                         \
-      return v op R::value;                                                      \
-    }()>{};                                                                      \
+  template<constexpr_param T, constexpr_param R>                           \
+  [[nodiscard]] constexpr auto operator op(this T, R) noexcept             \
+    requires requires(T::value_type x) { x op R::value; }                  \
+  {                                                                        \
+    return constant_wrapper<[] {                                           \
+      auto v = T::value;                                                   \
+      return v op R::value;                                                \
+    }()>{};                                                                \
   }
 
 #endif
@@ -248,7 +266,6 @@ struct cw_operators {
 
   YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_FIX_OPERATOR(++)
   YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_FIX_OPERATOR(--)
-
 
   YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_ASSIGNMENT_OPERATOR(+=)
   YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_ASSIGNMENT_OPERATOR(-=)

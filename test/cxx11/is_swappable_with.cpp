@@ -8,6 +8,10 @@
 
 namespace pf = yk::polyfill;
 
+struct has_potentially_throwing_swap {
+  friend void swap(has_potentially_throwing_swap&, has_potentially_throwing_swap&) noexcept(false) {}
+};
+
 struct only_has_lhs_swap {
   template<class T>
   friend void swap(only_has_lhs_swap&, T&)
@@ -29,4 +33,7 @@ TEST_CASE("is_swappable_with")
 
   STATIC_REQUIRE(pf::is_swappable_with<only_has_lhs_swap&, int&>::value == false);
   STATIC_REQUIRE(pf::is_swappable_with<int&, only_has_rhs_swap&>::value == false);
+
+  STATIC_REQUIRE(pf::is_nothrow_swappable_with<int&, int&>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_swappable_with<has_potentially_throwing_swap&, has_potentially_throwing_swap&>::value == false);
 }
