@@ -92,5 +92,35 @@ TEST_CASE("optional")
     STATIC_REQUIRE(!std::is_convertible<pf::optional<int>, pf::optional<NeedExplicitConvertion>>::value);
   }
 
+  // nullopt assignment
+  {
+    pf::optional<int> a = 42;
+    a = pf::nullopt_holder::value;
+    CHECK(!a.has_value());
+  }
+
+  // generic assignment
+  {
+    pf::optional<int> a = 42;
+    a = 3.14;
+    CHECK(*a == 3);
+  }
+
+  // generic copy assignment
+  {
+    pf::optional<int> a = 42;
+    pf::optional<double> b = 3.14;
+    b = a;
+    CHECK(*b == 42.0);
+  }
+
+  // generic move assignment
+  {
+    pf::optional<int> a = 42;
+    pf::optional<double> b = 3.14;
+    b = std::move(a);
+    CHECK(*b == 42.0);
+  }
+
   // TODO: add non trivial tests
 }
