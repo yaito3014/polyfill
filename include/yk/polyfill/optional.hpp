@@ -6,6 +6,7 @@
 
 #include <yk/polyfill/extension/specialization_of.hpp>
 
+#include <yk/polyfill/type_traits.hpp>
 #include <yk/polyfill/utility.hpp>
 
 #include <yk/polyfill/config.hpp>
@@ -364,6 +365,22 @@ public:
     static_assert(std::is_constructible<T, Args...>::value, "T must be constructible from arguments");
     reset();
     this->construct(il, std::forward<Args>(args)...);
+  }
+
+  YK_POLYFILL_CXX20_CONSTEXPR void swap(optional& other) noexcept(conjunction<std::is_nothrow_move_constructible<T>, is_nothrow_swappable<T>>::value)
+  {
+    static_assert(std::is_move_constructible<T>::value, "T must be move constructible");
+    if (has_value() == other.has_value()) {
+      if (has_value()) {
+        using std::swap;
+        swap(**this, *other);
+      }
+    } else {
+      optional& source = has_value() ? *this : other;
+      optional& target = has_value() ? other : *this;
+      target.construct(std::move(*source));
+      source.reset();
+    }
   }
 
   constexpr explicit operator bool() const noexcept { return has_value(); }
