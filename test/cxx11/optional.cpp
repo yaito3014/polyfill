@@ -161,5 +161,16 @@ TEST_CASE("optional")
     }
   }
 
+  // member access
+  {
+    struct S {
+      int x;
+      explicit S(int arg) : x(arg) {}
+    };
+
+    pf::optional<S> s(pf::in_place_holder::value, 42);
+    CHECK(s->x == 42);
+  }
+
   // TODO: add non trivial tests
 }
