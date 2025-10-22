@@ -348,6 +348,24 @@ public:
     return *this;
   }
 
+  template<class... Args>
+  YK_POLYFILL_CXX20_CONSTEXPR void emplace(Args&&... args) noexcept(std::is_nothrow_constructible<T, Args...>::value)
+  {
+    static_assert(std::is_constructible<T, Args...>::value, "T must be constructible from arguments");
+    reset();
+    this->construct(std::forward<Args>(args)...);
+  }
+
+  template<class U, class... Args, typename std::enable_if<std::is_constructible<T, std::initializer_list<U>&, Args...>::value, std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX20_CONSTEXPR void emplace(std::initializer_list<U> il, Args&&... args) noexcept(
+      std::is_nothrow_constructible<T, std::initializer_list<U>&, Args...>::value
+  )
+  {
+    static_assert(std::is_constructible<T, Args...>::value, "T must be constructible from arguments");
+    reset();
+    this->construct(il, std::forward<Args>(args)...);
+  }
+
   constexpr explicit operator bool() const noexcept { return has_value(); }
 };
 
