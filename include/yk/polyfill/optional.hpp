@@ -106,6 +106,9 @@ struct optional_storage_base<T, true> {  // T is a reference type
 
   [[nodiscard]] constexpr bool has_value() const noexcept { return ptr != nullptr; }
 
+  constexpr typename std::remove_reference<T>::type* operator->() noexcept { return ptr; }
+  constexpr typename std::remove_reference<T>::type const* operator->() const noexcept { return ptr; }
+
   [[nodiscard]] constexpr value_type& operator*() const& noexcept { return *ptr; }
   [[nodiscard]] constexpr value_type&& operator*() const&& noexcept { return std::forward<value_type>(*ptr); }
 };
@@ -158,6 +161,9 @@ struct optional_storage_base<T, false> : public optional_destruct_base<T> {  // 
       this->reset();
     }
   }
+
+  constexpr T* operator->() noexcept { return std::addressof(this->value); }
+  constexpr T const* operator->() const noexcept { return std::addressof(this->value); }
 
   [[nodiscard]] constexpr value_type& operator*() & noexcept { return this->value; }
   [[nodiscard]] constexpr value_type const& operator*() const& noexcept { return this->value; }
@@ -224,6 +230,7 @@ public:
   using base::has_value;
   using base::reset;
   using base::operator*;
+  using base::operator->;
 
   constexpr optional() noexcept {}
   constexpr optional(nullopt_t) noexcept {}
