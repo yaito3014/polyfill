@@ -129,5 +129,37 @@ TEST_CASE("optional")
     CHECK(*a == 29);
   }
 
+  // swap
+  {
+    {
+      pf::optional<int> a = 33;
+      pf::optional<int> b = 4;
+      a.swap(b);
+      CHECK(*a == 4);
+      CHECK(*b == 33);
+    }
+    {
+      pf::optional<int> a = 42;
+      pf::optional<int> b;
+      a.swap(b);
+      CHECK(!a.has_value());
+      CHECK(*b == 42);
+    }
+    {
+      pf::optional<int> a;
+      pf::optional<int> b = 42;
+      a.swap(b);
+      CHECK(*a == 42);
+      CHECK(!b.has_value());
+    }
+    {
+      pf::optional<int> a;
+      pf::optional<int> b;
+      a.swap(b);
+      CHECK(!a.has_value());
+      CHECK(!b.has_value());
+    }
+  }
+
   // TODO: add non trivial tests
 }
