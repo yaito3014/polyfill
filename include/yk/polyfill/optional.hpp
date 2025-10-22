@@ -320,7 +320,9 @@ public:
       typename std::enable_if<
           std::is_constructible<T, U const&>::value && std::is_assignable<T&, U const&>::value && optional_detail::allow_unwrapping_assignment<T, U>::value,
           std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX20_CONSTEXPR optional& operator=(optional<U> const& rhs)
+  YK_POLYFILL_CXX20_CONSTEXPR optional& operator=(optional<U> const& rhs) noexcept(
+      conjunction<std::is_nothrow_constructible<T, U const&>, std::is_nothrow_assignable<T, U const&>>::value
+  )
   {
     if (rhs.has_value()) {
       this->assign(*rhs);
@@ -334,7 +336,9 @@ public:
       class U, typename std::enable_if<
                    std::is_constructible<T, U>::value && std::is_assignable<T&, U>::value && optional_detail::allow_unwrapping_assignment<T, U>::value,
                    std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX20_CONSTEXPR optional& operator=(optional<U>&& rhs)
+  YK_POLYFILL_CXX20_CONSTEXPR optional& operator=(optional<U>&& rhs) noexcept(
+      conjunction<std::is_nothrow_constructible<T, U>, std::is_nothrow_assignable<T, U>>::value
+  )
   {
     if (rhs.has_value()) {
       this->assign(std::move(*rhs));
