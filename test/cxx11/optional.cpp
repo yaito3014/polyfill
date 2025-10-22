@@ -122,5 +122,12 @@ TEST_CASE("optional")
     CHECK(*b == 42.0);
   }
 
+  // emplace
+  {
+    pf::optional<int> a = 42;
+    a.emplace(33 - 4);
+    CHECK(*a == 29);
+  }
+
   // TODO: add non trivial tests
 }
