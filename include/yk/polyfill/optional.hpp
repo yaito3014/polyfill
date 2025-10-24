@@ -46,7 +46,7 @@ struct optional_destruct_base<T, true> {  // T is trivially destructible
   {
   }
 
-  YK_POLYFILL_CXX20_CONSTEXPR void reset() noexcept
+  constexpr void reset() noexcept
   {
     if (engaged) {
       engaged = false;
@@ -98,7 +98,7 @@ struct optional_storage_base<T, true> {  // T is a reference type
   constexpr optional_storage_base() noexcept : ptr(nullptr) {}
 
   template<class Arg>
-  constexpr explicit optional_storage_base(in_place_t, Arg&& arg) noexcept : ptr(std::addressof(arg))
+  YK_POLYFILL_CXX17_CONSTEXPR explicit optional_storage_base(in_place_t, Arg&& arg) noexcept : ptr(std::addressof(arg))
   {
   }
 
@@ -162,8 +162,8 @@ struct optional_storage_base<T, false> : public optional_destruct_base<T> {  // 
     }
   }
 
-  constexpr T* operator->() noexcept { return std::addressof(this->value); }
-  constexpr T const* operator->() const noexcept { return std::addressof(this->value); }
+  YK_POLYFILL_CXX17_CONSTEXPR T* operator->() noexcept { return std::addressof(this->value); }
+  YK_POLYFILL_CXX17_CONSTEXPR T const* operator->() const noexcept { return std::addressof(this->value); }
 
   [[nodiscard]] constexpr value_type& operator*() & noexcept { return this->value; }
   [[nodiscard]] constexpr value_type const& operator*() const& noexcept { return this->value; }
