@@ -5,6 +5,7 @@
 #endif
 
 #include <yk/polyfill/optional.hpp>
+#include <yk/polyfill/utility.hpp>
 
 #include <type_traits>
 #include <utility>
@@ -170,6 +171,7 @@ TEST_CASE("optional")
 
     pf::optional<S> s(pf::in_place_holder::value, 42);
     CHECK(s->x == 42);
+    CHECK(pf::as_const(s)->x == 42);
   }
 
   // TODO: add non trivial tests
