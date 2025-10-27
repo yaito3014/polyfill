@@ -11,6 +11,7 @@
 
 #include <yk/polyfill/config.hpp>
 
+#include <exception>
 #include <initializer_list>
 #include <memory>
 #include <type_traits>
@@ -22,6 +23,10 @@ namespace polyfill {
 
 template<class T>
 class optional;
+
+class bad_optional_access : public std::exception {
+  char const* what() const noexcept override { return "accessing empty optional"; }
+};
 
 namespace optional_detail {
 
@@ -389,6 +394,11 @@ public:
       source.reset();
     }
   }
+
+  constexpr T& value() & { return has_value() ? **this : throw bad_optional_access{}; }
+  constexpr T const& value() const& { return has_value() ? **this : throw bad_optional_access{}; }
+  constexpr T&& value() && { return has_value() ? std::move(**this) : throw bad_optional_access{}; }
+  constexpr T const&& value() const&& { return has_value() ? std::move(**this) : throw bad_optional_access{}; }
 
   constexpr explicit operator bool() const noexcept { return has_value(); }
 };
