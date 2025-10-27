@@ -415,6 +415,8 @@ public:
   }
 
   constexpr explicit operator bool() const noexcept { return has_value(); }
+
+  // TODO: monadic operations
 };
 
 }  // namespace polyfill
