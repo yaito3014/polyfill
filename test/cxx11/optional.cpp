@@ -174,5 +174,13 @@ TEST_CASE("optional")
     CHECK(pf::as_const(s)->x == 42);
   }
 
+  // checked value access
+  {
+    pf::optional<int> opt;
+    CHECK_THROWS_AS(opt.value(), pf::bad_optional_access);
+    opt.emplace(42);
+    CHECK_NOTHROW(opt.value() == 42);
+  }
+
   // TODO: add non trivial tests
 }
