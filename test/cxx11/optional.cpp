@@ -180,6 +180,11 @@ TEST_CASE("optional")
     CHECK_THROWS_AS(opt.value(), pf::bad_optional_access);
     opt.emplace(42);
     CHECK_NOTHROW(opt.value() == 42);
+
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<pf::optional<int>&>().value()), int&>::value);
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<pf::optional<int> const&>().value()), int const&>::value);
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<pf::optional<int>&&>().value()), int&&>::value);
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<pf::optional<int> const&&>().value()), int const&&>::value);
   }
 
   // TODO: add non trivial tests
