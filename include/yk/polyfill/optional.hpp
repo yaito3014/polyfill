@@ -400,6 +400,20 @@ public:
   constexpr T&& value() && { return has_value() ? std::move(**this) : throw bad_optional_access{}; }
   constexpr T const&& value() const&& { return has_value() ? std::move(**this) : throw bad_optional_access{}; }
 
+  template<class U = typename std::remove_cv<T>::type>
+  constexpr T value_or(U&& v) const& noexcept(std::is_nothrow_copy_constructible<T>::value && std::is_nothrow_constructible<T, U>::value)
+  {
+    static_assert(std::is_copy_constructible<T>::value && std::is_convertible<U&&, T>::value);
+    return has_value() ? **this : static_cast<T>(std::forward<U>(v));
+  }
+
+  template<class U = typename std::remove_cv<T>::type>
+  constexpr T value_or(U&& v) && noexcept(std::is_nothrow_move_constructible<T>::value && std::is_nothrow_constructible<T, U>::value)
+  {
+    static_assert(std::is_move_constructible<T>::value && std::is_convertible<U&&, T>::value);
+    return has_value() ? std::move(**this) : static_cast<T>(std::forward<U>(v));
+  }
+
   constexpr explicit operator bool() const noexcept { return has_value(); }
 };
 

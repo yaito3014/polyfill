@@ -187,5 +187,13 @@ TEST_CASE("optional")
     STATIC_REQUIRE(std::is_same<decltype(std::declval<pf::optional<int> const&&>().value()), int const&&>::value);
   }
 
+  // fallback value access
+  {
+    pf::optional<int> opt;
+    CHECK(opt.value_or(42) == 42);
+    opt.emplace(33);
+    CHECK(opt.value_or(4) == 33);
+  }
+
   // TODO: add non trivial tests
 }
