@@ -65,6 +65,15 @@ exchange(T& obj, U&& new_value) noexcept(std::is_nothrow_move_constructible<T>::
   return old_value;
 }
 
+template<class T>
+constexpr typename std::add_const<T>::type& as_const(T& x) noexcept
+{
+  return x;
+}
+
+template<class T>
+void as_const(T const&&) = delete;
+
 }  // namespace polyfill
 
 }  // namespace yk
