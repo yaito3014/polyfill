@@ -91,35 +91,8 @@ struct optional_destruct_base<T, false> {  // T is NOT trivially destructible
   }
 };
 
-template<class T, bool = std::is_reference<T>::value>
-struct optional_storage_base;
-
 template<class T>
-struct optional_storage_base<T, true> {  // T is a reference type
-  typename std::remove_reference<T>::type* ptr;
-
-  using value_type = T;
-
-  constexpr optional_storage_base() noexcept : ptr(nullptr) {}
-
-  template<class Arg>
-  YK_POLYFILL_CXX17_CONSTEXPR explicit optional_storage_base(in_place_t, Arg&& arg) noexcept : ptr(std::addressof(arg))
-  {
-  }
-
-  constexpr void reset() noexcept { ptr = nullptr; }
-
-  [[nodiscard]] constexpr bool has_value() const noexcept { return ptr != nullptr; }
-
-  constexpr typename std::remove_reference<T>::type* operator->() noexcept { return ptr; }
-  constexpr typename std::remove_reference<T>::type const* operator->() const noexcept { return ptr; }
-
-  [[nodiscard]] constexpr value_type& operator*() const& noexcept { return *ptr; }
-  [[nodiscard]] constexpr value_type&& operator*() const&& noexcept { return std::forward<value_type>(*ptr); }
-};
-
-template<class T>
-struct optional_storage_base<T, false> : public optional_destruct_base<T> {  // T is NOT a reference type
+struct optional_storage_base : public optional_destruct_base<T> {  // T is NOT a reference type
   using base = optional_destruct_base<T>;
 
   using value_type = T;
