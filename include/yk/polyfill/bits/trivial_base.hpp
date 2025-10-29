@@ -18,7 +18,7 @@ struct non_trivial_copy_constructor : Base {
 
   non_trivial_copy_constructor() = default;
 
-  constexpr non_trivial_copy_constructor(non_trivial_copy_constructor const& other) noexcept(noexcept(Base::construct_from(static_cast<Base const&>(other))))
+  YK_POLYFILL_CXX14_CONSTEXPR non_trivial_copy_constructor(non_trivial_copy_constructor const& other) noexcept(noexcept(Base::construct_from(static_cast<Base const&>(other))))
   {
     Base::construct_from(static_cast<Base const&>(other));
   }
@@ -55,7 +55,7 @@ struct non_trivial_move_constructor : select_base_for_copy_constructor<Base, Ts.
 
   non_trivial_move_constructor(non_trivial_move_constructor const&) = default;
 
-  constexpr non_trivial_move_constructor(non_trivial_move_constructor&& other) noexcept(noexcept(Base::construct_from(static_cast<Base&&>(other))))
+  YK_POLYFILL_CXX14_CONSTEXPR non_trivial_move_constructor(non_trivial_move_constructor&& other) noexcept(noexcept(Base::construct_from(static_cast<Base&&>(other))))
   {
     Base::construct_from(static_cast<Base&&>(other));
   }
@@ -91,7 +91,7 @@ struct non_trivial_copy_assignment : select_base_for_constructors<Base, Ts...> {
 
   non_trivial_copy_assignment(non_trivial_copy_assignment&&) = default;
 
-  constexpr non_trivial_copy_assignment& operator=(non_trivial_copy_assignment const& other) noexcept(
+  YK_POLYFILL_CXX14_CONSTEXPR non_trivial_copy_assignment& operator=(non_trivial_copy_assignment const& other) noexcept(
       noexcept(Base::assign_from(static_cast<Base const&>(other)))
   )
   {
@@ -131,7 +131,7 @@ struct non_trivial_move_assignment : select_base_for_constructors_and_copy_assig
 
   non_trivial_move_assignment& operator=(non_trivial_move_assignment const&) = default;
 
-  constexpr non_trivial_move_assignment& operator=(non_trivial_move_assignment&& other) noexcept(noexcept(Base::assign_from(static_cast<Base&&>(other))))
+  YK_POLYFILL_CXX14_CONSTEXPR non_trivial_move_assignment& operator=(non_trivial_move_assignment&& other) noexcept(noexcept(Base::assign_from(static_cast<Base&&>(other))))
   {
     Base::assign_from(static_cast<Base&&>(other));
     return *this;
