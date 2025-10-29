@@ -505,7 +505,7 @@ public:
     if (rhs.has_value()) convert_ref_init_val(std::move(*rhs));
   }
 
-  YK_POLYFILL_CXX17_CONSTEXPR ~optional() = default;
+  YK_POLYFILL_CXX20_CONSTEXPR ~optional() = default;
 
   YK_POLYFILL_CXX14_CONSTEXPR optional& operator=(nullopt_t) noexcept
   {
