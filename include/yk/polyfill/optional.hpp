@@ -392,6 +392,162 @@ public:
   // TODO: monadic operations
 };
 
+template<class T>
+class optional<T&> {
+public:
+  template<class Arg, typename std::enable_if<std::is_constructible<T&, Arg>::value, std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX17_CONSTEXPR optional(in_place_t, Arg&& arg) noexcept(std::is_nothrow_constructible<T&, Arg>::value)
+  {
+    convert_ref_init_val(std::forward<Arg>(arg));
+  }
+
+  template<
+      class U, typename std::enable_if<
+                   !std::is_same<typename remove_cvref<U>::type, optional>::value && !std::is_same<typename remove_cvref<U>::type, in_place_t>::value
+                       && std::is_constructible<T&, U>::value && std::is_convertible<U, T&>::value,
+                   std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX17_CONSTEXPR optional(U&& u) noexcept(std::is_nothrow_constructible<T&, U>::value)
+  {
+    convert_ref_init_val(std::forward<U>(u));
+  }
+
+  template<
+      class U, typename std::enable_if<
+                   !std::is_same<typename remove_cvref<U>::type, optional>::value && !std::is_same<typename remove_cvref<U>::type, in_place_t>::value
+                       && std::is_constructible<T&, U>::value && !std::is_convertible<U, T&>::value,
+                   std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX17_CONSTEXPR explicit optional(U&& u) noexcept(std::is_nothrow_constructible<T&, U>::value)
+  {
+    convert_ref_init_val(std::forward<U>(u));
+  }
+
+  template<
+      class U, typename std::enable_if<
+                   !std::is_same<typename std::remove_cv<T>::type, optional<U>>::value && !std::is_same<T&, U>::value && std::is_constructible<T&, U&>::value
+                       && std::is_convertible<U&, T&>::value,
+                   std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX17_CONSTEXPR optional(optional<U>& rhs) noexcept(std::is_nothrow_constructible<T&, U&>::value)
+  {
+    if (rhs.has_value()) convert_ref_init_val(*rhs);
+  }
+
+  template<
+      class U, typename std::enable_if<
+                   !std::is_same<typename std::remove_cv<T>::type, optional<U>>::value && !std::is_same<T&, U>::value && std::is_constructible<T&, U&>::value
+                       && !std::is_convertible<U&, T&>::value,
+                   std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX17_CONSTEXPR explicit optional(optional<U>& rhs) noexcept(std::is_nothrow_constructible<T&, U&>::value)
+  {
+    if (rhs.has_value()) convert_ref_init_val(*rhs);
+  }
+
+  template<
+      class U, typename std::enable_if<
+                   !std::is_same<typename std::remove_cv<T>::type, optional<U>>::value && !std::is_same<T&, U>::value
+                       && std::is_constructible<T&, U const&>::value && std::is_convertible<U const&, T&>::value,
+                   std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX17_CONSTEXPR optional(optional<U> const& rhs) noexcept(std::is_nothrow_constructible<T&, U const&>::value)
+  {
+    if (rhs.has_value()) convert_ref_init_val(*rhs);
+  }
+
+  template<
+      class U, typename std::enable_if<
+                   !std::is_same<typename std::remove_cv<T>::type, optional<U>>::value && !std::is_same<T&, U>::value
+                       && std::is_constructible<T&, U const&>::value && !std::is_convertible<U const&, T&>::value,
+                   std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX17_CONSTEXPR explicit optional(optional<U> const& rhs) noexcept(std::is_nothrow_constructible<T&, U const&>::value)
+  {
+    if (rhs.has_value()) convert_ref_init_val(*rhs);
+  }
+
+  template<
+      class U, typename std::enable_if<
+                   !std::is_same<typename std::remove_cv<T>::type, optional<U>>::value && !std::is_same<T&, U>::value && std::is_constructible<T&, U>::value
+                       && std::is_convertible<U, T&>::value,
+                   std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX17_CONSTEXPR optional(optional<U>&& rhs) noexcept(std::is_nothrow_constructible<T&, U>::value)
+  {
+    if (rhs.has_value()) convert_ref_init_val(std::move(*rhs));
+  }
+
+  template<
+      class U, typename std::enable_if<
+                   !std::is_same<typename std::remove_cv<T>::type, optional<U>>::value && !std::is_same<T&, U>::value && std::is_constructible<T&, U>::value
+                       && !std::is_convertible<U, T&>::value,
+                   std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX17_CONSTEXPR explicit optional(optional<U>&& rhs) noexcept(std::is_nothrow_constructible<T&, U>::value)
+  {
+    if (rhs.has_value()) convert_ref_init_val(std::move(*rhs));
+  }
+
+  template<
+      class U, typename std::enable_if<
+                   !std::is_same<typename std::remove_cv<T>::type, optional<U>>::value && !std::is_same<T&, U>::value
+                       && std::is_constructible<T&, U const>::value && std::is_convertible<U const, T&>::value,
+                   std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX17_CONSTEXPR optional(optional<U> const&& rhs) noexcept(std::is_nothrow_constructible<T&, U const>::value)
+  {
+    if (rhs.has_value()) convert_ref_init_val(std::move(*rhs));
+  }
+
+  template<
+      class U, typename std::enable_if<
+                   !std::is_same<typename std::remove_cv<T>::type, optional<U>>::value && !std::is_same<T&, U>::value
+                       && std::is_constructible<T&, U const>::value && !std::is_convertible<U const, T&>::value,
+                   std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX17_CONSTEXPR explicit optional(optional<U>&& rhs) noexcept(std::is_nothrow_constructible<T&, U const>::value)
+  {
+    if (rhs.has_value()) convert_ref_init_val(std::move(*rhs));
+  }
+
+  constexpr optional& operator=(nullopt_t) noexcept
+  {
+    ptr = nullptr;
+    return *this;
+  }
+
+  template<class U, typename std::enable_if<std::is_constructible<T&, U>::value, std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX17_CONSTEXPR T& emplace(U&& u) noexcept(std::is_nothrow_constructible<T&, U>::value)
+  {
+    convert_ref_init_val(std::forward<U>(u));
+    return *this;
+  }
+
+  YK_POLYFILL_CXX17_CONSTEXPR void swap(optional& rhs) noexcept { std::swap(ptr, rhs.ptr); }
+
+  constexpr T* operator->() const noexcept { return ptr; };
+
+  constexpr T& operator*() const noexcept { return *ptr; }
+
+  constexpr operator bool() const noexcept { return ptr != nullptr; }
+
+  constexpr bool has_value() const noexcept { return ptr != nullptr; }
+
+  constexpr T& value() const { return has_value() ? *ptr : throw bad_optional_access{}; }
+
+  template<class U = typename std::remove_cv<T>::type>
+  constexpr typename std::remove_cv<T>::type value_or(U&& u) const
+  {
+    return has_value() ? *ptr : static_cast<typename std::remove_cv<T>::type>(std::forward<U>(u));
+  }
+
+  // TODO: monadic operations
+
+  constexpr void reset() { ptr = nullptr; }
+
+private:
+  template<class U>
+  YK_POLYFILL_CXX17_CONSTEXPR void convert_ref_init_val(U&& u) noexcept(std::is_nothrow_constructible<T&, U>::value)
+  {
+    T& r(std::forward<U>(u));
+    ptr = std::addressof(r);
+  }
+
+private:
+  T* ptr;
+};
+
 }  // namespace polyfill
 
 }  // namespace yk

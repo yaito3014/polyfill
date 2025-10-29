@@ -195,5 +195,13 @@ TEST_CASE("optional")
     CHECK(opt.value_or(4) == 33);
   }
 
+  // ref optional
+  {
+    int x = 42;
+    pf::optional<int&> opt = x;
+    CHECK(opt.has_value());
+    CHECK(*opt == 42);
+  }
+
   // TODO: add non trivial tests
 }
