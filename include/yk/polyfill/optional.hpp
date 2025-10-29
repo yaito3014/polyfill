@@ -51,7 +51,7 @@ struct optional_destruct_base<T, true> {  // T is trivially destructible
   {
   }
 
-  constexpr void reset() noexcept
+  YK_POLYFILL_CXX14_CONSTEXPR void reset() noexcept
   {
     if (engaged) {
       engaged = false;
@@ -143,9 +143,9 @@ struct optional_storage_base : public optional_destruct_base<T> {  // T is NOT a
   YK_POLYFILL_CXX17_CONSTEXPR T* operator->() noexcept { return std::addressof(this->value); }
   YK_POLYFILL_CXX17_CONSTEXPR T const* operator->() const noexcept { return std::addressof(this->value); }
 
-  [[nodiscard]] constexpr value_type& operator*() & noexcept { return this->value; }
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR_type& operator*() & noexcept { return this->value; }
   [[nodiscard]] constexpr value_type const& operator*() const& noexcept { return this->value; }
-  [[nodiscard]] constexpr value_type&& operator*() && noexcept { return std::move(this->value); }
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR_type&& operator*() && noexcept { return std::move(this->value); }
   [[nodiscard]] constexpr value_type const&& operator*() const&& noexcept { return std::move(this->value); }
 };
 
@@ -185,8 +185,6 @@ struct nullopt_t {
 struct nullopt_holder {
   static constexpr nullopt_t value{};
 };
-
-constexpr nullopt_t nullopt_holder::value;
 
 #if __cpp_inline_variables >= 201606L
 
@@ -513,7 +511,7 @@ public:
     return *this;
   }
 
-  constexpr optional& operator=(optional const&) noexcept = default;
+  YK_POLYFILL_CXX14_CONSTEXPR optional& operator=(optional const&) noexcept = default;
 
   template<class U, typename std::enable_if<std::is_constructible<T&, U>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX17_CONSTEXPR T& emplace(U&& u) noexcept(std::is_nothrow_constructible<T&, U>::value)
