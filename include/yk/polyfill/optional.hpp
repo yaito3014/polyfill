@@ -395,6 +395,10 @@ public:
 template<class T>
 class optional<T&> {
 public:
+  constexpr optional() noexcept = default;
+  constexpr optional(nullopt_t) noexcept : optional() {}
+  constexpr optional(optional const&) noexcept = default;
+
   template<class Arg, typename std::enable_if<std::is_constructible<T&, Arg>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX17_CONSTEXPR optional(in_place_t, Arg&& arg) noexcept(std::is_nothrow_constructible<T&, Arg>::value)
   {
@@ -501,11 +505,15 @@ public:
     if (rhs.has_value()) convert_ref_init_val(std::move(*rhs));
   }
 
-  constexpr optional& operator=(nullopt_t) noexcept
+  YK_POLYFILL_CXX17_CONSTEXPR ~optional() = default;
+
+  YK_POLYFILL_CXX14_CONSTEXPR optional& operator=(nullopt_t) noexcept
   {
     ptr = nullptr;
     return *this;
   }
+
+  constexpr optional& operator=(optional const&) noexcept = default;
 
   template<class U, typename std::enable_if<std::is_constructible<T&, U>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX17_CONSTEXPR T& emplace(U&& u) noexcept(std::is_nothrow_constructible<T&, U>::value)
