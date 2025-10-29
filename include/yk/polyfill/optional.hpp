@@ -368,10 +368,10 @@ public:
     }
   }
 
-  constexpr T& value() & { return has_value() ? **this : throw bad_optional_access{}; }
-  constexpr T const& value() const& { return has_value() ? **this : throw bad_optional_access{}; }
-  constexpr T&& value() && { return has_value() ? std::move(**this) : throw bad_optional_access{}; }
-  constexpr T const&& value() const&& { return has_value() ? std::move(**this) : throw bad_optional_access{}; }
+  YK_POLYFILL_CXX14_CONSTEXPR T& value() & { return has_value() ? **this : throw bad_optional_access{}; }
+  YK_POLYFILL_CXX14_CONSTEXPR T const& value() const& { return has_value() ? **this : throw bad_optional_access{}; }
+  YK_POLYFILL_CXX14_CONSTEXPR T&& value() && { return has_value() ? std::move(**this) : throw bad_optional_access{}; }
+  YK_POLYFILL_CXX14_CONSTEXPR T const&& value() const&& { return has_value() ? std::move(**this) : throw bad_optional_access{}; }
 
   template<class U = typename std::remove_cv<T>::type>
   constexpr T value_or(U&& v) const& noexcept(std::is_nothrow_copy_constructible<T>::value && std::is_nothrow_constructible<T, U>::value)
@@ -542,7 +542,7 @@ public:
 
   // TODO: monadic operations
 
-  constexpr void reset() { ptr = nullptr; }
+  YK_POLYFILL_CXX14_CONSTEXPR void reset() { ptr = nullptr; }
 
 private:
   template<class U>
