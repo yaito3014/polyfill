@@ -143,9 +143,9 @@ struct optional_storage_base : public optional_destruct_base<T> {  // T is NOT a
   YK_POLYFILL_CXX17_CONSTEXPR T* operator->() noexcept { return std::addressof(this->value); }
   YK_POLYFILL_CXX17_CONSTEXPR T const* operator->() const noexcept { return std::addressof(this->value); }
 
-  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR_type& operator*() & noexcept { return this->value; }
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR value_type& operator*() & noexcept { return this->value; }
   [[nodiscard]] constexpr value_type const& operator*() const& noexcept { return this->value; }
-  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR_type&& operator*() && noexcept { return std::move(this->value); }
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR value_type&& operator*() && noexcept { return std::move(this->value); }
   [[nodiscard]] constexpr value_type const&& operator*() const&& noexcept { return std::move(this->value); }
 };
 
