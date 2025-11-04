@@ -8,6 +8,7 @@
 #include <yk/polyfill/type_traits.hpp>
 #include <yk/polyfill/utility.hpp>
 
+#include <exception>
 #include <initializer_list>
 #include <memory>
 #include <type_traits>
@@ -19,18 +20,22 @@ namespace polyfill {
 
 namespace extension {
 
+class bad_toptional_initialization : std::exception {
+  char const* what() const noexcept override { return "initializing toptional with tombstone value"; }
+};
+
 template<class T, class = void>
 struct non_zero_traits {};
 
 template<class T>
 struct non_zero_traits<T, typename std::enable_if<std::is_pointer<T>::value>::type> {
-  static constexpr bool is_engaged(T x) noexcept { return x != nullptr; }
+  static constexpr bool is_engaged(T const& x) noexcept { return x != nullptr; }
   static constexpr T tombstone_value() noexcept { return nullptr; }
 };
 
 template<class T>
 struct non_zero_traits<T, typename std::enable_if<std::is_arithmetic<T>::value>::type> {
-  static constexpr bool is_engaged(T x) noexcept { return x != 0; }
+  static constexpr bool is_engaged(T const& x) noexcept { return x != 0; }
   static constexpr T tombstone_value() noexcept { return T{0}; }
 };
 
@@ -44,16 +49,15 @@ public:
   constexpr toptional(nullopt_t) noexcept(noexcept(Traits::tombstone_value())) : data(Traits::tombstone_value()) {}
 
   template<class... Args, typename std::enable_if<std::is_constructible<T, Args...>::value, std::nullptr_t>::type = nullptr>
-  constexpr explicit toptional(in_place_t, Args&&... args) noexcept(std::is_nothrow_constructible<T, Args...>::value) : data(std::forward<Args>(args)...)
+  constexpr explicit toptional(in_place_t, Args&&... args) : data(std::forward<Args>(args)...)
   {
+    if (!Traits::is_engaged(data)) throw bad_toptional_initialization{};
   }
 
   template<class U, class... Args, typename std::enable_if<std::is_constructible<T, std::initializer_list<U>&, Args...>::value, std::nullptr_t>::type = nullptr>
-  constexpr explicit toptional(in_place_t, std::initializer_list<U> il, Args&&... args) noexcept(
-      std::is_nothrow_constructible<T, std::initializer_list<U>&, Args...>::value
-  )
-      : data(il, std::forward<Args>(args)...)
+  constexpr explicit toptional(in_place_t, std::initializer_list<U> il, Args&&... args) : data(il, std::forward<Args>(args)...)
   {
+    if (!Traits::is_engaged(data)) throw bad_toptional_initialization{};
   }
 
   template<
@@ -62,8 +66,9 @@ public:
           std::is_constructible<T, U>::value && !std::is_same<typename remove_cvref<T>::type, toptional>::value
               && !std::is_same<typename remove_cvref<T>::type, in_place_t>::value && std::is_convertible<U, T>::value,
           std::nullptr_t>::type = nullptr>
-  constexpr toptional(U&& u) noexcept(std::is_nothrow_constructible<T, U>::value) : data(std::forward<U>(u))
+  constexpr toptional(U&& u) : data(std::forward<U>(u))
   {
+    if (!Traits::is_engaged(data)) throw bad_toptional_initialization{};
   }
 
   template<
@@ -72,8 +77,9 @@ public:
           std::is_constructible<T, U>::value && !std::is_same<typename remove_cvref<T>::type, toptional>::value
               && !std::is_same<typename remove_cvref<T>::type, in_place_t>::value && !std::is_convertible<U, T>::value,
           std::nullptr_t>::type = nullptr>
-  constexpr explicit toptional(U&& u) noexcept(std::is_nothrow_constructible<T, U>::value) : data(std::forward<U>(u))
+  constexpr explicit toptional(U&& u) : data(std::forward<U>(u))
   {
+    if (!Traits::is_engaged(data)) throw bad_toptional_initialization{};
   }
 
   template<
