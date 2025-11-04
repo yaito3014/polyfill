@@ -77,14 +77,15 @@ public:
   }
 
   template<
-      class U, typename std::enable_if<
-                   std::is_constructible<T, U const&>::value && !optional_detail::converts_from_any_cvref<T, toptional<U>>::value, std::nullptr_t> = nullptr>
+      class U,
+      typename std::enable_if<
+          std::is_constructible<T, U const&>::value && !optional_detail::converts_from_any_cvref<T, toptional<U>>::value, std::nullptr_t>::type = nullptr>
   constexpr toptional(toptional<U> const& other) noexcept(std::is_nothrow_constructible<T, U const&>::value) : data(other.data)
   {
   }
   template<
       class U, typename std::enable_if<
-                   std::is_constructible<T, U>::value && !optional_detail::converts_from_any_cvref<T, toptional<U>>::value, std::nullptr_t> = nullptr>
+                   std::is_constructible<T, U>::value && !optional_detail::converts_from_any_cvref<T, toptional<U>>::value, std::nullptr_t>::type = nullptr>
   constexpr toptional(toptional<U>&& other) noexcept(std::is_nothrow_constructible<T, U>::value) : data(std::move(other.data))
   {
   }
