@@ -107,7 +107,7 @@ public:
           !std::is_same<typename remove_cvref<U>::type, toptional>::value
               && conjunction<std::is_scalar<T>, std::is_same<U, typename std::decay<U>::type>>::value && std::is_assignable<T&, U>::value,
           std::nullptr_t>::type = nullptr>
-  constexpr toptional& operator=(U&& u) noexcept(std::is_nothrow_assignable<T, U>::value)
+  YK_POLYFILL_CXX14_CONSTEXPR toptional& operator=(U&& u) noexcept(std::is_nothrow_assignable<T, U>::value)
   {
     data = std::forward<U>(u);
     return *this;
@@ -119,7 +119,7 @@ public:
                        && !std::is_assignable<T&, toptional<U>&>::value && !std::is_assignable<T&, toptional<U> const&>::value
                        && !std::is_assignable<T&, toptional<U>&&>::value && !std::is_assignable<T&, toptional<U> const&&>::value,
                    std::nullptr_t>::type = nullptr>
-  constexpr toptional& operator=(toptional<U> const& other) noexcept(std::is_nothrow_assignable<T&, U const&>::value)
+  YK_POLYFILL_CXX14_CONSTEXPR toptional& operator=(toptional<U> const& other) noexcept(std::is_nothrow_assignable<T&, U const&>::value)
   {
     data = other.data;
     return *this;
@@ -131,38 +131,48 @@ public:
                        && !std::is_assignable<T&, toptional<U>&>::value && !std::is_assignable<T&, toptional<U> const&>::value
                        && !std::is_assignable<T&, toptional<U>&&>::value && !std::is_assignable<T&, toptional<U> const&&>::value,
                    std::nullptr_t>::type = nullptr>
-  constexpr toptional& operator=(toptional<U>&& other) noexcept(std::is_nothrow_assignable<T&, U>::value)
+  YK_POLYFILL_CXX14_CONSTEXPR toptional& operator=(toptional<U>&& other) noexcept(std::is_nothrow_assignable<T&, U>::value)
   {
     data = std::move(other.data);
     return *this;
   }
 
   template<class... Args, typename std::enable_if<std::is_constructible<T, Args...>::value, std::nullptr_t>::type = nullptr>
-  constexpr T& emplace(Args&&... args) noexcept(std::is_nothrow_constructible<T, Args...>::value)
+  YK_POLYFILL_CXX20_CONSTEXPR T& emplace(Args&&... args) noexcept(std::is_nothrow_constructible<T, Args...>::value)
   {
     data.~T();
-    new (std::addressof(&data)) T(std::forward<Args>(args)...);
+#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
+    std::construct_at(std::addressof(data), std::forward<Args>(args)...);
+#else
+    new (std::addressof(data)) T(std::forward<Args>(args)...);
+#endif
   }
 
   template<class U, class... Args, typename std::enable_if<std::is_constructible<T, std::initializer_list<U>&, Args...>::value, std::nullptr_t>::type = nullptr>
-  constexpr T& emplace(std::initializer_list<U> il, Args&&... args) noexcept(std::is_nothrow_constructible<T, std::initializer_list<U>&, Args...>::value)
+  YK_POLYFILL_CXX20_CONSTEXPR T& emplace(std::initializer_list<U> il, Args&&... args) noexcept(
+      std::is_nothrow_constructible<T, std::initializer_list<U>&, Args...>::value
+  )
   {
     data.~T();
-    new (std::addressof(&data)) T(il, std::forward<Args>(args)...);
+#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
+    std::construct_at(std::addressof(data), il, std::forward<Args>(args)...);
+#else
+    new (std::addressof(data)) T(il, std::forward<Args>(args)...);
+#endif
   }
 
-  constexpr void swap(toptional& other) noexcept(is_nothrow_swappable<T>::value)
+  YK_POLYFILL_CXX14_CONSTEXPR void swap(toptional& other) noexcept(is_nothrow_swappable<T>::value)
   {
     using std::swap;
     swap(data, other.data);
   }
 
-  constexpr T* operator->() noexcept { return std::addressof(data); }
+  YK_POLYFILL_CXX14_CONSTEXPR T* operator->() noexcept { return std::addressof(data); }
   constexpr T const* operator->() const noexcept { return std::addressof(data); }
 
-  constexpr T& operator*() & noexcept { return data; }
+  YK_POLYFILL_CXX14_CONSTEXPR T& operator*() & noexcept { return data; }
   constexpr T const& operator*() const& noexcept { return data; }
-  constexpr T&& operator*() && noexcept { return std::move(data); }
+  YK_POLYFILL_CXX14_CONSTEXPR T&& operator*() && noexcept { return std::move(data); }
   constexpr T const&& operator*() const&& noexcept { return std::move(data); }
 
   constexpr explicit operator bool() const noexcept(noexcept(Traits::is_engaged(data))) { return Traits::is_engaged(data); }
