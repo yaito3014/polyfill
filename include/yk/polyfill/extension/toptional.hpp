@@ -179,6 +179,28 @@ public:
 
   constexpr bool has_value() const noexcept(noexcept(Traits::is_engaged(data))) { return Traits::is_engaged(data); }
 
+  YK_POLYFILL_CXX14_CONSTEXPR T& value() & { return has_value() ? **this : throw bad_optional_access{}; }
+  constexpr T const& value() const& { return has_value() ? **this : throw bad_optional_access{}; }
+  YK_POLYFILL_CXX14_CONSTEXPR T&& value() && { return has_value() ? **this : throw bad_optional_access{}; }
+  constexpr T const&& value() const&& { return has_value() ? **this : throw bad_optional_access{}; }
+
+  template<class U = typename std::remove_cv<T>::type>
+  constexpr T value_or(U&& u) const&
+  {
+    return has_value() ? **this : static_cast<T>(std::forward<U>(u));
+  }
+
+  template<class U = typename std::remove_cv<T>::type>
+  YK_POLYFILL_CXX14_CONSTEXPR T value_or(U&& u) &&
+  {
+    return has_value() ? **this : static_cast<T>(std::forward<U>(u));
+  }
+
+  YK_POLYFILL_CXX14_CONSTEXPR void reset() noexcept(noexcept(Traits::tombstone_value())) { emplace(Traits::tombstone_value()); }
+
+  // TODO: add monadic operations
+  // TODO: add iterator support
+
 private:
   T data;
 };
