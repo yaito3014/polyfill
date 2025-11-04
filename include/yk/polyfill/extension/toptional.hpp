@@ -205,6 +205,8 @@ private:
   T data;
 };
 
+// Consideration: should we add toptional<T&>?
+
 }  // namespace extension
 
 }  // namespace polyfill
