@@ -3,6 +3,7 @@
 
 #include <yk/polyfill/bits/core_traits.hpp>
 
+#include <exception>
 #include <type_traits>
 
 namespace yk {
@@ -22,6 +23,10 @@ struct nullopt_holder {
 inline constexpr nullopt_t nullopt{};
 
 #endif
+
+class bad_optional_access : public std::exception {
+  char const* what() const noexcept { return "accessing empty optional"; }
+};
 
 namespace optional_detail {
 
