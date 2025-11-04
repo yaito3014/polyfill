@@ -1,0 +1,182 @@
+#ifndef YK_POLYFILL_EXTENSION_TOPTIONAL_HPP
+#define YK_POLYFILL_EXTENSION_TOPTIONAL_HPP
+
+#include <yk/polyfill/config.hpp>
+
+#include <yk/polyfill/bits/optional_detail.hpp>
+
+#include <yk/polyfill/type_traits.hpp>
+#include <yk/polyfill/utility.hpp>
+
+#include <initializer_list>
+#include <memory>
+#include <type_traits>
+#include <utility>
+
+namespace yk {
+
+namespace polyfill {
+
+namespace extension {
+
+template<class T, class = void>
+struct non_zero_traits {};
+
+template<class T>
+struct non_zero_traits<T, typename std::enable_if<std::is_pointer<T>::value>::type> {
+  static constexpr bool is_engaged(T x) noexcept { return x != nullptr; }
+  static constexpr T tombstone_value() noexcept { return nullptr; }
+};
+
+template<class T>
+struct non_zero_traits<T, typename std::enable_if<std::is_arithmetic<T>::value>::type> {
+  static constexpr bool is_engaged(T x) noexcept { return x != 0; }
+  static constexpr T tombstone_value() noexcept { return T{0}; }
+};
+
+template<class T, class Traits = non_zero_traits<T>>
+class toptional {
+public:
+  using value_type = T;
+
+  constexpr toptional() : toptional(nullopt_holder::value) {}
+
+  constexpr toptional(nullopt_t) noexcept(noexcept(Traits::tombstone_value())) : data(Traits::tombstone_value()) {}
+
+  template<class... Args, typename std::enable_if<std::is_constructible<T, Args...>::value, std::nullptr_t>::type = nullptr>
+  constexpr explicit toptional(in_place_t, Args&&... args) noexcept(std::is_nothrow_constructible<T, Args...>::value) : data(std::forward<Args>(args)...)
+  {
+  }
+
+  template<class U, class... Args, typename std::enable_if<std::is_constructible<T, std::initializer_list<U>&, Args...>::value, std::nullptr_t>::type = nullptr>
+  constexpr explicit toptional(in_place_t, std::initializer_list<U> il, Args&&... args) noexcept(
+      std::is_nothrow_constructible<T, std::initializer_list<U>&, Args...>::value
+  )
+      : data(il, std::forward<Args>(args)...)
+  {
+  }
+
+  template<
+      class U = typename std::remove_cv<T>::type,
+      typename std::enable_if<
+          std::is_constructible<T, U>::value && !std::is_same<typename remove_cvref<T>::type, toptional>::value
+              && !std::is_same<typename remove_cvref<T>::type, in_place_t>::value && std::is_convertible<U, T>::value,
+          std::nullptr_t>::type = nullptr>
+  constexpr toptional(U&& u) noexcept(std::is_nothrow_constructible<T, U>::value) : data(std::forward<U>(u))
+  {
+  }
+
+  template<
+      class U = typename std::remove_cv<T>::type,
+      typename std::enable_if<
+          std::is_constructible<T, U>::value && !std::is_same<typename remove_cvref<T>::type, toptional>::value
+              && !std::is_same<typename remove_cvref<T>::type, in_place_t>::value && !std::is_convertible<U, T>::value,
+          std::nullptr_t>::type = nullptr>
+  constexpr explicit toptional(U&& u) noexcept(std::is_nothrow_constructible<T, U>::value) : data(std::forward<U>(u))
+  {
+  }
+
+  template<
+      class U, typename std::enable_if<
+                   std::is_constructible<T, U const&>::value && !optional_detail::converts_from_any_cvref<T, toptional<U>>::value, std::nullptr_t> = nullptr>
+  constexpr toptional(toptional<U> const& other) noexcept(std::is_nothrow_constructible<T, U const&>::value) : data(other.data)
+  {
+  }
+  template<
+      class U, typename std::enable_if<
+                   std::is_constructible<T, U>::value && !optional_detail::converts_from_any_cvref<T, toptional<U>>::value, std::nullptr_t> = nullptr>
+  constexpr toptional(toptional<U>&& other) noexcept(std::is_nothrow_constructible<T, U>::value) : data(std::move(other.data))
+  {
+  }
+
+  toptional(toptional const&) = default;
+  toptional(toptional&&) = default;
+
+  toptional& operator=(nullopt_t) noexcept(noexcept(Traits::tombstone_value()))
+  {
+    data = Traits::tombstone_value();
+    return *this;
+  }
+
+  toptional& operator=(toptional const&) = default;
+  toptional& operator=(toptional&&) = default;
+
+  template<
+      class U = typename std::remove_cv<T>::type,
+      typename std::enable_if<
+          !std::is_same<typename remove_cvref<U>::type, toptional>::value
+              && conjunction<std::is_scalar<T>, std::is_same<U, typename std::decay<U>::type>>::value && std::is_assignable<T&, U>::value,
+          std::nullptr_t>::type = nullptr>
+  constexpr toptional& operator=(U&& u) noexcept(std::is_nothrow_assignable<T, U>::value)
+  {
+    data = std::forward<U>(u);
+    return *this;
+  }
+
+  template<
+      class U, typename std::enable_if<
+                   std::is_assignable<T&, U const&>::value && !optional_detail::converts_from_any_cvref<T, toptional<U>>::value
+                       && !std::is_assignable<T&, toptional<U>&>::value && !std::is_assignable<T&, toptional<U> const&>::value
+                       && !std::is_assignable<T&, toptional<U>&&>::value && !std::is_assignable<T&, toptional<U> const&&>::value,
+                   std::nullptr_t>::type = nullptr>
+  constexpr toptional& operator=(toptional<U> const& other) noexcept(std::is_nothrow_assignable<T&, U const&>::value)
+  {
+    data = other.data;
+    return *this;
+  }
+
+  template<
+      class U, typename std::enable_if<
+                   std::is_assignable<T&, U>::value && !optional_detail::converts_from_any_cvref<T, toptional<U>>::value
+                       && !std::is_assignable<T&, toptional<U>&>::value && !std::is_assignable<T&, toptional<U> const&>::value
+                       && !std::is_assignable<T&, toptional<U>&&>::value && !std::is_assignable<T&, toptional<U> const&&>::value,
+                   std::nullptr_t>::type = nullptr>
+  constexpr toptional& operator=(toptional<U>&& other) noexcept(std::is_nothrow_assignable<T&, U>::value)
+  {
+    data = std::move(other.data);
+    return *this;
+  }
+
+  template<class... Args, typename std::enable_if<std::is_constructible<T, Args...>::value, std::nullptr_t>::type = nullptr>
+  constexpr T& emplace(Args&&... args) noexcept(std::is_nothrow_constructible<T, Args...>::value)
+  {
+    data.~T();
+    new (std::addressof(&data)) T(std::forward<Args>(args)...);
+  }
+
+  template<class U, class... Args, typename std::enable_if<std::is_constructible<T, std::initializer_list<U>&, Args...>::value, std::nullptr_t>::type = nullptr>
+  constexpr T& emplace(std::initializer_list<U> il, Args&&... args) noexcept(std::is_nothrow_constructible<T, std::initializer_list<U>&, Args...>::value)
+  {
+    data.~T();
+    new (std::addressof(&data)) T(il, std::forward<Args>(args)...);
+  }
+
+  constexpr void swap(toptional& other) noexcept(is_nothrow_swappable<T>::value)
+  {
+    using std::swap;
+    swap(data, other.data);
+  }
+
+  constexpr T* operator->() noexcept { return std::addressof(data); }
+  constexpr T const* operator->() const noexcept { return std::addressof(data); }
+
+  constexpr T& operator*() & noexcept { return data; }
+  constexpr T const& operator*() const& noexcept { return data; }
+  constexpr T&& operator*() && noexcept { return std::move(data); }
+  constexpr T const&& operator*() const&& noexcept { return std::move(data); }
+
+  constexpr explicit operator bool() const noexcept(noexcept(Traits::is_engaged(data))) { return Traits::is_engaged(data); }
+
+  constexpr bool has_value() const noexcept(noexcept(Traits::is_engaged(data))) { return Traits::is_engaged(data); }
+
+private:
+  T data;
+};
+
+}  // namespace extension
+
+}  // namespace polyfill
+
+}  // namespace yk
+
+#endif  // YK_POLYFILL_EXTENSION_TOPTIONAL_HPP
