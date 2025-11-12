@@ -3,6 +3,7 @@
 
 #include <yk/polyfill/bits/apply_detail.hpp>
 #include <yk/polyfill/bits/core_traits.hpp>
+#include <yk/polyfill/extension/always_false.hpp>
 
 #include <type_traits>
 
@@ -93,6 +94,48 @@ struct is_nothrow_applicable : apply_detail::is_nothrow_applicable_impl<F, Tuple
 
 template<class F, class Tuple>
 struct apply_result : apply_detail::apply_result_impl<F, Tuple> {};
+
+namespace reference_from_temporary_detail {
+
+template<class T>
+[[noreturn]] T VAL() noexcept
+{
+  static_assert(extension::always_false<T>::value, "do not call VAL not in unevaluated context");
+}
+
+template<class T, class U, class = void>
+struct is_strictly_constructible : false_type {};
+
+template<class T, class U>
+struct is_strictly_constructible<T, U, void_t<decltype(T(VAL<U>()))>> : true_type {};
+
+template<class T, class U, class = void>
+struct is_strictly_convertible : false_type {};
+
+template<class T, class U>
+struct is_strictly_convertible<T, U, void_t<decltype(std::declval<void (&)(T)>()(VAL<U>()))>> : true_type {};
+
+template<class T, class U>
+struct is_lifetime_extended : false_type {};
+
+template<class T, class U>
+struct is_lifetime_extended<T const&, U> : std::is_same<U, typename std::remove_reference<U>::type> {};
+
+template<class T, class U>
+struct is_lifetime_extended<T&&, U> : std::is_same<U, typename std::remove_reference<U>::type> {};
+
+}  // namespace reference_from_temporary_detail
+
+template<class T, class U>
+struct reference_constructs_from_temporary
+    : conjunction<
+          std::is_reference<T>, reference_from_temporary_detail::is_strictly_constructible<T, U>, reference_from_temporary_detail::is_lifetime_extended<T, U>> {
+};
+
+template<class T, class U>
+struct reference_converts_from_temporary
+    : conjunction<
+          std::is_reference<T>, reference_from_temporary_detail::is_strictly_convertible<T, U>, reference_from_temporary_detail::is_lifetime_extended<T, U>> {};
 
 // assume all C++20 features available
 #if __cplusplus >= 202002L
