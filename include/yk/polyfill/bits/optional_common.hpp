@@ -1,6 +1,10 @@
 #ifndef YK_POLYFILL_BITS_OPTIONAL_COMMON_HPP
 #define YK_POLYFILL_BITS_OPTIONAL_COMMON_HPP
 
+#include <yk/polyfill/config.hpp>
+
+#include <exception>
+
 namespace yk {
 
 namespace polyfill {
@@ -21,6 +25,11 @@ struct nullopt_holder {
 inline constexpr nullopt_t nullopt{nullopt_t::construct_tag{}};
 
 #endif
+
+class bad_optional_access : public std::exception {
+public:
+  char const* what() const noexcept override { return "accessing empty optional"; }
+};
 
 }  // namespace polyfill
 
