@@ -17,8 +17,6 @@ struct in_place_holder {
   static constexpr in_place_t value{};
 };
 
-constexpr in_place_t in_place_holder::value;
-
 #if __cpp_inline_variables >= 201606L
 
 inline constexpr in_place_t in_place{};
