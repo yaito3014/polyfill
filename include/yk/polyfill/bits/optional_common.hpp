@@ -4,6 +4,7 @@
 #include <yk/polyfill/type_traits.hpp>
 
 #include <exception>
+#include <type_traits>
 
 namespace yk {
 
@@ -33,10 +34,12 @@ public:
 
 namespace optional_detail {
 
-template<class T, class U>
-constexpr bool converts_from_any_cvref = disjunction<
-    std::is_constructible<T, U&>, std::is_convertible<U&, T>, std::is_constructible<T, U>, std::is_convertible<U, T>, std::is_constructible<T, U const&>,
-    std::is_convertible<U const&, T>, std::is_constructible<T, U const>, std::is_convertible<U const, T>>::value;
+template<class T, class W>
+struct converts_from_any_cvref {
+  static constexpr bool value = disjunction<
+      std::is_constructible<T, W&>, std::is_convertible<T, W&>, std::is_constructible<T, W const&>, std::is_convertible<T, W const&>,
+      std::is_constructible<T, W&&>, std::is_convertible<T, W&&>, std::is_constructible<T, W const&&>, std::is_convertible<T, W const&&>>::value;
+};
 
 }  // namespace optional_detail
 
