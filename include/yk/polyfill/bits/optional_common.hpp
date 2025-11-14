@@ -37,8 +37,8 @@ namespace optional_detail {
 template<class T, class W>
 struct converts_from_any_cvref {
   static constexpr bool value = disjunction<
-      std::is_constructible<T, W&>, std::is_convertible<T, W&>, std::is_constructible<T, W const&>, std::is_convertible<T, W const&>,
-      std::is_constructible<T, W&&>, std::is_convertible<T, W&&>, std::is_constructible<T, W const&&>, std::is_convertible<T, W const&&>>::value;
+      std::is_constructible<T, W&>, std::is_convertible<W&, T>, std::is_constructible<T, W const&>, std::is_convertible<W const&, T>,
+      std::is_constructible<T, W&&>, std::is_convertible<W&&, T>, std::is_constructible<T, W const&&>, std::is_convertible<W const&&, T>>::value;
 };
 
 }  // namespace optional_detail
