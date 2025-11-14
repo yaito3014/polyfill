@@ -11,6 +11,11 @@ namespace yk {
 namespace polyfill {
 
 template<class T>
+struct type_identity {
+  using type = T;
+};
+
+template<class T>
 struct is_bounded_array : false_type {};
 
 template<class T, std::size_t N>
