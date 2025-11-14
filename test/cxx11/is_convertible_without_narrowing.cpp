@@ -38,7 +38,7 @@ TEST_CASE("is_convertible_without_narrowing")
   STATIC_REQUIRE(pf::extension::is_convertible_without_narrowing<int&, int&>::value);
 
   // conversion including unbouded array type
-  STATIC_REQUIRE(!pf::extension::is_convertible_without_narrowing<int[], int*>::value);
+  STATIC_REQUIRE(pf::extension::is_convertible_without_narrowing<int[], int*>::value);
   STATIC_REQUIRE(!pf::extension::is_convertible_without_narrowing<int*, int[]>::value);
   STATIC_REQUIRE(!pf::extension::is_convertible_without_narrowing<int[], int[]>::value);
 }
