@@ -6,12 +6,12 @@
 
 #include <yk/polyfill/extension/specialization_of.hpp>
 
+#include <yk/polyfill/bits/optional_common.hpp>
 #include <yk/polyfill/type_traits.hpp>
 #include <yk/polyfill/utility.hpp>
 
 #include <yk/polyfill/config.hpp>
 
-#include <exception>
 #include <initializer_list>
 #include <memory>
 #include <type_traits>
@@ -23,10 +23,6 @@ namespace polyfill {
 
 template<class T>
 class optional;
-
-class bad_optional_access : public std::exception {
-  char const* what() const noexcept override { return "accessing empty optional"; }
-};
 
 namespace optional_detail {
 
@@ -157,13 +153,6 @@ struct is_eligible_for_construction {
       && !(std::is_same<typename std::remove_cv<T>::type, bool>::value && extension::is_specialization_of<typename remove_cvref<U>::type, optional>::value);
 };
 
-template<class T, class W>
-struct converts_from_any_cvref {
-  static constexpr bool value = disjunction<
-      std::is_constructible<T, W&>, std::is_convertible<W&, T>, std::is_constructible<T, W>, std::is_convertible<W, T>, std::is_constructible<T, W const&>,
-      std::is_convertible<W const&, T>, std::is_constructible<T, W const>, std::is_convertible<W const, T>>::value;
-};
-
 template<class T, class U>
 struct allow_unwrapping {
   static constexpr bool value = std::is_same<typename std::remove_cv<T>::type, bool>::value || !converts_from_any_cvref<T, optional<U>>::value;
@@ -177,20 +166,6 @@ struct allow_unwrapping_assignment {
 };
 
 }  // namespace optional_detail
-
-struct nullopt_t {
-  explicit nullopt_t() = default;
-};
-
-struct nullopt_holder {
-  static constexpr nullopt_t value{};
-};
-
-#if __cpp_inline_variables >= 201606L
-
-inline constexpr nullopt_t nullopt{};
-
-#endif
 
 template<class T>
 class optional : private trivial_base_detail::select_base_for_special_member_functions<optional_detail::optional_storage_base<T>, T> {
@@ -305,7 +280,7 @@ public:
           std::is_constructible<T, U const&>::value && std::is_assignable<T&, U const&>::value && optional_detail::allow_unwrapping_assignment<T, U>::value,
           std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR optional& operator=(optional<U> const& rhs) noexcept(
-      conjunction<std::is_nothrow_constructible<T, U const&>, std::is_nothrow_assignable<T, U const&>>::value
+      conjunction<std::is_nothrow_constructible<T, U const&>, std::is_nothrow_assignable<T&, U const&>>::value
   )
   {
     if (rhs.has_value()) {
@@ -321,7 +296,7 @@ public:
                    std::is_constructible<T, U>::value && std::is_assignable<T&, U>::value && optional_detail::allow_unwrapping_assignment<T, U>::value,
                    std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR optional& operator=(optional<U>&& rhs) noexcept(
-      conjunction<std::is_nothrow_constructible<T, U>, std::is_nothrow_assignable<T, U>>::value
+      conjunction<std::is_nothrow_constructible<T, U>, std::is_nothrow_assignable<T&, U>>::value
   )
   {
     if (rhs.has_value()) {
