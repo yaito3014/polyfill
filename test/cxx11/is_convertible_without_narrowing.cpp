@@ -6,13 +6,15 @@
 
 #include <yk/polyfill/extension/is_convertible_without_narrowing.hpp>
 
+#include <cstdint>
+
 namespace pf = yk::polyfill;
 
 TEST_CASE("is_convertible_without_narrowing")
 {
   // conversion between integer types
-  STATIC_REQUIRE(pf::extension::is_convertible_without_narrowing<int, long>::value);
-  STATIC_REQUIRE(!pf::extension::is_convertible_without_narrowing<long, int>::value);
+  STATIC_REQUIRE(pf::extension::is_convertible_without_narrowing<std::int16_t, std::int32_t>::value);
+  STATIC_REQUIRE(!pf::extension::is_convertible_without_narrowing<std::int32_t, std::int16_t>::value);
 
   // conversion between floating-point types
   STATIC_REQUIRE(pf::extension::is_convertible_without_narrowing<float, double>::value);
