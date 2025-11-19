@@ -10,6 +10,7 @@ namespace ext = yk::polyfill::extension;
 
 TEST_CASE("toptional")
 {
+  STATIC_REQUIRE(sizeof(ext::toptional<int>) == sizeof(int));
   {
     ext::toptional<int> opt;
     CHECK(!opt.has_value());
@@ -19,7 +20,15 @@ TEST_CASE("toptional")
     CHECK(opt.has_value());
     CHECK(*opt == 42);
   }
+  CHECK_THROWS_AS(ext::toptional<int>{0}, ext::bad_toptional_initialization);
+
+  STATIC_REQUIRE(sizeof(ext::toptional<int*>) == sizeof(int*));
   {
-    CHECK_THROWS_AS(ext::toptional<int>{0}, ext::bad_toptional_initialization);
+    int* ptr = new int(42);
+    ext::toptional<int*> opt = ptr;
+    CHECK(opt.has_value());
+    CHECK(*opt == ptr);
+    delete ptr;
   }
+  CHECK_THROWS_AS(ext::toptional<int*>{nullptr}, ext::bad_toptional_initialization);
 }
