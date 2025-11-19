@@ -473,7 +473,7 @@ public:
                    std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX17_CONSTEXPR optional(optional<U>&& rhs) noexcept(std::is_nothrow_constructible<T&, U>::value)
   {
-    if (rhs.has_value()) convert_ref_init_val(std::move(*rhs));
+    if (rhs.has_value()) convert_ref_init_val(*std::move(rhs));
   }
 
   template<
@@ -483,7 +483,7 @@ public:
                    std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX17_CONSTEXPR explicit optional(optional<U>&& rhs) noexcept(std::is_nothrow_constructible<T&, U>::value)
   {
-    if (rhs.has_value()) convert_ref_init_val(std::move(*rhs));
+    if (rhs.has_value()) convert_ref_init_val(*std::move(rhs));
   }
 
   template<
@@ -493,7 +493,7 @@ public:
                    std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX17_CONSTEXPR optional(optional<U> const&& rhs) noexcept(std::is_nothrow_constructible<T&, U const>::value)
   {
-    if (rhs.has_value()) convert_ref_init_val(std::move(*rhs));
+    if (rhs.has_value()) convert_ref_init_val(*std::move(rhs));
   }
 
   template<
@@ -503,7 +503,7 @@ public:
                    std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX17_CONSTEXPR explicit optional(optional<U> const&& rhs) noexcept(std::is_nothrow_constructible<T&, U const>::value)
   {
-    if (rhs.has_value()) convert_ref_init_val(std::move(*rhs));
+    if (rhs.has_value()) convert_ref_init_val(*std::move(rhs));
   }
 
   YK_POLYFILL_CXX20_CONSTEXPR ~optional() = default;
