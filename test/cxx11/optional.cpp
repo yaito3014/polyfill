@@ -32,6 +32,12 @@ TEST_CASE("optional")
     CHECK(!opt.has_value());
   }
 
+  // nullopt construction
+  {
+    pf::optional<int> opt(pf::nullopt_holder::value);
+    CHECK(!opt.has_value());
+  }
+
   // in-place construction
   {
     pf::optional<int> opt(pf::in_place_holder::value, 42);
