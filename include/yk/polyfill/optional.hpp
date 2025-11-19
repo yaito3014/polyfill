@@ -443,7 +443,57 @@ public:
     }
   }
 
-  // TODO: transform, or_else
+  template<class F>
+  YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) & -> optional<typename std::remove_cv<typename invoke_result<F, decltype(**this)>::type>::type>
+  {
+    using U = typename std::remove_cv<typename invoke_result<F, decltype(**this)>::type>::type;
+    static_assert(std::is_constructible<U, typename invoke_result<F, decltype(**this)>::type>::value, "result of F must be copy/move constructible");
+    if (has_value()) {
+      return optional<U>(invoke(std::forward<F>(f), **this));
+    } else {
+      return nullopt_holder::value;
+    }
+  }
+
+  template<class F>
+  YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) const& -> optional<typename std::remove_cv<typename invoke_result<F, decltype(**this)>::type>::type>
+  {
+    using U = typename std::remove_cv<typename invoke_result<F, decltype(**this)>::type>::type;
+    static_assert(std::is_constructible<U, typename invoke_result<F, decltype(**this)>::type>::value, "result of F must be copy/move constructible");
+    if (has_value()) {
+      return optional<U>(invoke(std::forward<F>(f), **this));
+    } else {
+      return nullopt_holder::value;
+    }
+  }
+
+  template<class F>
+  YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) && -> optional<typename std::remove_cv<typename invoke_result<F, decltype(std::move(**this))>::type>::type>
+  {
+    using U = typename std::remove_cv<typename invoke_result<F, decltype(std::move(**this))>::type>::type;
+    static_assert(std::is_constructible<U, typename invoke_result<F, decltype(std::move(**this))>::type>::value, "result of F must be copy/move constructible");
+    if (has_value()) {
+      return optional<U>(invoke(std::forward<F>(f), std::move(**this)));
+    } else {
+      return nullopt_holder::value;
+    }
+  }
+
+  template<class F>
+  YK_POLYFILL_CXX14_CONSTEXPR auto transform(
+      F&& f
+  ) const&& -> optional<typename std::remove_cv<typename invoke_result<F, decltype(std::move(**this))>::type>::type>
+  {
+    using U = typename std::remove_cv<typename invoke_result<F, decltype(std::move(**this))>::type>::type;
+    static_assert(std::is_constructible<U, typename invoke_result<F, decltype(std::move(**this))>::type>::value, "result of F must be copy/move constructible");
+    if (has_value()) {
+      return optional<U>(invoke(std::forward<F>(f), std::move(**this)));
+    } else {
+      return nullopt_holder::value;
+    }
+  }
+
+  // TODO: or_else
 
   // TODO: iterator support
 };
@@ -621,7 +671,18 @@ public:
     }
   }
 
-  // TODO: transform, or_else
+  template<class F>
+  YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) const -> optional<typename std::remove_cv<typename invoke_result<F, T&>::type>::type>
+  {
+    using U = typename std::remove_cv<typename invoke_result<F, T&>::type>::type;
+    if (has_value()) {
+      return optional<U>(invoke(std::forward<F>(f), **this));
+    } else {
+      return nullopt_holder::value;
+    }
+  }
+
+  // TODO: or_else
 
   // TODO: iterator support
 

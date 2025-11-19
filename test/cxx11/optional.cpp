@@ -250,6 +250,34 @@ TEST_CASE("optional")
     }
   }
 
+  // transform
+  {
+    using OI = pf::optional<int>;
+    using OD = pf::optional<double>;
+
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<OI&>().transform(std::declval<int (&)(int)>())), OI>::value);
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<OI const&>().transform(std::declval<int (&)(int)>())), OI>::value);
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<OI&&>().transform(std::declval<int (&)(int)>())), OI>::value);
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<OI const&&>().transform(std::declval<int (&)(int)>())), OI>::value);
+
+    {
+      auto const identity = [](int x) -> int { return x; };
+      CHECK(OI{42}.transform(identity).value() == 42);
+      CHECK(!OI{pf::nullopt_holder::value}.transform(identity).has_value());
+    }
+    
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<OI&>().transform(std::declval<double (&)(int)>())), OD>::value);
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<OI const&>().transform(std::declval<double (&)(int)>())), OD>::value);
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<OI&&>().transform(std::declval<double (&)(int)>())), OD>::value);
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<OI const&&>().transform(std::declval<double (&)(int)>())), OD>::value);
+
+    {
+      auto const convert = [](int x) -> int { return x; };
+      CHECK(OI{42}.transform(convert).value() == 42.);
+      CHECK(!OI{pf::nullopt_holder::value}.transform(convert).has_value());
+    }
+  }
+
   // TODO: add non trivial tests
 }
 
@@ -458,6 +486,36 @@ TEST_CASE("ref optional")
       CHECK(!OD{x}.and_then(ret_null).has_value());
       CHECK(!OD{pf::nullopt_holder::value}.and_then(convert).has_value());
       CHECK(!OD{pf::nullopt_holder::value}.and_then(ret_null).has_value());
+    }
+  }
+  
+  // transform
+  {
+    using OB = pf::optional<Base&>;
+    using OD = pf::optional<Derived&>;
+
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<OD&>().transform(std::declval<Derived& (&)(Derived&)>())), OD>::value);
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<OD const&>().transform(std::declval<Derived& (&)(Derived&)>())), OD>::value);
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<OD&&>().transform(std::declval<Derived& (&)(Derived&)>())), OD>::value);
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<OD const&&>().transform(std::declval<Derived& (&)(Derived&)>())), OD>::value);
+
+    {
+      auto const identity = [](Derived& d) -> Derived& { return d; };
+      Derived x;
+      CHECK(std::addressof(OD{x}.transform(identity).value()) == std::addressof(x));
+      CHECK(!OD{pf::nullopt_holder::value}.transform(identity).has_value());
+    }
+
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<OD&>().transform(std::declval<Base& (&)(Derived&)>())), OB>::value);
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<OD const&>().transform(std::declval<Base& (&)(Derived&)>())), OB>::value);
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<OD&&>().transform(std::declval<Base& (&)(Derived&)>())), OB>::value);
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<OD const&&>().transform(std::declval<Base& (&)(Derived&)>())), OB>::value);
+
+    {
+      auto const convert = [](Derived& d) -> Base& { return d; };
+      Derived x;
+      CHECK(std::addressof(OD{x}.transform(convert).value()) == std::addressof(x));
+      CHECK(!OD{pf::nullopt_holder::value}.transform(convert).has_value());
     }
   }
 }
