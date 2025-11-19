@@ -249,5 +249,51 @@ TEST_CASE("ref optional")
     CHECK(std::addressof(*b) == std::addressof(x));
   }
 
-  // TODO: assignment test
+  // nullopt assignment
+  {
+    int x = 42;
+    pf::optional<int&> opt = x;
+    opt = pf::nullopt_holder::value;
+    CHECK(!opt.has_value());
+  }
+
+  // generic assignment
+  {
+    Derived x;
+    pf::optional<Base&> opt;
+    opt = x;
+    CHECK(opt.has_value());
+    CHECK(std::addressof(*opt) == std::addressof(x));
+  }
+
+  // generic copy assignment
+  {
+    Derived x;
+    pf::optional<Derived&> a = x;
+    pf::optional<Base&> b;
+    b = a;
+    CHECK(b.has_value());
+    CHECK(std::addressof(*a) == std::addressof(*b));
+  }
+
+  // generic move assignment
+  {
+    Derived x;
+    pf::optional<Derived&> a = x;
+    pf::optional<Base&> b;
+    b = std::move(a);
+    CHECK(b.has_value());
+    CHECK(std::addressof(*b) == std::addressof(x));
+  }
+
+  // emplace
+  {
+    int x = 12;
+    int y = 34;
+    pf::optional<int&> opt = x;
+    opt.emplace(y);
+    CHECK(std::addressof(*opt) == std::addressof(y));
+  }
+
+  // TODO: swap, member access, checked value access
 }
