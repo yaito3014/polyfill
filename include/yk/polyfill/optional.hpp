@@ -391,6 +391,7 @@ public:
   constexpr explicit operator bool() const noexcept { return has_value(); }
 
   // TODO: monadic operations
+  // TODO: iterator support
 };
 
 template<class T>
@@ -541,9 +542,10 @@ public:
     return has_value() ? *ptr : static_cast<typename std::remove_cv<T>::type>(std::forward<U>(u));
   }
 
-  // TODO: monadic operations
-
   YK_POLYFILL_CXX14_CONSTEXPR void reset() { ptr = nullptr; }
+
+  // TODO: monadic operations
+  // TODO: iterator support
 
 private:
   template<class U>
