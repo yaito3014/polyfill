@@ -520,7 +520,7 @@ public:
   YK_POLYFILL_CXX17_CONSTEXPR T& emplace(U&& u) noexcept(std::is_nothrow_constructible<T&, U>::value)
   {
     convert_ref_init_val(std::forward<U>(u));
-    return *this;
+    return **this;
   }
 
   YK_POLYFILL_CXX17_CONSTEXPR void swap(optional& rhs) noexcept { std::swap(ptr, rhs.ptr); }
