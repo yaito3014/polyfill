@@ -396,7 +396,7 @@ public:
   constexpr explicit operator bool() const noexcept { return has_value(); }
 
   template<class F>
-  YK_POLYFILL_CXX14_CONSTEXPR auto and_then(F&& f) & -> typename invoke_result<F, decltype(**this)>::type
+  YK_POLYFILL_CXX14_CONSTEXPR auto and_then(F&& f) & -> typename remove_cvref<typename invoke_result<F, decltype(**this)>::type>::type
   {
     using U = typename invoke_result<F, decltype(**this)>::type;
     static_assert(extension::is_specialization_of<typename remove_cvref<U>::type, optional>::value, "result of F must be specialization of optional");
@@ -408,7 +408,7 @@ public:
   }
 
   template<class F>
-  YK_POLYFILL_CXX14_CONSTEXPR auto and_then(F&& f) const& -> typename invoke_result<F, decltype(**this)>::type
+  YK_POLYFILL_CXX14_CONSTEXPR auto and_then(F&& f) const& -> typename remove_cvref<typename invoke_result<F, decltype(**this)>::type>::type
   {
     using U = typename invoke_result<F, decltype(**this)>::type;
     static_assert(extension::is_specialization_of<typename remove_cvref<U>::type, optional>::value, "result of F must be specialization of optional");
@@ -420,7 +420,7 @@ public:
   }
 
   template<class F>
-  YK_POLYFILL_CXX14_CONSTEXPR auto and_then(F&& f) && -> typename invoke_result<F, decltype(std::move(**this))>::type
+  YK_POLYFILL_CXX14_CONSTEXPR auto and_then(F&& f) && -> typename remove_cvref<typename invoke_result<F, decltype(std::move(**this))>::type>::type
   {
     using U = typename invoke_result<F, decltype(**this)>::type;
     static_assert(extension::is_specialization_of<typename remove_cvref<U>::type, optional>::value, "result of F must be specialization of optional");
@@ -432,7 +432,7 @@ public:
   }
 
   template<class F>
-  YK_POLYFILL_CXX14_CONSTEXPR auto and_then(F&& f) const&& -> typename invoke_result<F, decltype(std::move(**this))>::type
+  YK_POLYFILL_CXX14_CONSTEXPR auto and_then(F&& f) const&& -> typename remove_cvref<typename invoke_result<F, decltype(std::move(**this))>::type>::type
   {
     using U = typename invoke_result<F, decltype(**this)>::type;
     static_assert(extension::is_specialization_of<typename remove_cvref<U>::type, optional>::value, "result of F must be specialization of optional");
@@ -610,14 +610,14 @@ public:
   YK_POLYFILL_CXX14_CONSTEXPR void reset() { ptr = nullptr; }
 
   template<class F>
-  YK_POLYFILL_CXX14_CONSTEXPR auto and_then(F&& f) const -> typename invoke_result<F, T&>::type
+  YK_POLYFILL_CXX14_CONSTEXPR auto and_then(F&& f) const -> typename remove_cvref<typename invoke_result<F, T&>::type>::type
   {
     using U = typename invoke_result<F, T&>::type;
     static_assert(extension::is_specialization_of<typename remove_cvref<U>::type, optional>::value, "result of F must be specialization of optional");
     if (has_value()) {
       return invoke(std::forward<F>(f), **this);
     } else {
-      return typename remove_cvref<U>::type();
+      return nullopt_holder::value;
     }
   }
 
