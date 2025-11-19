@@ -501,7 +501,7 @@ public:
                    !std::is_same<typename std::remove_cv<T>::type, optional<U>>::value && !std::is_same<T&, U>::value
                        && std::is_constructible<T&, U const>::value && !std::is_convertible<U const, T&>::value,
                    std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX17_CONSTEXPR explicit optional(optional<U>&& rhs) noexcept(std::is_nothrow_constructible<T&, U const>::value)
+  YK_POLYFILL_CXX17_CONSTEXPR explicit optional(optional<U> const&& rhs) noexcept(std::is_nothrow_constructible<T&, U const>::value)
   {
     if (rhs.has_value()) convert_ref_init_val(std::move(*rhs));
   }
