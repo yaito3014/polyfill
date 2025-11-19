@@ -7,6 +7,7 @@
 #include <yk/polyfill/extension/specialization_of.hpp>
 
 #include <yk/polyfill/bits/optional_common.hpp>
+#include <yk/polyfill/functional.hpp>
 #include <yk/polyfill/type_traits.hpp>
 #include <yk/polyfill/utility.hpp>
 
@@ -394,7 +395,56 @@ public:
 
   constexpr explicit operator bool() const noexcept { return has_value(); }
 
-  // TODO: monadic operations
+  template<class F>
+  YK_POLYFILL_CXX14_CONSTEXPR auto and_then(F&& f) & -> typename invoke_result<F, decltype(**this)>::type
+  {
+    using U = typename invoke_result<F, decltype(**this)>::type;
+    static_assert(extension::is_specialization_of<typename remove_cvref<U>::type, optional>::value, "result of F must be specialization of optional");
+    if (has_value()) {
+      return invoke(std::forward<F>(f), **this);
+    } else {
+      return nullopt_holder::value;
+    }
+  }
+
+  template<class F>
+  YK_POLYFILL_CXX14_CONSTEXPR auto and_then(F&& f) const& -> typename invoke_result<F, decltype(**this)>::type
+  {
+    using U = typename invoke_result<F, decltype(**this)>::type;
+    static_assert(extension::is_specialization_of<typename remove_cvref<U>::type, optional>::value, "result of F must be specialization of optional");
+    if (has_value()) {
+      return invoke(std::forward<F>(f), **this);
+    } else {
+      return nullopt_holder::value;
+    }
+  }
+
+  template<class F>
+  YK_POLYFILL_CXX14_CONSTEXPR auto and_then(F&& f) && -> typename invoke_result<F, decltype(std::move(**this))>::type
+  {
+    using U = typename invoke_result<F, decltype(**this)>::type;
+    static_assert(extension::is_specialization_of<typename remove_cvref<U>::type, optional>::value, "result of F must be specialization of optional");
+    if (has_value()) {
+      return invoke(std::forward<F>(f), std::move(**this));
+    } else {
+      return nullopt_holder::value;
+    }
+  }
+
+  template<class F>
+  YK_POLYFILL_CXX14_CONSTEXPR auto and_then(F&& f) const&& -> typename invoke_result<F, decltype(std::move(**this))>::type
+  {
+    using U = typename invoke_result<F, decltype(**this)>::type;
+    static_assert(extension::is_specialization_of<typename remove_cvref<U>::type, optional>::value, "result of F must be specialization of optional");
+    if (has_value()) {
+      return invoke(std::forward<F>(f), std::move(**this));
+    } else {
+      return nullopt_holder::value;
+    }
+  }
+
+  // TODO: transform, or_else
+
   // TODO: iterator support
 };
 
@@ -554,12 +604,25 @@ public:
         std::is_constructible<typename std::remove_cv<T>::type, T&>::value && std::is_convertible<U, typename std::remove_cv<T>::type>::value,
         "argument must be convertible to T"
     );
-    return has_value() ? *ptr : static_cast<typename std::remove_cv<T>::type>(std::forward<U>(u));
+    return has_value() ? **this : static_cast<typename std::remove_cv<T>::type>(std::forward<U>(u));
   }
 
   YK_POLYFILL_CXX14_CONSTEXPR void reset() { ptr = nullptr; }
 
-  // TODO: monadic operations
+  template<class F>
+  YK_POLYFILL_CXX14_CONSTEXPR auto and_then(F&& f) const -> typename invoke_result<F, T&>::type
+  {
+    using U = typename invoke_result<F, T&>::type;
+    static_assert(extension::is_specialization_of<typename remove_cvref<U>::type, optional>::value, "result of F must be specialization of optional");
+    if (has_value()) {
+      return invoke(std::forward<F>(f), **this);
+    } else {
+      return typename remove_cvref<U>::type();
+    }
+  }
+
+  // TODO: transform, or_else
+
   // TODO: iterator support
 
 private:

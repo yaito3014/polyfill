@@ -216,6 +216,40 @@ TEST_CASE("optional")
     CHECK(opt.value_or(4) == 33);
   }
 
+  // and_then
+  {
+    using OI = pf::optional<int>;
+    using OD = pf::optional<double>;
+
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<OI&>().and_then(std::declval<OI (&)(int)>())), OI>::value);
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<OI const&>().and_then(std::declval<OI (&)(int)>())), OI>::value);
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<OI&&>().and_then(std::declval<OI (&)(int)>())), OI>::value);
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<OI const&&>().and_then(std::declval<OI (&)(int)>())), OI>::value);
+
+    {
+      auto const identity = [](int x) -> OI { return x; };
+      auto const ret_null = [](int) -> OI { return pf::nullopt_holder::value; };
+      CHECK(OI{42}.and_then(identity).value() == 42);
+      CHECK(!OI{42}.and_then(ret_null).has_value());
+      CHECK(!OI{pf::nullopt_holder::value}.and_then(identity).has_value());
+      CHECK(!OI{pf::nullopt_holder::value}.and_then(ret_null).has_value());
+    }
+
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<OI&>().and_then(std::declval<OD (&)(int)>())), OD>::value);
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<OI const&>().and_then(std::declval<OD (&)(int)>())), OD>::value);
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<OI&&>().and_then(std::declval<OD (&)(int)>())), OD>::value);
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<OI const&&>().and_then(std::declval<OD (&)(int)>())), OD>::value);
+
+    {
+      auto const convert = [](int x) -> OD { return static_cast<double>(x); };
+      auto const ret_null = [](int) -> OD { return pf::nullopt_holder::value; };
+      CHECK(OI{42}.and_then(convert).value() == 42.);
+      CHECK(!OI{42}.and_then(ret_null).has_value());
+      CHECK(!OI{pf::nullopt_holder::value}.and_then(convert).has_value());
+      CHECK(!OI{pf::nullopt_holder::value}.and_then(ret_null).has_value());
+    }
+  }
+
   // TODO: add non trivial tests
 }
 
@@ -389,5 +423,41 @@ TEST_CASE("ref optional")
     int x = 12;
     opt.emplace(x);
     CHECK(opt.value_or(42) == x);
+  }
+
+  // and_then
+  {
+    using OB = pf::optional<Base&>;
+    using OD = pf::optional<Derived&>;
+
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<OD&>().and_then(std::declval<OD (&)(Derived&)>())), OD>::value);
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<OD const&>().and_then(std::declval<OD (&)(Derived&)>())), OD>::value);
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<OD&&>().and_then(std::declval<OD (&)(Derived&)>())), OD>::value);
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<OD const&&>().and_then(std::declval<OD (&)(Derived&)>())), OD>::value);
+
+    {
+      auto const identity = [](Derived& d) -> OD { return d; };
+      auto const ret_null = [](Derived&) -> OD { return pf::nullopt_holder::value; };
+      Derived x;
+      CHECK(std::addressof(OD{x}.and_then(identity).value()) == std::addressof(x));
+      CHECK(!OD{x}.and_then(ret_null).has_value());
+      CHECK(!OD{pf::nullopt_holder::value}.and_then(identity).has_value());
+      CHECK(!OD{pf::nullopt_holder::value}.and_then(ret_null).has_value());
+    }
+
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<OD&>().and_then(std::declval<OB (&)(Derived&)>())), OB>::value);
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<OD const&>().and_then(std::declval<OB (&)(Derived&)>())), OB>::value);
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<OD&&>().and_then(std::declval<OB (&)(Derived&)>())), OB>::value);
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<OD const&&>().and_then(std::declval<OB (&)(Derived&)>())), OB>::value);
+
+    {
+      auto const convert = [](Derived& d) -> OB { return d; };
+      auto const ret_null = [](Derived&) -> OB { return pf::nullopt_holder::value; };
+      Derived x;
+      CHECK(std::addressof(OD{x}.and_then(convert).value()) == std::addressof(x));
+      CHECK(!OD{x}.and_then(ret_null).has_value());
+      CHECK(!OD{pf::nullopt_holder::value}.and_then(convert).has_value());
+      CHECK(!OD{pf::nullopt_holder::value}.and_then(ret_null).has_value());
+    }
   }
 }
