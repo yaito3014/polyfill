@@ -554,7 +554,7 @@ private:
   }
 
 private:
-  T* ptr;
+  T* ptr = nullptr;
 };
 
 }  // namespace polyfill
