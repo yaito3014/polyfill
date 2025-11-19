@@ -26,6 +26,12 @@ TEST_CASE("optional")
   STATIC_REQUIRE(std::is_trivially_move_assignable<pf::optional<int>>::value);
   STATIC_REQUIRE(std::is_trivially_destructible<pf::optional<int>>::value);
 
+  // dereference
+  STATIC_REQUIRE(std::is_same<decltype(*std::declval<pf::optional<int>&>()), int&>::value);
+  STATIC_REQUIRE(std::is_same<decltype(*std::declval<pf::optional<int> const&>()), int const&>::value);
+  STATIC_REQUIRE(std::is_same<decltype(*std::declval<pf::optional<int>&&>()), int&&>::value);
+  STATIC_REQUIRE(std::is_same<decltype(*std::declval<pf::optional<int> const&&>()), int const&&>::value);
+
   // default construction
   {
     pf::optional<int> opt;
@@ -218,6 +224,12 @@ TEST_CASE("ref optional")
   struct Base {};
   struct Derived : Base {};
 
+  // dereference
+  STATIC_REQUIRE(std::is_same<decltype(*std::declval<pf::optional<int&>&>()), int&>::value);
+  STATIC_REQUIRE(std::is_same<decltype(*std::declval<pf::optional<int&> const&>()), int&>::value);
+  STATIC_REQUIRE(std::is_same<decltype(*std::declval<pf::optional<int&>&&>()), int&>::value);
+  STATIC_REQUIRE(std::is_same<decltype(*std::declval<pf::optional<int&> const&&>()), int&>::value);
+
   // default construction
   {
     pf::optional<int&> opt;
@@ -363,5 +375,10 @@ TEST_CASE("ref optional")
     CHECK(std::addressof(a.value()) == std::addressof(x));
     pf::optional<int&> b;
     CHECK_THROWS_AS(b.value(), pf::bad_optional_access);
+
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<pf::optional<int&>&>().value()), int&>::value);
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<pf::optional<int&> const&>().value()), int&>::value);
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<pf::optional<int&>&&>().value()), int&>::value);
+    STATIC_REQUIRE(std::is_same<decltype(std::declval<pf::optional<int&> const&&>().value()), int&>::value);
   }
 }
