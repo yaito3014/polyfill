@@ -3,7 +3,7 @@
 
 #include <yk/polyfill/config.hpp>
 
-#include <yk/polyfill/bits/optional_detail.hpp>
+#include <yk/polyfill/bits/optional_common.hpp>
 
 #include <yk/polyfill/type_traits.hpp>
 #include <yk/polyfill/utility.hpp>
