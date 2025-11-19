@@ -377,14 +377,18 @@ public:
   template<class U = typename std::remove_cv<T>::type>
   constexpr T value_or(U&& v) const& noexcept(std::is_nothrow_copy_constructible<T>::value && std::is_nothrow_constructible<T, U>::value)
   {
-    static_assert(std::is_copy_constructible<T>::value && std::is_convertible<U&&, T>::value);
+    static_assert(
+        std::is_copy_constructible<T>::value && std::is_convertible<U&&, T>::value, "either T must be copy constructible or argument must be convertible to T"
+    );
     return has_value() ? **this : static_cast<T>(std::forward<U>(v));
   }
 
   template<class U = typename std::remove_cv<T>::type>
   constexpr T value_or(U&& v) && noexcept(std::is_nothrow_move_constructible<T>::value && std::is_nothrow_constructible<T, U>::value)
   {
-    static_assert(std::is_move_constructible<T>::value && std::is_convertible<U&&, T>::value);
+    static_assert(
+        std::is_move_constructible<T>::value && std::is_convertible<U&&, T>::value, "either T must be move constructible or argument must be convertible to T"
+    );
     return has_value() ? std::move(**this) : static_cast<T>(std::forward<U>(v));
   }
 
@@ -546,6 +550,10 @@ public:
   template<class U = typename std::remove_cv<T>::type>
   constexpr typename std::remove_cv<T>::type value_or(U&& u) const
   {
+    static_assert(
+        std::is_constructible<typename std::remove_cv<T>::type, T&>::value && std::is_convertible<U, typename std::remove_cv<T>::type>::value,
+        "argument must be convertible to T"
+    );
     return has_value() ? *ptr : static_cast<typename std::remove_cv<T>::type>(std::forward<U>(u));
   }
 
