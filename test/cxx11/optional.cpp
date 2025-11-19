@@ -110,6 +110,7 @@ TEST_CASE("optional")
   {
     pf::optional<int> a = 42;
     a = 3.14;
+    CHECK(a.has_value());
     CHECK(*a == 3);
   }
 
@@ -118,6 +119,7 @@ TEST_CASE("optional")
     pf::optional<int> a = 42;
     pf::optional<double> b = 3.14;
     b = a;
+    CHECK(b.has_value());
     CHECK(*b == 42.0);
   }
 
@@ -126,6 +128,7 @@ TEST_CASE("optional")
     pf::optional<int> a = 42;
     pf::optional<double> b = 3.14;
     b = std::move(a);
+    CHECK(b.has_value());
     CHECK(*b == 42.0);
   }
 
@@ -133,6 +136,7 @@ TEST_CASE("optional")
   {
     pf::optional<int> a = 42;
     a.emplace(33 - 4);
+    CHECK(a.has_value());
     CHECK(*a == 29);
   }
 
@@ -142,6 +146,8 @@ TEST_CASE("optional")
       pf::optional<int> a = 33;
       pf::optional<int> b = 4;
       a.swap(b);
+      CHECK(a.has_value());
+      CHECK(b.has_value());
       CHECK(*a == 4);
       CHECK(*b == 33);
     }
@@ -150,14 +156,16 @@ TEST_CASE("optional")
       pf::optional<int> b;
       a.swap(b);
       CHECK(!a.has_value());
+      CHECK(b.has_value());
       CHECK(*b == 42);
     }
     {
       pf::optional<int> a;
       pf::optional<int> b = 42;
       a.swap(b);
-      CHECK(*a == 42);
+      CHECK(a.has_value());
       CHECK(!b.has_value());
+      CHECK(*a == 42);
     }
     {
       pf::optional<int> a;
@@ -176,6 +184,7 @@ TEST_CASE("optional")
     };
 
     pf::optional<S> s(pf::in_place_holder::value, 42);
+    CHECK(s.has_value());
     CHECK(s->x == 42);
     CHECK(pf::as_const(s)->x == 42);
   }
