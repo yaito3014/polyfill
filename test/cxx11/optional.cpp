@@ -304,5 +304,64 @@ TEST_CASE("ref optional")
     CHECK(std::addressof(*opt) == std::addressof(y));
   }
 
-  // TODO: swap, member access, checked value access
+  // swap
+  {
+    int x = 12;
+    int y = 34;
+    {
+      pf::optional<int&> a = x;
+      pf::optional<int&> b = y;
+      a.swap(b);
+      CHECK(a.has_value());
+      CHECK(b.has_value());
+      CHECK(std::addressof(*a) == std::addressof(y));
+      CHECK(std::addressof(*b) == std::addressof(x));
+    }
+    {
+      pf::optional<int&> a = x;
+      pf::optional<int&> b;
+      a.swap(b);
+      CHECK(!a.has_value());
+      CHECK(b.has_value());
+      CHECK(std::addressof(*b) == std::addressof(x));
+    }
+    {
+      pf::optional<int&> a;
+      pf::optional<int&> b = y;
+      a.swap(b);
+      CHECK(a.has_value());
+      CHECK(!b.has_value());
+      CHECK(std::addressof(*a) == std::addressof(y));
+    }
+    {
+      pf::optional<int&> a;
+      pf::optional<int&> b;
+      a.swap(b);
+      CHECK(!a.has_value());
+      CHECK(!b.has_value());
+    }
+  }
+
+  // member access
+  {
+    struct S {
+      int x;
+      explicit S(int arg) : x(arg) {}
+    };
+
+    S s{42};
+    pf::optional<S&> opt = s;
+    CHECK(opt.has_value());
+    CHECK(opt->x == 42);
+    CHECK(pf::as_const(opt)->x == 42);
+  }
+
+  // checked value access
+  {
+    int x = 42;
+    pf::optional<int&> a = x;
+    CHECK(std::addressof(a.value()) == std::addressof(x));
+    pf::optional<int&> b;
+    CHECK_THROWS_AS(b.value(), pf::bad_optional_access);
+  }
 }
