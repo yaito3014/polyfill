@@ -201,13 +201,53 @@ TEST_CASE("optional")
     CHECK(opt.value_or(4) == 33);
   }
 
-  // ref optional
+  // TODO: add non trivial tests
+}
+
+TEST_CASE("ref optional")
+{
+  struct Base {};
+  struct Derived : Base {};
+
+  // default construction
   {
-    int x = 42;
-    pf::optional<int&> opt = x;
-    CHECK(opt.has_value());
-    CHECK(*opt == 42);
+    pf::optional<int&> opt;
+    CHECK(!opt.has_value());
   }
 
-  // TODO: add non trivial tests
+  // in-place construction
+  {
+    int x = 42;
+    pf::optional<int&> opt(pf::in_place_holder::value, x);
+    CHECK(opt.has_value());
+    CHECK(std::addressof(*opt) == std::addressof(x));
+  }
+
+  // generic construction
+  {
+    Derived x;
+    pf::optional<Base&> opt = x;
+    CHECK(opt.has_value());
+    CHECK(std::addressof(*opt) == std::addressof(x));
+  }
+
+  // generic copy construction
+  {
+    Derived x;
+    pf::optional<Derived&> a = x;
+    pf::optional<Base&> b = a;
+    CHECK(b.has_value());
+    CHECK(std::addressof(*a) == std::addressof(*b));
+  }
+
+  // generic move construction
+  {
+    Derived x;
+    pf::optional<Derived&> a = x;
+    pf::optional<Base&> b = std::move(a);
+    CHECK(b.has_value());
+    CHECK(std::addressof(*b) == std::addressof(x));
+  }
+
+  // TODO: assignment test
 }
