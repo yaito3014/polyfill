@@ -341,10 +341,38 @@ public:
     }
   }
 
-  YK_POLYFILL_CXX14_CONSTEXPR T& value() & { return has_value() ? **this : throw bad_optional_access{}; }
-  constexpr T const& value() const& { return has_value() ? **this : throw bad_optional_access{}; }
-  YK_POLYFILL_CXX14_CONSTEXPR T&& value() && { return has_value() ? std::move(**this) : throw bad_optional_access{}; }
-  constexpr T const&& value() const&& { return has_value() ? std::move(**this) : throw bad_optional_access{}; }
+  YK_POLYFILL_CXX14_CONSTEXPR T& value() &
+  {
+    if (has_value()) {
+      return **this;
+    } else {
+      throw bad_optional_access{};
+    }
+  }
+  YK_POLYFILL_CXX14_CONSTEXPR T const& value() const&
+  {
+    if (has_value()) {
+      return **this;
+    } else {
+      throw bad_optional_access{};
+    }
+  }
+  YK_POLYFILL_CXX14_CONSTEXPR T&& value() &&
+  {
+    if (has_value()) {
+      return std::move(**this);
+    } else {
+      throw bad_optional_access{};
+    }
+  }
+  YK_POLYFILL_CXX14_CONSTEXPR T const&& value() const&&
+  {
+    if (has_value()) {
+      return std::move(**this);
+    } else {
+      throw bad_optional_access{};
+    }
+  }
 
   template<class U = typename std::remove_cv<T>::type>
   constexpr T value_or(U&& v) const& noexcept(std::is_nothrow_copy_constructible<T>::value && std::is_nothrow_constructible<T, U>::value)
