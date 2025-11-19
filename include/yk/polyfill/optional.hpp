@@ -534,7 +534,14 @@ public:
 
   constexpr bool has_value() const noexcept { return ptr != nullptr; }
 
-  constexpr T& value() const { return has_value() ? *ptr : throw bad_optional_access{}; }
+  YK_POLYFILL_CXX14_CONSTEXPR T& value() const
+  {
+    if (has_value()) {
+      return **this;
+    } else {
+      throw bad_optional_access{};
+    }
+  }
 
   template<class U = typename std::remove_cv<T>::type>
   constexpr typename std::remove_cv<T>::type value_or(U&& u) const
