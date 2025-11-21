@@ -84,7 +84,7 @@ public:
     return *this;
   }
 
-  constexpr T* operator->() const noexcept { return ptr_; }
+  constexpr pointer operator->() const noexcept { return ptr_; }
 
   constexpr reference operator[](difference_type n) const noexcept { return ptr_[n]; }
 
@@ -199,7 +199,7 @@ struct optional_storage_base : public optional_destruct_base<T> {  // T is NOT a
   template<class UOpt>
   YK_POLYFILL_CXX20_CONSTEXPR void construct_from(UOpt&& other) noexcept(noexcept(construct(*std::forward<UOpt>(other))))
   {
-    if (this->engaged) {
+    if (other.has_value()) {
       construct(*std::forward<UOpt>(other));
     }
   }
@@ -207,7 +207,7 @@ struct optional_storage_base : public optional_destruct_base<T> {  // T is NOT a
   template<class UOpt>
   YK_POLYFILL_CXX20_CONSTEXPR void assign_from(UOpt&& other) noexcept(noexcept(assign(*std::forward<UOpt>(other))))
   {
-    if (this->engaged) {
+    if (other.has_value()) {
       assign(*std::forward<UOpt>(other));
     } else {
       this->reset();
