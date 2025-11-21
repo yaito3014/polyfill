@@ -597,10 +597,10 @@ public:
   using iterator = optional_detail::optional_iterator<T, false>;
   using const_iterator = optional_detail::optional_iterator<T, true>;
 
-  constexpr iterator begin() noexcept { return iterator{operator->() + !has_value()}; }
+  YK_POLYFILL_CXX14_CONSTEXPR iterator begin() noexcept { return iterator{operator->() + !has_value()}; }
   constexpr const_iterator begin() const noexcept { return const_iterator{operator->() + !has_value()}; }
 
-  constexpr iterator end() noexcept { return begin() + has_value(); }
+  YK_POLYFILL_CXX14_CONSTEXPR iterator end() noexcept { return begin() + has_value(); }
   constexpr const_iterator end() const noexcept { return begin() + has_value(); }
 };
 
@@ -804,10 +804,10 @@ public:
   using iterator = optional_detail::optional_iterator<T, false>;
   using const_iterator = optional_detail::optional_iterator<T, true>;
 
-  constexpr iterator begin() noexcept { return iterator{operator->() + !has_value()}; }
+  YK_POLYFILL_CXX14_CONSTEXPR iterator begin() noexcept { return iterator{operator->() + !has_value()}; }
   constexpr const_iterator begin() const noexcept { return const_iterator{operator->() + !has_value()}; }
 
-  constexpr iterator end() noexcept { return begin() + has_value(); }
+  YK_POLYFILL_CXX14_CONSTEXPR iterator end() noexcept { return begin() + has_value(); }
   constexpr const_iterator end() const noexcept { return begin() + has_value(); }
 
 private:
