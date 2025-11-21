@@ -289,6 +289,25 @@ TEST_CASE("optional")
     CHECK(!pf::optional<int>{pf::nullopt_holder::value}.or_else(ret_null).has_value());
   }
 
+  // iterator
+  {
+    using It = pf::optional<int>::iterator;
+#if __cpp_lib_ranges >= 201911L
+    STATIC_REQUIRE(std::is_base_of<std::contiguous_iterator_tag, std::iterator_traits<It>::iterator_category>::value);
+#else
+    STATIC_REQUIRE(std::is_base_of<std::random_access_iterator_tag, std::iterator_traits<It>::iterator_category>::value);
+#endif
+    {
+      pf::optional<int> opt;
+      CHECK(opt.end() - opt.begin() == 0);
+    }
+    {
+      pf::optional<int> opt = 42;
+      CHECK(opt.end() - opt.begin() == 1);
+      CHECK(*opt.begin() == 42);
+    }
+  }
+
   // TODO: add non trivial tests
 }
 
@@ -499,7 +518,7 @@ TEST_CASE("ref optional")
       CHECK(!OD{pf::nullopt_holder::value}.and_then(ret_null).has_value());
     }
   }
-  
+
   // transform
   {
     using OB = pf::optional<Base&>;
@@ -542,5 +561,25 @@ TEST_CASE("ref optional")
     CHECK(std::addressof(pf::optional<int&>{y}.or_else(ret_null).value()) == std::addressof(y));
     CHECK(std::addressof(pf::optional<int&>{pf::nullopt_holder::value}.or_else(producer).value()) == std::addressof(x));
     CHECK(!pf::optional<int&>{pf::nullopt_holder::value}.or_else(ret_null).has_value());
+  }
+
+  // iterator
+  {
+    using It = pf::optional<int&>::iterator;
+#if __cpp_lib_ranges >= 201911L
+    STATIC_REQUIRE(std::is_base_of<std::contiguous_iterator_tag, std::iterator_traits<It>::iterator_category>::value);
+#else
+    STATIC_REQUIRE(std::is_base_of<std::random_access_iterator_tag, std::iterator_traits<It>::iterator_category>::value);
+#endif
+    int x = 42;
+    {
+      pf::optional<int&> opt;
+      CHECK(opt.end() - opt.begin() == 0);
+    }
+    {
+      pf::optional<int&> opt = x;
+      CHECK(opt.end() - opt.begin() == 1);
+      CHECK(std::addressof(*opt.begin()) == std::addressof(x));
+    }
   }
 }

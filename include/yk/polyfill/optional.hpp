@@ -27,6 +27,81 @@ class optional;
 
 namespace optional_detail {
 
+template<class T, bool Const>
+class optional_iterator {
+public:
+  using iterator_category =
+#if __cpp_lib_ranges >= 201911L
+      std::contiguous_iterator_tag
+#else
+      std::random_access_iterator_tag
+#endif
+      ;
+  using difference_type = std::ptrdiff_t;
+  using value_type = T;
+  using pointer = typename std::conditional<Const, T const*, T*>::type;
+  using reference = typename std::conditional<Const, T const&, T&>::type;
+
+  constexpr optional_iterator() noexcept = default;
+
+  constexpr reference operator*() const noexcept { return *ptr_; }
+
+  YK_POLYFILL_CXX14_CONSTEXPR optional_iterator& operator++() noexcept
+  {
+    ++ptr_;
+    return *this;
+  }
+
+  YK_POLYFILL_CXX14_CONSTEXPR optional_iterator operator++(int) noexcept
+  {
+    optional_iterator temporary = *this;
+    ++*this;
+    return temporary;
+  }
+
+  YK_POLYFILL_CXX14_CONSTEXPR optional_iterator& operator--() noexcept
+  {
+    --ptr_;
+    return *this;
+  }
+
+  YK_POLYFILL_CXX14_CONSTEXPR optional_iterator operator--(int) noexcept
+  {
+    optional_iterator temporary = *this;
+    --*this;
+    return temporary;
+  }
+
+  YK_POLYFILL_CXX14_CONSTEXPR optional_iterator& operator+=(difference_type n) noexcept
+  {
+    ptr_ += n;
+    return *this;
+  }
+
+  YK_POLYFILL_CXX14_CONSTEXPR optional_iterator& operator-=(difference_type n) noexcept
+  {
+    ptr_ -= n;
+    return *this;
+  }
+
+  constexpr reference operator[](difference_type n) const noexcept { return ptr_[n]; }
+
+  friend constexpr optional_iterator operator+(optional_iterator const& it, difference_type n) noexcept { return optional_iterator{it.ptr_ + n}; }
+
+  friend constexpr optional_iterator operator-(optional_iterator const& it, difference_type n) noexcept { return optional_iterator{it.ptr_ - n}; }
+
+  friend constexpr difference_type operator-(optional_iterator const& a, optional_iterator const& b) noexcept { return a.ptr_ - b.ptr_; }
+
+private:
+  friend optional<T>;
+  friend optional<T&>;
+
+  constexpr optional_iterator(pointer ptr) noexcept : ptr_(ptr) {}
+
+private:
+  T* ptr_ = nullptr;
+};
+
 struct empty_type {};
 
 template<class T, bool = std::is_trivially_destructible<T>::value>
@@ -519,7 +594,14 @@ public:
     }
   }
 
-  // TODO: iterator support
+  using iterator = optional_detail::optional_iterator<T, false>;
+  using const_iterator = optional_detail::optional_iterator<T, true>;
+
+  constexpr iterator begin() noexcept { return iterator{operator->() + !has_value()}; }
+  constexpr const_iterator begin() const noexcept { return const_iterator{operator->() + !has_value()}; }
+
+  constexpr iterator end() noexcept { return begin() + has_value(); }
+  constexpr const_iterator end() const noexcept { return begin() + has_value(); }
 };
 
 template<class T>
@@ -719,7 +801,14 @@ public:
     }
   }
 
-  // TODO: iterator support
+  using iterator = optional_detail::optional_iterator<T, false>;
+  using const_iterator = optional_detail::optional_iterator<T, true>;
+
+  constexpr iterator begin() noexcept { return iterator{operator->() + !has_value()}; }
+  constexpr const_iterator begin() const noexcept { return const_iterator{operator->() + !has_value()}; }
+
+  constexpr iterator end() noexcept { return begin() + has_value(); }
+  constexpr const_iterator end() const noexcept { return begin() + has_value(); }
 
 private:
   template<class U>
