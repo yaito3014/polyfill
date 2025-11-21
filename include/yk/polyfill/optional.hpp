@@ -99,7 +99,7 @@ private:
   constexpr optional_iterator(pointer ptr) noexcept : ptr_(ptr) {}
 
 private:
-  T* ptr_ = nullptr;
+  pointer ptr_ = nullptr;
 };
 
 struct empty_type {};
