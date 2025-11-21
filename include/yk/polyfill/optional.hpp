@@ -471,7 +471,9 @@ public:
   YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) && -> optional<typename std::remove_cv<typename invoke_result<F, decltype(std::move(**this))>::type>::type>
   {
     using U = typename std::remove_cv<typename invoke_result<F, decltype(std::move(**this))>::type>::type;
-    static_assert(std::is_constructible<U, typename invoke_result<F, decltype(std::move(**this))>::type>::value, "result type of F must be copy/move constructible");
+    static_assert(
+        std::is_constructible<U, typename invoke_result<F, decltype(std::move(**this))>::type>::value, "result type of F must be copy/move constructible"
+    );
     if (has_value()) {
       return optional<U>(invoke(std::forward<F>(f), std::move(**this)));
     } else {
@@ -485,7 +487,9 @@ public:
   ) const&& -> optional<typename std::remove_cv<typename invoke_result<F, decltype(std::move(**this))>::type>::type>
   {
     using U = typename std::remove_cv<typename invoke_result<F, decltype(std::move(**this))>::type>::type;
-    static_assert(std::is_constructible<U, typename invoke_result<F, decltype(std::move(**this))>::type>::value, "result type of F must be copy/move constructible");
+    static_assert(
+        std::is_constructible<U, typename invoke_result<F, decltype(std::move(**this))>::type>::value, "result type of F must be copy/move constructible"
+    );
     if (has_value()) {
       return optional<U>(invoke(std::forward<F>(f), std::move(**this)));
     } else {
@@ -503,7 +507,7 @@ public:
       return invoke(std::forward<F>(f));
     }
   }
-  
+
   template<class F, typename std::enable_if<conjunction<is_invocable<F>, std::is_move_constructible<T>>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX14_CONSTEXPR optional or_else(F&& f) &&
   {
@@ -705,7 +709,9 @@ public:
   template<class F, typename std::enable_if<is_invocable<F>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX14_CONSTEXPR optional or_else(F&& f) const
   {
-    static_assert(std::is_same<typename remove_cvref<typename invoke_result<F>::type>::type, optional>::value, "result type of F must be equal to optional<T&>");
+    static_assert(
+        std::is_same<typename remove_cvref<typename invoke_result<F>::type>::type, optional>::value, "result type of F must be equal to optional<T&>"
+    );
     if (has_value()) {
       return *this;
     } else {

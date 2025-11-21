@@ -265,7 +265,7 @@ TEST_CASE("optional")
       CHECK(OI{42}.transform(identity).value() == 42);
       CHECK(!OI{pf::nullopt_holder::value}.transform(identity).has_value());
     }
-    
+
     STATIC_REQUIRE(std::is_same<decltype(std::declval<OI&>().transform(std::declval<double (&)(int)>())), OD>::value);
     STATIC_REQUIRE(std::is_same<decltype(std::declval<OI const&>().transform(std::declval<double (&)(int)>())), OD>::value);
     STATIC_REQUIRE(std::is_same<decltype(std::declval<OI&&>().transform(std::declval<double (&)(int)>())), OD>::value);
@@ -282,7 +282,7 @@ TEST_CASE("optional")
   {
     auto const producer = []() -> pf::optional<int> { return 12; };
     auto const ret_null = []() -> pf::optional<int> { return pf::nullopt_holder::value; };
-    
+
     CHECK(pf::optional<int>{34}.or_else(producer).value() == 34);
     CHECK(pf::optional<int>{34}.or_else(ret_null).value() == 34);
     CHECK(pf::optional<int>{pf::nullopt_holder::value}.or_else(producer).value() == 12);
