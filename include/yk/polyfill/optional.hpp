@@ -84,6 +84,8 @@ public:
     return *this;
   }
 
+  constexpr T* operator->() const noexcept { return ptr_; }
+
   constexpr reference operator[](difference_type n) const noexcept { return ptr_[n]; }
 
   friend constexpr optional_iterator operator+(optional_iterator const& it, difference_type n) noexcept { return optional_iterator{it.ptr_ + n}; }
