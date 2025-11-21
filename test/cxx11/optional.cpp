@@ -278,6 +278,17 @@ TEST_CASE("optional")
     }
   }
 
+  // or_else
+  {
+    auto const producer = []() -> pf::optional<int> { return 12; };
+    auto const ret_null = []() -> pf::optional<int> { return pf::nullopt_holder::value; };
+    
+    CHECK(pf::optional<int>{34}.or_else(producer).value() == 34);
+    CHECK(pf::optional<int>{34}.or_else(ret_null).value() == 34);
+    CHECK(pf::optional<int>{pf::nullopt_holder::value}.or_else(producer).value() == 12);
+    CHECK(!pf::optional<int>{pf::nullopt_holder::value}.or_else(ret_null).has_value());
+  }
+
   // TODO: add non trivial tests
 }
 
@@ -517,5 +528,19 @@ TEST_CASE("ref optional")
       CHECK(std::addressof(OD{x}.transform(convert).value()) == std::addressof(x));
       CHECK(!OD{pf::nullopt_holder::value}.transform(convert).has_value());
     }
+  }
+
+  // or_else
+  {
+    int x = 12;
+    int y = 34;
+
+    auto const producer = [&]() -> pf::optional<int&> { return x; };
+    auto const ret_null = []() -> pf::optional<int&> { return pf::nullopt_holder::value; };
+
+    CHECK(std::addressof(pf::optional<int&>{y}.or_else(producer).value()) == std::addressof(y));
+    CHECK(std::addressof(pf::optional<int&>{y}.or_else(ret_null).value()) == std::addressof(y));
+    CHECK(std::addressof(pf::optional<int&>{pf::nullopt_holder::value}.or_else(producer).value()) == std::addressof(x));
+    CHECK(!pf::optional<int&>{pf::nullopt_holder::value}.or_else(ret_null).has_value());
   }
 }

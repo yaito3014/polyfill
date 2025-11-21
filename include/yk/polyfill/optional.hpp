@@ -399,7 +399,7 @@ public:
   YK_POLYFILL_CXX14_CONSTEXPR auto and_then(F&& f) & -> typename remove_cvref<typename invoke_result<F, decltype(**this)>::type>::type
   {
     using U = typename invoke_result<F, decltype(**this)>::type;
-    static_assert(extension::is_specialization_of<typename remove_cvref<U>::type, optional>::value, "result of F must be specialization of optional");
+    static_assert(extension::is_specialization_of<typename remove_cvref<U>::type, optional>::value, "result type of F must be specialization of optional");
     if (has_value()) {
       return invoke(std::forward<F>(f), **this);
     } else {
@@ -411,7 +411,7 @@ public:
   YK_POLYFILL_CXX14_CONSTEXPR auto and_then(F&& f) const& -> typename remove_cvref<typename invoke_result<F, decltype(**this)>::type>::type
   {
     using U = typename invoke_result<F, decltype(**this)>::type;
-    static_assert(extension::is_specialization_of<typename remove_cvref<U>::type, optional>::value, "result of F must be specialization of optional");
+    static_assert(extension::is_specialization_of<typename remove_cvref<U>::type, optional>::value, "result type of F must be specialization of optional");
     if (has_value()) {
       return invoke(std::forward<F>(f), **this);
     } else {
@@ -423,7 +423,7 @@ public:
   YK_POLYFILL_CXX14_CONSTEXPR auto and_then(F&& f) && -> typename remove_cvref<typename invoke_result<F, decltype(std::move(**this))>::type>::type
   {
     using U = typename invoke_result<F, decltype(**this)>::type;
-    static_assert(extension::is_specialization_of<typename remove_cvref<U>::type, optional>::value, "result of F must be specialization of optional");
+    static_assert(extension::is_specialization_of<typename remove_cvref<U>::type, optional>::value, "result type of F must be specialization of optional");
     if (has_value()) {
       return invoke(std::forward<F>(f), std::move(**this));
     } else {
@@ -435,7 +435,7 @@ public:
   YK_POLYFILL_CXX14_CONSTEXPR auto and_then(F&& f) const&& -> typename remove_cvref<typename invoke_result<F, decltype(std::move(**this))>::type>::type
   {
     using U = typename invoke_result<F, decltype(**this)>::type;
-    static_assert(extension::is_specialization_of<typename remove_cvref<U>::type, optional>::value, "result of F must be specialization of optional");
+    static_assert(extension::is_specialization_of<typename remove_cvref<U>::type, optional>::value, "result type of F must be specialization of optional");
     if (has_value()) {
       return invoke(std::forward<F>(f), std::move(**this));
     } else {
@@ -447,7 +447,7 @@ public:
   YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) & -> optional<typename std::remove_cv<typename invoke_result<F, decltype(**this)>::type>::type>
   {
     using U = typename std::remove_cv<typename invoke_result<F, decltype(**this)>::type>::type;
-    static_assert(std::is_constructible<U, typename invoke_result<F, decltype(**this)>::type>::value, "result of F must be copy/move constructible");
+    static_assert(std::is_constructible<U, typename invoke_result<F, decltype(**this)>::type>::value, "result type of F must be copy/move constructible");
     if (has_value()) {
       return optional<U>(invoke(std::forward<F>(f), **this));
     } else {
@@ -459,7 +459,7 @@ public:
   YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) const& -> optional<typename std::remove_cv<typename invoke_result<F, decltype(**this)>::type>::type>
   {
     using U = typename std::remove_cv<typename invoke_result<F, decltype(**this)>::type>::type;
-    static_assert(std::is_constructible<U, typename invoke_result<F, decltype(**this)>::type>::value, "result of F must be copy/move constructible");
+    static_assert(std::is_constructible<U, typename invoke_result<F, decltype(**this)>::type>::value, "result type of F must be copy/move constructible");
     if (has_value()) {
       return optional<U>(invoke(std::forward<F>(f), **this));
     } else {
@@ -471,7 +471,7 @@ public:
   YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) && -> optional<typename std::remove_cv<typename invoke_result<F, decltype(std::move(**this))>::type>::type>
   {
     using U = typename std::remove_cv<typename invoke_result<F, decltype(std::move(**this))>::type>::type;
-    static_assert(std::is_constructible<U, typename invoke_result<F, decltype(std::move(**this))>::type>::value, "result of F must be copy/move constructible");
+    static_assert(std::is_constructible<U, typename invoke_result<F, decltype(std::move(**this))>::type>::value, "result type of F must be copy/move constructible");
     if (has_value()) {
       return optional<U>(invoke(std::forward<F>(f), std::move(**this)));
     } else {
@@ -485,7 +485,7 @@ public:
   ) const&& -> optional<typename std::remove_cv<typename invoke_result<F, decltype(std::move(**this))>::type>::type>
   {
     using U = typename std::remove_cv<typename invoke_result<F, decltype(std::move(**this))>::type>::type;
-    static_assert(std::is_constructible<U, typename invoke_result<F, decltype(std::move(**this))>::type>::value, "result of F must be copy/move constructible");
+    static_assert(std::is_constructible<U, typename invoke_result<F, decltype(std::move(**this))>::type>::value, "result type of F must be copy/move constructible");
     if (has_value()) {
       return optional<U>(invoke(std::forward<F>(f), std::move(**this)));
     } else {
@@ -493,7 +493,27 @@ public:
     }
   }
 
-  // TODO: or_else
+  template<class F, typename std::enable_if<conjunction<is_invocable<F>, std::is_copy_constructible<T>>::value, std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX14_CONSTEXPR optional or_else(F&& f) const&
+  {
+    static_assert(std::is_same<typename remove_cvref<typename invoke_result<F>::type>::type, optional>::value, "result type of F must be equal to optional<T>");
+    if (has_value()) {
+      return *this;
+    } else {
+      return invoke(std::forward<F>(f));
+    }
+  }
+  
+  template<class F, typename std::enable_if<conjunction<is_invocable<F>, std::is_move_constructible<T>>::value, std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX14_CONSTEXPR optional or_else(F&& f) &&
+  {
+    static_assert(std::is_same<typename remove_cvref<typename invoke_result<F>::type>::type, optional>::value, "result type of F must be equal to optional<T>");
+    if (has_value()) {
+      return std::move(*this);
+    } else {
+      return invoke(std::forward<F>(f));
+    }
+  }
 
   // TODO: iterator support
 };
@@ -682,7 +702,16 @@ public:
     }
   }
 
-  // TODO: or_else
+  template<class F, typename std::enable_if<is_invocable<F>::value, std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX14_CONSTEXPR optional or_else(F&& f) const
+  {
+    static_assert(std::is_same<typename remove_cvref<typename invoke_result<F>::type>::type, optional>::value, "result type of F must be equal to optional<T&>");
+    if (has_value()) {
+      return *this;
+    } else {
+      return invoke(std::forward<F>(f));
+    }
+  }
 
   // TODO: iterator support
 
