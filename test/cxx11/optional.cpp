@@ -583,3 +583,64 @@ TEST_CASE("ref optional")
     }
   }
 }
+
+TEST_CASE("optional non-trivial")
+{
+  // track construction/destruction for non-trivial type
+  static int tracker_constructions = 0;
+  static int tracker_destructions = 0;
+
+  struct Tracker {
+    Tracker() { ++tracker_constructions; }
+    Tracker(Tracker const&) { ++tracker_constructions; }
+    Tracker(Tracker&&) noexcept { ++tracker_constructions; }
+    ~Tracker() { ++tracker_destructions; }
+  };
+
+  tracker_constructions = 0;
+  tracker_destructions = 0;
+
+  {
+    pf::optional<Tracker> o;
+    CHECK(!o.has_value());
+    CHECK(tracker_constructions == 0);
+    CHECK(tracker_destructions == 0);
+
+    o.emplace();
+    CHECK(o.has_value());
+    CHECK(tracker_constructions >= 1);
+
+    o.reset();
+    CHECK(!o.has_value());
+    CHECK(tracker_destructions >= 1);
+  }
+
+  // move-only type (unique_ptr)
+  {
+    pf::optional<std::unique_ptr<int>> a = std::unique_ptr<int>(new int(42));
+    CHECK(a.has_value());
+    CHECK(**a == 42);
+
+    pf::optional<std::unique_ptr<int>> b = std::move(a);
+    CHECK(b.has_value());
+    CHECK(**b == 42);
+    // moved-from unique_ptr inside optional remains engaged but null
+    CHECK(a.has_value());
+    CHECK(!*a);
+  }
+
+  // copy-only type
+  {
+    struct CopyOnly {
+      CopyOnly() = default;
+      CopyOnly(CopyOnly const&) = default;
+      CopyOnly(CopyOnly&&) = delete;
+    };
+
+    pf::optional<CopyOnly> x;
+    x.emplace();
+    pf::optional<CopyOnly> y = x; // copy-constructible
+    CHECK(y.has_value());
+  }
+}
+
