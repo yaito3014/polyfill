@@ -272,7 +272,7 @@ TEST_CASE("optional")
     STATIC_REQUIRE(std::is_same<decltype(std::declval<OI const&&>().transform(std::declval<double (&)(int)>())), OD>::value);
 
     {
-      auto const convert = [](int x) -> int { return x; };
+      auto const convert = [](int x) -> double { return static_cast<double>(x); };
       CHECK(OI{42}.transform(convert).value() == 42.);
       CHECK(!OI{pf::nullopt_holder::value}.transform(convert).has_value());
     }
