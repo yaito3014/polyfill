@@ -7,6 +7,7 @@
 #include <yk/polyfill/optional.hpp>
 #include <yk/polyfill/utility.hpp>
 
+#include <memory>
 #include <type_traits>
 #include <utility>
 
@@ -582,4 +583,15 @@ TEST_CASE("ref optional")
       CHECK(std::addressof(*opt.begin()) == std::addressof(x));
     }
   }
+}
+
+TEST_CASE("optional non-trivial")
+{
+  struct MoveOnly {
+    MoveOnly() = default;
+    MoveOnly(MoveOnly const&) = delete;
+    MoveOnly(MoveOnly&&) = default;
+  };
+
+  pf::optional<MoveOnly> opt = MoveOnly{};
 }

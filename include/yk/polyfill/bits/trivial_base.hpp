@@ -49,7 +49,7 @@ using select_base_for_copy_constructor = typename std::conditional<
 
 template<class Base, class... Ts>
 struct non_trivial_move_constructor : select_base_for_copy_constructor<Base, Ts...> {
-  using Base::Base;
+  using select_base_for_copy_constructor<Base, Ts...>::select_base_for_copy_constructor;
 
   non_trivial_move_constructor() = default;
 
@@ -66,7 +66,7 @@ struct non_trivial_move_constructor : select_base_for_copy_constructor<Base, Ts.
 
 template<class Base, class... Ts>
 struct deleted_move_constructor : select_base_for_copy_constructor<Base, Ts...> {
-  using Base::Base;
+  using select_base_for_copy_constructor<Base, Ts...>::select_base_for_copy_constructor;
 
   deleted_move_constructor() = default;
   deleted_move_constructor(deleted_move_constructor const&) = default;
@@ -83,7 +83,7 @@ using select_base_for_constructors = typename std::conditional<
 
 template<class Base, class... Ts>
 struct non_trivial_copy_assignment : select_base_for_constructors<Base, Ts...> {
-  using Base::Base;
+  using select_base_for_constructors<Base, Ts...>::select_base_for_constructors;
 
   non_trivial_copy_assignment() = default;
 
@@ -104,7 +104,7 @@ struct non_trivial_copy_assignment : select_base_for_constructors<Base, Ts...> {
 
 template<class Base, class... Ts>
 struct deleted_copy_assignment : select_base_for_constructors<Base, Ts...> {
-  using Base::Base;
+  using select_base_for_constructors<Base, Ts...>::select_base_for_constructors;
 
   deleted_copy_assignment() = default;
   deleted_copy_assignment(deleted_copy_assignment const&) = default;
@@ -121,7 +121,7 @@ using select_base_for_constructors_and_copy_assignment = typename std::condition
 
 template<class Base, class... Ts>
 struct non_trivial_move_assignment : select_base_for_constructors_and_copy_assignment<Base, Ts...> {
-  using Base::Base;
+  using select_base_for_constructors_and_copy_assignment<Base, Ts...>::select_base_for_constructors_and_copy_assignment;
 
   non_trivial_move_assignment() = default;
 
@@ -140,7 +140,7 @@ struct non_trivial_move_assignment : select_base_for_constructors_and_copy_assig
 
 template<class Base, class... Ts>
 struct deleted_move_assignment : select_base_for_constructors_and_copy_assignment<Base, Ts...> {
-  using Base::Base;
+  using select_base_for_constructors_and_copy_assignment<Base, Ts...>::select_base_for_constructors_and_copy_assignment;
 
   deleted_move_assignment() = default;
   deleted_move_assignment(deleted_move_assignment const&) = default;
