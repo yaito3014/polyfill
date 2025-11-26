@@ -456,7 +456,7 @@ public:
   YK_POLYFILL_CXX14_CONSTEXPR T value_or(U&& v) const& noexcept(std::is_nothrow_copy_constructible<T>::value && std::is_nothrow_constructible<T, U>::value)
   {
     static_assert(
-        std::is_copy_constructible<T>::value && std::is_convertible<U&&, T>::value, "either T must be copy constructible or argument must be convertible to T"
+        std::is_copy_constructible<T>::value && std::is_convertible<U&&, T>::value, "T must be copy constructible and the argument must be convertible to T"
     );
     if (has_value()) {
       return **this;
@@ -469,7 +469,7 @@ public:
   YK_POLYFILL_CXX14_CONSTEXPR T value_or(U&& v) && noexcept(std::is_nothrow_move_constructible<T>::value && std::is_nothrow_constructible<T, U>::value)
   {
     static_assert(
-        std::is_move_constructible<T>::value && std::is_convertible<U&&, T>::value, "either T must be move constructible or argument must be convertible to T"
+        std::is_move_constructible<T>::value && std::is_convertible<U&&, T>::value, "T must be move constructible and the argument must be convertible to T"
     );
     if (has_value()) {
       return std::move(**this);
