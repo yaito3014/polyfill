@@ -795,10 +795,10 @@ TEST_CASE("optional relational operators")
       bool operator>=(ThrowingComparable const& other) const { return value >= other.value; }
     };
 
-    pf::optional<NoexceptComparable> a(pf::in_place_holder::value, 42);
-    pf::optional<NoexceptComparable> b(pf::in_place_holder::value, 42);
-    pf::optional<ThrowingComparable> c(pf::in_place_holder::value, 42);
-    pf::optional<ThrowingComparable> d(pf::in_place_holder::value, 42);
+    pf::optional<NoexceptComparable> a(pf::in_place_holder::value, NoexceptComparable{42});
+    pf::optional<NoexceptComparable> b(pf::in_place_holder::value, NoexceptComparable{42});
+    pf::optional<ThrowingComparable> c(pf::in_place_holder::value, ThrowingComparable{42});
+    pf::optional<ThrowingComparable> d(pf::in_place_holder::value, ThrowingComparable{42});
 
     // Verify noexcept propagation for optional vs optional
     STATIC_REQUIRE(noexcept(a == b));
