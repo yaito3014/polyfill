@@ -18,6 +18,10 @@
 #include <type_traits>
 #include <utility>
 
+#if __cplusplus >= 202002L
+#include <compare>
+#endif
+
 namespace yk {
 
 namespace polyfill {
@@ -242,6 +246,13 @@ struct allow_unwrapping_assignment {
       converts_from_any_cvref<T, optional<U>>, std::is_assignable<T&, optional<U>&>, std::is_assignable<T&, optional<U>&&>,
       std::is_assignable<T&, optional<U> const&>, std::is_assignable<T&, optional<U> const&&>>::value;
 };
+
+#if __cplusplus >= 202002L
+
+template<class T>
+concept is_derived_from_optional = requires(T const& t) { []<class U>(optional<U> const&) {}(t); };
+
+#endif
 
 }  // namespace optional_detail
 
@@ -1089,6 +1100,37 @@ YK_POLYFILL_CXX14_CONSTEXPR bool operator>=(T const& t, optional<U> const& opt) 
 {
   return opt.has_value() ? t >= *opt : true;
 }
+
+#if __cplusplus >= 202002L
+
+// Three-way comparison between optional objects
+template<class T, class U>
+  requires std::three_way_comparable_with<T, U>
+constexpr std::compare_three_way_result_t<T, U> operator<=>(optional<T> const& lhs, optional<U> const& rhs) noexcept
+{
+  if (lhs.has_value() && rhs.has_value()) {
+    return *lhs <=> *rhs;
+  } else {
+    return lhs.has_value() <=> rhs.has_value();
+  }
+}
+
+// Three-way comparison with nullopt_t
+template<class T>
+constexpr std::strong_ordering operator<=>(optional<T> const& opt, nullopt_t) noexcept
+{
+  return opt.has_value() <=> false;
+}
+
+// Three-way comparison with T
+template<class T, class U>
+  requires (!optional_detail::is_derived_from_optional<U>) && std::three_way_comparable_with<T, U>
+constexpr std::compare_three_way_result_t<T, U> operator<=>(optional<T> const& opt, U const& u) noexcept
+{
+  return opt.has_value() ? *opt <=> u : std::strong_ordering::less;
+}
+
+#endif
 
 }  // namespace polyfill
 
