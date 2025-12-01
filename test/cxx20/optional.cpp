@@ -44,4 +44,39 @@ TEST_CASE("optional three-way comparison")
     CHECK(((a <=> 10) == std::strong_ordering::greater));
     CHECK(((b <=> 42) == std::strong_ordering::less));
   }
+
+  // noexcept propagation tests for three-way comparison
+  {
+    struct NoexceptComparable {
+      int value;
+      constexpr auto operator<=>(NoexceptComparable const& other) const noexcept { return value <=> other.value; }
+      constexpr bool operator==(NoexceptComparable const& other) const noexcept = default;
+    };
+
+    struct ThrowingComparable {
+      int value;
+      auto operator<=>(ThrowingComparable const& other) const { return value <=> other.value; }
+      bool operator==(ThrowingComparable const& other) const = default;
+    };
+
+    pf::optional<NoexceptComparable> a{pf::in_place, NoexceptComparable{42}};
+    pf::optional<NoexceptComparable> b{pf::in_place, NoexceptComparable{42}};
+    pf::optional<ThrowingComparable> c{pf::in_place, ThrowingComparable{42}};
+    pf::optional<ThrowingComparable> d{pf::in_place, ThrowingComparable{42}};
+
+    // Verify noexcept propagation for optional vs optional
+    STATIC_REQUIRE(noexcept(a <=> b));
+    STATIC_REQUIRE(!noexcept(c <=> d));
+
+    // Verify noexcept for nullopt comparisons (always noexcept)
+    STATIC_REQUIRE(noexcept(a <=> pf::nullopt_holder::value));
+    STATIC_REQUIRE(noexcept(c <=> pf::nullopt_holder::value));
+
+    // Verify noexcept propagation for optional vs value
+    NoexceptComparable nv{42};
+    ThrowingComparable tv{42};
+
+    STATIC_REQUIRE(noexcept(a <=> nv));
+    STATIC_REQUIRE(!noexcept(c <=> tv));
+  }
 }

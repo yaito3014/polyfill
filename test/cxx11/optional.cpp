@@ -772,4 +772,67 @@ TEST_CASE("optional relational operators")
     CHECK((b < 42.0));
     CHECK(!(42.0 < b));
   }
+
+  // noexcept propagation tests
+  {
+    struct NoexceptComparable {
+      int value;
+      constexpr bool operator==(NoexceptComparable const& other) const noexcept { return value == other.value; }
+      constexpr bool operator!=(NoexceptComparable const& other) const noexcept { return value != other.value; }
+      constexpr bool operator<(NoexceptComparable const& other) const noexcept { return value < other.value; }
+      constexpr bool operator<=(NoexceptComparable const& other) const noexcept { return value <= other.value; }
+      constexpr bool operator>(NoexceptComparable const& other) const noexcept { return value > other.value; }
+      constexpr bool operator>=(NoexceptComparable const& other) const noexcept { return value >= other.value; }
+    };
+
+    struct ThrowingComparable {
+      int value;
+      bool operator==(ThrowingComparable const& other) const { return value == other.value; }
+      bool operator!=(ThrowingComparable const& other) const { return value != other.value; }
+      bool operator<(ThrowingComparable const& other) const { return value < other.value; }
+      bool operator<=(ThrowingComparable const& other) const { return value <= other.value; }
+      bool operator>(ThrowingComparable const& other) const { return value > other.value; }
+      bool operator>=(ThrowingComparable const& other) const { return value >= other.value; }
+    };
+
+    pf::optional<NoexceptComparable> a(pf::in_place_holder::value, 42);
+    pf::optional<NoexceptComparable> b(pf::in_place_holder::value, 42);
+    pf::optional<ThrowingComparable> c(pf::in_place_holder::value, 42);
+    pf::optional<ThrowingComparable> d(pf::in_place_holder::value, 42);
+
+    // Verify noexcept propagation for optional vs optional
+    STATIC_REQUIRE(noexcept(a == b));
+    STATIC_REQUIRE(noexcept(a != b));
+    STATIC_REQUIRE(noexcept(a < b));
+    STATIC_REQUIRE(noexcept(a <= b));
+    STATIC_REQUIRE(noexcept(a > b));
+    STATIC_REQUIRE(noexcept(a >= b));
+
+    STATIC_REQUIRE(!noexcept(c == d));
+    STATIC_REQUIRE(!noexcept(c != d));
+    STATIC_REQUIRE(!noexcept(c < d));
+    STATIC_REQUIRE(!noexcept(c <= d));
+    STATIC_REQUIRE(!noexcept(c > d));
+    STATIC_REQUIRE(!noexcept(c >= d));
+
+    // Verify noexcept for nullopt comparisons (always noexcept)
+    STATIC_REQUIRE(noexcept(a == pf::nullopt_holder::value));
+    STATIC_REQUIRE(noexcept(pf::nullopt_holder::value == a));
+    STATIC_REQUIRE(noexcept(c == pf::nullopt_holder::value));
+    STATIC_REQUIRE(noexcept(pf::nullopt_holder::value == c));
+
+    // Verify noexcept propagation for optional vs value
+    NoexceptComparable nv{42};
+    ThrowingComparable tv{42};
+
+    STATIC_REQUIRE(noexcept(a == nv));
+    STATIC_REQUIRE(noexcept(nv == a));
+    STATIC_REQUIRE(noexcept(a < nv));
+    STATIC_REQUIRE(noexcept(nv < a));
+
+    STATIC_REQUIRE(!noexcept(c == tv));
+    STATIC_REQUIRE(!noexcept(tv == c));
+    STATIC_REQUIRE(!noexcept(c < tv));
+    STATIC_REQUIRE(!noexcept(tv < c));
+  }
 }
