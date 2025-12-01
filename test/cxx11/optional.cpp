@@ -594,4 +594,182 @@ TEST_CASE("optional non-trivial")
   };
 
   pf::optional<MoveOnly> opt = MoveOnly{};
+
+  // TODO: add more tests
+}
+
+TEST_CASE("optional relational operators")
+{
+  // Comparisons between optional objects
+  {
+    pf::optional<int> a = 42;
+    pf::optional<int> b = 42;
+    pf::optional<int> c = 99;
+    pf::optional<int> d;
+
+    // operator==
+    CHECK((a == b));
+    CHECK(!(a == c));
+    CHECK(!(a == d));
+    CHECK((d == d));
+
+    // operator!=
+    CHECK(!(a != b));
+    CHECK((a != c));
+    CHECK((a != d));
+    CHECK(!(d != d));
+
+    // operator< (empty optional is less than any value)
+    CHECK(!(a < b));
+    CHECK((a < c));
+    CHECK(!(a < d));
+    CHECK((d < a));
+    CHECK(!(d < d));
+
+    // operator<=
+    CHECK((a <= b));
+    CHECK((a <= c));
+    CHECK(!(a <= d));
+    CHECK((d <= a));
+    CHECK((d <= d));
+
+    // operator>
+    CHECK(!(a > b));
+    CHECK(!(a > c));
+    CHECK((a > d));
+    CHECK(!(d > a));
+    CHECK(!(d > d));
+
+    // operator>=
+    CHECK((a >= b));
+    CHECK(!(a >= c));
+    CHECK((a >= d));
+    CHECK(!(d >= a));
+    CHECK((d >= d));
+  }
+
+  // Cross-type comparisons
+  {
+    pf::optional<int> a = 42;
+    pf::optional<double> b = 42.0;
+    pf::optional<double> c = 99.5;
+
+    CHECK((a == b));
+    CHECK(!(a == c));
+    CHECK(!(a != b));
+    CHECK((a != c));
+    CHECK(!(a < b));
+    CHECK((a < c));
+  }
+
+  // Comparisons with nullopt_t
+  {
+    pf::optional<int> a = 42;
+    pf::optional<int> b;
+
+    // operator==
+    CHECK(!(a == pf::nullopt_holder::value));
+    CHECK((pf::nullopt_holder::value == b));
+    CHECK((b == pf::nullopt_holder::value));
+    CHECK(!(pf::nullopt_holder::value == a));
+
+    // operator!=
+    CHECK((a != pf::nullopt_holder::value));
+    CHECK(!(pf::nullopt_holder::value != b));
+    CHECK(!(b != pf::nullopt_holder::value));
+    CHECK((pf::nullopt_holder::value != a));
+
+    // operator<
+    CHECK(!(a < pf::nullopt_holder::value));
+    CHECK(!(pf::nullopt_holder::value < b));
+    CHECK((pf::nullopt_holder::value < a));
+    CHECK(!(b < pf::nullopt_holder::value));
+
+    // operator<=
+    CHECK(!(a <= pf::nullopt_holder::value));
+    CHECK((pf::nullopt_holder::value <= b));
+    CHECK((pf::nullopt_holder::value <= a));
+    CHECK((b <= pf::nullopt_holder::value));
+
+    // operator>
+    CHECK((a > pf::nullopt_holder::value));
+    CHECK(!(pf::nullopt_holder::value > b));
+    CHECK(!(pf::nullopt_holder::value > a));
+    CHECK(!(b > pf::nullopt_holder::value));
+
+    // operator>=
+    CHECK((a >= pf::nullopt_holder::value));
+    CHECK((pf::nullopt_holder::value >= b));
+    CHECK(!(pf::nullopt_holder::value >= a));
+    CHECK((b >= pf::nullopt_holder::value));
+  }
+
+  // Comparisons with values
+  {
+    pf::optional<int> a = 42;
+    pf::optional<int> b;
+
+    // operator==
+    CHECK((a == 42));
+    CHECK((42 == a));
+    CHECK(!(a == 99));
+    CHECK(!(99 == a));
+    CHECK(!(b == 42));
+    CHECK(!(42 == b));
+
+    // operator!=
+    CHECK(!(a != 42));
+    CHECK(!(42 != a));
+    CHECK((a != 99));
+    CHECK((99 != a));
+    CHECK((b != 42));
+    CHECK((42 != b));
+
+    // operator< (empty optional is less than any value)
+    CHECK(!(a < 42));
+    CHECK(!(42 < a));
+    CHECK((a < 99));
+    CHECK(!(99 < a));
+    CHECK((b < 42));
+    CHECK(!(42 < b));
+
+    // operator<=
+    CHECK((a <= 42));
+    CHECK((42 <= a));
+    CHECK((a <= 99));
+    CHECK(!(99 <= a));
+    CHECK((b <= 42));
+    CHECK(!(42 <= b));
+
+    // operator>
+    CHECK(!(a > 42));
+    CHECK(!(42 > a));
+    CHECK(!(a > 99));
+    CHECK((99 > a));
+    CHECK(!(b > 42));
+    CHECK((42 > b));
+
+    // operator>=
+    CHECK((a >= 42));
+    CHECK((42 >= a));
+    CHECK(!(a >= 99));
+    CHECK((99 >= a));
+    CHECK(!(b >= 42));
+    CHECK((42 >= b));
+  }
+
+  // Cross-type value comparisons
+  {
+    pf::optional<int> a = 42;
+    pf::optional<int> b;
+
+    CHECK((a == 42.0));
+    CHECK((42.0 == a));
+    CHECK(!(a == 99.5));
+    CHECK(!(99.5 == a));
+    CHECK((a < 99.5));
+    CHECK(!(99.5 < a));
+    CHECK((b < 42.0));
+    CHECK(!(42.0 < b));
+  }
 }

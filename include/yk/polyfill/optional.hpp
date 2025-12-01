@@ -836,6 +836,224 @@ private:
   T* ptr = nullptr;
 };
 
+template<class T, class U, typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() == std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+YK_POLYFILL_CXX14_CONSTEXPR bool operator==(optional<T> const& lhs, optional<U> const& rhs) noexcept
+{
+  if (lhs.has_value() != rhs.has_value()) {
+    return false;
+  } else if (!lhs.has_value()) {
+    return true;
+  } else {
+    return *lhs == *rhs;
+  }
+}
+
+template<class T, class U, typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() != std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(optional<T> const& lhs, optional<U> const& rhs) noexcept
+{
+  if (lhs.has_value() != rhs.has_value()) {
+    return true;
+  } else if (!lhs.has_value()) {
+    return false;
+  } else {
+    return *lhs != *rhs;
+  }
+}
+
+template<class T, class U, typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() < std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+YK_POLYFILL_CXX14_CONSTEXPR bool operator<(optional<T> const& lhs, optional<U> const& rhs) noexcept
+{
+  if (!rhs.has_value()) {
+    return false;
+  } else if (!lhs.has_value()) {
+    return true;
+  } else {
+    return *lhs < *rhs;
+  }
+}
+
+template<class T, class U, typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() <= std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+YK_POLYFILL_CXX14_CONSTEXPR bool operator<=(optional<T> const& lhs, optional<U> const& rhs) noexcept
+{
+  if (!lhs.has_value()) {
+    return true;
+  } else if (!rhs.has_value()) {
+    return false;
+  } else {
+    return *lhs <= *rhs;
+  }
+}
+
+template<class T, class U, typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() > std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+YK_POLYFILL_CXX14_CONSTEXPR bool operator>(optional<T> const& lhs, optional<U> const& rhs) noexcept
+{
+  if (!lhs.has_value()) {
+    return false;
+  } else if (!rhs.has_value()) {
+    return true;
+  } else {
+    return *lhs > *rhs;
+  }
+}
+
+template<class T, class U, typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() >= std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+YK_POLYFILL_CXX14_CONSTEXPR bool operator>=(optional<T> const& lhs, optional<U> const& rhs) noexcept
+{
+  if (!rhs.has_value()) {
+    return true;
+  } else if (!lhs.has_value()) {
+    return false;
+  } else {
+    return *lhs >= *rhs;
+  }
+}
+
+// Comparisons with nullopt_t
+template<class T>
+constexpr bool operator==(optional<T> const& opt, nullopt_t) noexcept
+{
+  return !opt.has_value();
+}
+
+template<class T>
+constexpr bool operator==(nullopt_t, optional<T> const& opt) noexcept
+{
+  return !opt.has_value();
+}
+
+template<class T>
+constexpr bool operator!=(optional<T> const& opt, nullopt_t) noexcept
+{
+  return opt.has_value();
+}
+
+template<class T>
+constexpr bool operator!=(nullopt_t, optional<T> const& opt) noexcept
+{
+  return opt.has_value();
+}
+
+template<class T>
+constexpr bool operator<(optional<T> const&, nullopt_t) noexcept
+{
+  return false;
+}
+
+template<class T>
+constexpr bool operator<(nullopt_t, optional<T> const& opt) noexcept
+{
+  return opt.has_value();
+}
+
+template<class T>
+constexpr bool operator<=(optional<T> const& opt, nullopt_t) noexcept
+{
+  return !opt.has_value();
+}
+
+template<class T>
+constexpr bool operator<=(nullopt_t, optional<T> const&) noexcept
+{
+  return true;
+}
+
+template<class T>
+constexpr bool operator>(optional<T> const& opt, nullopt_t) noexcept
+{
+  return opt.has_value();
+}
+
+template<class T>
+constexpr bool operator>(nullopt_t, optional<T> const&) noexcept
+{
+  return false;
+}
+
+template<class T>
+constexpr bool operator>=(optional<T> const&, nullopt_t) noexcept
+{
+  return true;
+}
+
+template<class T>
+constexpr bool operator>=(nullopt_t, optional<T> const& opt) noexcept
+{
+  return !opt.has_value();
+}
+
+// Comparisons with T
+template<class T, class U, typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() == std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+YK_POLYFILL_CXX14_CONSTEXPR bool operator==(optional<T> const& opt, U const& u) noexcept
+{
+  return opt.has_value() ? *opt == u : false;
+}
+
+template<class T, class U, typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() == std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+YK_POLYFILL_CXX14_CONSTEXPR bool operator==(T const& t, optional<U> const& opt) noexcept
+{
+  return opt.has_value() ? t == *opt : false;
+}
+
+template<class T, class U, typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() != std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(optional<T> const& opt, U const& u) noexcept
+{
+  return opt.has_value() ? *opt != u : true;
+}
+
+template<class T, class U, typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() != std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(T const& t, optional<U> const& opt) noexcept
+{
+  return opt.has_value() ? t != *opt : true;
+}
+
+template<class T, class U, typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() < std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+YK_POLYFILL_CXX14_CONSTEXPR bool operator<(optional<T> const& opt, U const& u) noexcept
+{
+  return opt.has_value() ? *opt < u : true;
+}
+
+template<class T, class U, typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() < std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+YK_POLYFILL_CXX14_CONSTEXPR bool operator<(T const& t, optional<U> const& opt) noexcept
+{
+  return opt.has_value() ? t < *opt : false;
+}
+
+template<class T, class U, typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() <= std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+YK_POLYFILL_CXX14_CONSTEXPR bool operator<=(optional<T> const& opt, U const& u) noexcept
+{
+  return opt.has_value() ? *opt <= u : true;
+}
+
+template<class T, class U, typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() <= std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+YK_POLYFILL_CXX14_CONSTEXPR bool operator<=(T const& t, optional<U> const& opt) noexcept
+{
+  return opt.has_value() ? t <= *opt : false;
+}
+
+template<class T, class U, typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() > std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+YK_POLYFILL_CXX14_CONSTEXPR bool operator>(optional<T> const& opt, U const& u) noexcept
+{
+  return opt.has_value() ? *opt > u : false;
+}
+
+template<class T, class U, typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() > std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+YK_POLYFILL_CXX14_CONSTEXPR bool operator>(T const& t, optional<U> const& opt) noexcept
+{
+  return opt.has_value() ? t > *opt : true;
+}
+
+template<class T, class U, typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() >= std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+YK_POLYFILL_CXX14_CONSTEXPR bool operator>=(optional<T> const& opt, U const& u) noexcept
+{
+  return opt.has_value() ? *opt >= u : false;
+}
+
+template<class T, class U, typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() >= std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+YK_POLYFILL_CXX14_CONSTEXPR bool operator>=(T const& t, optional<U> const& opt) noexcept
+{
+  return opt.has_value() ? t >= *opt : true;
+}
+
 }  // namespace polyfill
 
 }  // namespace yk
