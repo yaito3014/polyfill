@@ -398,7 +398,7 @@ public:
       std::is_nothrow_constructible<T, std::initializer_list<U>&, Args...>::value
   )
   {
-    static_assert(std::is_constructible<T, Args...>::value, "T must be constructible from arguments");
+    static_assert(std::is_constructible<T, std::initializer_list<U>&, Args...>::value, "T must be constructible from arguments");
     reset();
     this->construct(il, std::forward<Args>(args)...);
   }
@@ -507,7 +507,7 @@ public:
   template<class F>
   YK_POLYFILL_CXX14_CONSTEXPR auto and_then(F&& f) && -> typename remove_cvref<typename invoke_result<F, decltype(std::move(**this))>::type>::type
   {
-    using U = typename invoke_result<F, decltype(**this)>::type;
+    using U = typename invoke_result<F, decltype(std::move(**this))>::type;
     static_assert(extension::is_specialization_of<typename remove_cvref<U>::type, optional>::value, "result type of F must be specialization of optional");
     if (has_value()) {
       return invoke(std::forward<F>(f), std::move(**this));
@@ -519,7 +519,7 @@ public:
   template<class F>
   YK_POLYFILL_CXX14_CONSTEXPR auto and_then(F&& f) const&& -> typename remove_cvref<typename invoke_result<F, decltype(std::move(**this))>::type>::type
   {
-    using U = typename invoke_result<F, decltype(**this)>::type;
+    using U = typename invoke_result<F, decltype(std::move(**this))>::type;
     static_assert(extension::is_specialization_of<typename remove_cvref<U>::type, optional>::value, "result type of F must be specialization of optional");
     if (has_value()) {
       return invoke(std::forward<F>(f), std::move(**this));
