@@ -598,6 +598,247 @@ TEST_CASE("optional non-trivial")
   // TODO: add more tests
 }
 
+TEST_CASE("optional noexcept propagation")
+{
+  // Test type with noexcept operations
+  struct NoexceptOps {
+    NoexceptOps() noexcept = default;
+    NoexceptOps(int) noexcept {}
+    NoexceptOps(NoexceptOps const&) noexcept = default;
+    NoexceptOps(NoexceptOps&&) noexcept = default;
+    NoexceptOps& operator=(NoexceptOps const&) noexcept = default;
+    NoexceptOps& operator=(NoexceptOps&&) noexcept = default;
+    ~NoexceptOps() noexcept = default;
+    void swap(NoexceptOps&) noexcept {}
+  };
+
+  // Test type with potentially throwing operations
+  struct ThrowingOps {
+    ThrowingOps() {}
+    ThrowingOps(int) {}
+    ThrowingOps(ThrowingOps const&) {}
+    ThrowingOps(ThrowingOps&&) {}
+    ThrowingOps& operator=(ThrowingOps const&) { return *this; }
+    ThrowingOps& operator=(ThrowingOps&&) { return *this; }
+    ~ThrowingOps() {}
+    void swap(ThrowingOps&) {}
+  };
+
+  // Construction
+  {
+    STATIC_REQUIRE(noexcept(pf::optional<NoexceptOps>()));
+    STATIC_REQUIRE(noexcept(pf::optional<NoexceptOps>(pf::nullopt_holder::value)));
+    STATIC_REQUIRE(noexcept(pf::optional<NoexceptOps>(pf::in_place_holder::value, 42)));
+
+    STATIC_REQUIRE(noexcept(pf::optional<ThrowingOps>()));
+    STATIC_REQUIRE(noexcept(pf::optional<ThrowingOps>(pf::nullopt_holder::value)));
+    STATIC_REQUIRE(!noexcept(pf::optional<ThrowingOps>(pf::in_place_holder::value, 42)));
+  }
+
+  // Copy/Move construction
+  {
+    pf::optional<NoexceptOps> a;
+    pf::optional<ThrowingOps> b;
+
+    STATIC_REQUIRE(noexcept(pf::optional<NoexceptOps>(a)));
+    STATIC_REQUIRE(noexcept(pf::optional<NoexceptOps>(std::move(a))));
+
+    STATIC_REQUIRE(!noexcept(pf::optional<ThrowingOps>(b)));
+    STATIC_REQUIRE(!noexcept(pf::optional<ThrowingOps>(std::move(b))));
+  }
+
+  // Copy/Move assignment
+  {
+    pf::optional<NoexceptOps> a1, a2;
+    pf::optional<ThrowingOps> b1, b2;
+
+    STATIC_REQUIRE(noexcept(a1 = a2));
+    STATIC_REQUIRE(noexcept(a1 = std::move(a2)));
+
+    STATIC_REQUIRE(!noexcept(b1 = b2));
+    STATIC_REQUIRE(!noexcept(b1 = std::move(b2)));
+  }
+
+  // Nullopt assignment
+  {
+    pf::optional<NoexceptOps> a;
+    pf::optional<ThrowingOps> b;
+
+    STATIC_REQUIRE(noexcept(a = pf::nullopt_holder::value));
+    STATIC_REQUIRE(noexcept(b = pf::nullopt_holder::value));
+  }
+
+  // emplace
+  {
+    pf::optional<NoexceptOps> a;
+    pf::optional<ThrowingOps> b;
+
+    STATIC_REQUIRE(noexcept(a.emplace(42)));
+    STATIC_REQUIRE(!noexcept(b.emplace(42)));
+  }
+
+  // swap
+  {
+    pf::optional<NoexceptOps> a1, a2;
+    pf::optional<ThrowingOps> b1, b2;
+
+    STATIC_REQUIRE(noexcept(a1.swap(a2)));
+    STATIC_REQUIRE(!noexcept(b1.swap(b2)));
+  }
+
+  // reset
+  {
+    pf::optional<NoexceptOps> a;
+    pf::optional<ThrowingOps> b;
+
+    STATIC_REQUIRE(noexcept(a.reset()));
+    STATIC_REQUIRE(noexcept(b.reset()));
+  }
+
+  // has_value, operator bool
+  {
+    pf::optional<NoexceptOps> a;
+    pf::optional<ThrowingOps> b;
+
+    STATIC_REQUIRE(noexcept(a.has_value()));
+    STATIC_REQUIRE(noexcept(static_cast<bool>(a)));
+    STATIC_REQUIRE(noexcept(b.has_value()));
+    STATIC_REQUIRE(noexcept(static_cast<bool>(b)));
+  }
+
+  // operator*, operator->
+  {
+    pf::optional<NoexceptOps> a{pf::in_place_holder::value};
+    pf::optional<ThrowingOps> b{pf::in_place_holder::value};
+
+    STATIC_REQUIRE(noexcept(*a));
+    STATIC_REQUIRE(noexcept(a.operator->()));
+    STATIC_REQUIRE(noexcept(*b));
+    STATIC_REQUIRE(noexcept(b.operator->()));
+  }
+
+  // value_or
+  {
+    pf::optional<NoexceptOps> a;
+    pf::optional<ThrowingOps> b;
+    NoexceptOps nv;
+    ThrowingOps tv;
+
+    STATIC_REQUIRE(noexcept(a.value_or(nv)));
+    STATIC_REQUIRE(!noexcept(b.value_or(tv)));
+  }
+
+  // Destructors
+  {
+    STATIC_REQUIRE(std::is_nothrow_destructible<pf::optional<NoexceptOps>>::value);
+    STATIC_REQUIRE(std::is_nothrow_destructible<pf::optional<ThrowingOps>>::value);
+  }
+
+  // Monadic operations - and_then
+  {
+    struct NoexceptCallable {
+      pf::optional<int> operator()(NoexceptOps const&) const noexcept { return 42; }
+    };
+    struct ThrowingCallable {
+      pf::optional<int> operator()(ThrowingOps const&) const { return 42; }
+    };
+
+    pf::optional<NoexceptOps> a{pf::in_place_holder::value};
+    pf::optional<ThrowingOps> b{pf::in_place_holder::value};
+    NoexceptCallable nc;
+    ThrowingCallable tc;
+
+    // and_then propagates noexcept from callable
+    STATIC_REQUIRE(noexcept(a.and_then(nc)));
+    STATIC_REQUIRE(!noexcept(b.and_then(tc)));
+  }
+
+  // Monadic operations - transform
+  {
+    struct NoexceptTransform {
+      int operator()(NoexceptOps const&) const noexcept { return 42; }
+    };
+    struct ThrowingTransform {
+      int operator()(ThrowingOps const&) const { return 42; }
+    };
+
+    pf::optional<NoexceptOps> a{pf::in_place_holder::value};
+    pf::optional<ThrowingOps> b{pf::in_place_holder::value};
+    NoexceptTransform nt;
+    ThrowingTransform tt;
+
+    // transform propagates noexcept from callable and result construction
+    STATIC_REQUIRE(noexcept(a.transform(nt)));
+    STATIC_REQUIRE(!noexcept(b.transform(tt)));
+  }
+
+  // Monadic operations - or_else
+  {
+    struct NoexceptProducer {
+      pf::optional<NoexceptOps> operator()() const noexcept { return pf::optional<NoexceptOps>{}; }
+    };
+    struct ThrowingProducer {
+      pf::optional<ThrowingOps> operator()() const { return pf::optional<ThrowingOps>{}; }
+    };
+
+    pf::optional<NoexceptOps> a;
+    pf::optional<ThrowingOps> b;
+    NoexceptProducer np;
+    ThrowingProducer tp;
+
+    // or_else propagates noexcept from callable
+    STATIC_REQUIRE(noexcept(a.or_else(np)));
+    STATIC_REQUIRE(!noexcept(b.or_else(tp)));
+  }
+
+  // Iterator operations
+  {
+    pf::optional<NoexceptOps> a{pf::in_place_holder::value};
+    pf::optional<ThrowingOps> b{pf::in_place_holder::value};
+
+    STATIC_REQUIRE(noexcept(a.begin()));
+    STATIC_REQUIRE(noexcept(a.end()));
+    STATIC_REQUIRE(noexcept(b.begin()));
+    STATIC_REQUIRE(noexcept(b.end()));
+  }
+
+  // value() is not noexcept (can throw bad_optional_access)
+  {
+    pf::optional<NoexceptOps> a{pf::in_place_holder::value};
+    pf::optional<ThrowingOps> b{pf::in_place_holder::value};
+
+    STATIC_REQUIRE(!noexcept(a.value()));
+    STATIC_REQUIRE(!noexcept(b.value()));
+  }
+
+  // Cross-type construction and assignment
+  {
+    pf::optional<NoexceptOps> a{pf::in_place_holder::value};
+    NoexceptOps nv;
+
+    // Construction from value
+    STATIC_REQUIRE(noexcept(pf::optional<NoexceptOps>(nv)));
+    STATIC_REQUIRE(noexcept(pf::optional<NoexceptOps>(std::move(nv))));
+
+    // Assignment from value
+    STATIC_REQUIRE(noexcept(a = nv));
+    STATIC_REQUIRE(noexcept(a = std::move(nv)));
+  }
+
+  {
+    pf::optional<ThrowingOps> b{pf::in_place_holder::value};
+    ThrowingOps tv;
+
+    // Construction from value
+    STATIC_REQUIRE(!noexcept(pf::optional<ThrowingOps>(tv)));
+    STATIC_REQUIRE(!noexcept(pf::optional<ThrowingOps>(std::move(tv))));
+
+    // Assignment from value
+    STATIC_REQUIRE(!noexcept(b = tv));
+    STATIC_REQUIRE(!noexcept(b = std::move(tv)));
+  }
+}
+
 TEST_CASE("optional relational operators")
 {
   // Comparisons between optional objects
@@ -834,5 +1075,210 @@ TEST_CASE("optional relational operators")
     STATIC_REQUIRE(!noexcept(tv == c));
     STATIC_REQUIRE(!noexcept(c < tv));
     STATIC_REQUIRE(!noexcept(tv < c));
+  }
+}
+
+TEST_CASE("optional<T&> noexcept propagation")
+{
+  // Test type with noexcept operations
+  struct NoexceptOps {
+    NoexceptOps() noexcept = default;
+    NoexceptOps(int) noexcept {}
+    NoexceptOps(NoexceptOps const&) noexcept = default;
+    NoexceptOps(NoexceptOps&&) noexcept = default;
+    NoexceptOps& operator=(NoexceptOps const&) noexcept = default;
+    NoexceptOps& operator=(NoexceptOps&&) noexcept = default;
+    ~NoexceptOps() noexcept = default;
+  };
+
+  // Test type with potentially throwing operations
+  struct ThrowingOps {
+    ThrowingOps() {}
+    ThrowingOps(int) {}
+    ThrowingOps(ThrowingOps const&) {}
+    ThrowingOps(ThrowingOps&&) {}
+    ThrowingOps& operator=(ThrowingOps const&) { return *this; }
+    ThrowingOps& operator=(ThrowingOps&&) { return *this; }
+    ~ThrowingOps() {}
+  };
+
+  NoexceptOps nv;
+  ThrowingOps tv;
+
+  // Construction
+  {
+    STATIC_REQUIRE(noexcept(pf::optional<NoexceptOps&>()));
+    STATIC_REQUIRE(noexcept(pf::optional<NoexceptOps&>(pf::nullopt_holder::value)));
+    STATIC_REQUIRE(noexcept(pf::optional<NoexceptOps&>(pf::in_place_holder::value, nv)));
+    STATIC_REQUIRE(noexcept(pf::optional<NoexceptOps&>(nv)));
+
+    STATIC_REQUIRE(noexcept(pf::optional<ThrowingOps&>()));
+    STATIC_REQUIRE(noexcept(pf::optional<ThrowingOps&>(pf::nullopt_holder::value)));
+    STATIC_REQUIRE(noexcept(pf::optional<ThrowingOps&>(pf::in_place_holder::value, tv)));
+    STATIC_REQUIRE(noexcept(pf::optional<ThrowingOps&>(tv)));
+  }
+
+  // Copy construction (always noexcept for references)
+  {
+    pf::optional<NoexceptOps&> a{nv};
+    pf::optional<ThrowingOps&> b{tv};
+
+    STATIC_REQUIRE(noexcept(pf::optional<NoexceptOps&>(a)));
+    STATIC_REQUIRE(noexcept(pf::optional<ThrowingOps&>(b)));
+  }
+
+  // Copy assignment (always noexcept for references)
+  {
+    pf::optional<NoexceptOps&> a1{nv}, a2{nv};
+    pf::optional<ThrowingOps&> b1{tv}, b2{tv};
+
+    STATIC_REQUIRE(noexcept(a1 = a2));
+    STATIC_REQUIRE(noexcept(b1 = b2));
+  }
+
+  // Nullopt assignment (always noexcept)
+  {
+    pf::optional<NoexceptOps&> a{nv};
+    pf::optional<ThrowingOps&> b{tv};
+
+    STATIC_REQUIRE(noexcept(a = pf::nullopt_holder::value));
+    STATIC_REQUIRE(noexcept(b = pf::nullopt_holder::value));
+  }
+
+  // emplace (always noexcept for references)
+  {
+    pf::optional<NoexceptOps&> a;
+    pf::optional<ThrowingOps&> b;
+
+    STATIC_REQUIRE(noexcept(a.emplace(nv)));
+    STATIC_REQUIRE(noexcept(b.emplace(tv)));
+  }
+
+  // swap (always noexcept for references - just swaps pointers)
+  {
+    pf::optional<NoexceptOps&> a1{nv}, a2{nv};
+    pf::optional<ThrowingOps&> b1{tv}, b2{tv};
+
+    STATIC_REQUIRE(noexcept(a1.swap(a2)));
+    STATIC_REQUIRE(noexcept(b1.swap(b2)));
+  }
+
+  // reset (always noexcept)
+  {
+    pf::optional<NoexceptOps&> a{nv};
+    pf::optional<ThrowingOps&> b{tv};
+
+    STATIC_REQUIRE(noexcept(a.reset()));
+    STATIC_REQUIRE(noexcept(b.reset()));
+  }
+
+  // has_value, operator bool (always noexcept)
+  {
+    pf::optional<NoexceptOps&> a{nv};
+    pf::optional<ThrowingOps&> b{tv};
+
+    STATIC_REQUIRE(noexcept(a.has_value()));
+    STATIC_REQUIRE(noexcept(static_cast<bool>(a)));
+    STATIC_REQUIRE(noexcept(b.has_value()));
+    STATIC_REQUIRE(noexcept(static_cast<bool>(b)));
+  }
+
+  // operator*, operator-> (always noexcept)
+  {
+    pf::optional<NoexceptOps&> a{nv};
+    pf::optional<ThrowingOps&> b{tv};
+
+    STATIC_REQUIRE(noexcept(*a));
+    STATIC_REQUIRE(noexcept(a.operator->()));
+    STATIC_REQUIRE(noexcept(*b));
+    STATIC_REQUIRE(noexcept(b.operator->()));
+  }
+
+  // value_or (propagates noexcept from value type construction)
+  {
+    pf::optional<NoexceptOps&> a{nv};
+    pf::optional<ThrowingOps&> b{tv};
+    NoexceptOps nv2;
+    ThrowingOps tv2;
+
+    STATIC_REQUIRE(noexcept(a.value_or(nv2)));
+    STATIC_REQUIRE(!noexcept(b.value_or(tv2)));
+  }
+
+  // value() is not noexcept (can throw bad_optional_access)
+  {
+    pf::optional<NoexceptOps&> a{nv};
+    pf::optional<ThrowingOps&> b{tv};
+
+    STATIC_REQUIRE(!noexcept(a.value()));
+    STATIC_REQUIRE(!noexcept(b.value()));
+  }
+
+  // Monadic operations - and_then
+  {
+    struct NoexceptCallable {
+      pf::optional<int> operator()(NoexceptOps&) const noexcept { return 42; }
+    };
+    struct ThrowingCallable {
+      pf::optional<int> operator()(ThrowingOps&) const { return 42; }
+    };
+
+    pf::optional<NoexceptOps&> a{nv};
+    pf::optional<ThrowingOps&> b{tv};
+    NoexceptCallable nc;
+    ThrowingCallable tc;
+
+    // and_then propagates noexcept from callable
+    STATIC_REQUIRE(noexcept(a.and_then(nc)));
+    STATIC_REQUIRE(!noexcept(b.and_then(tc)));
+  }
+
+  // Monadic operations - transform
+  {
+    struct NoexceptTransform {
+      int operator()(NoexceptOps&) const noexcept { return 42; }
+    };
+    struct ThrowingTransform {
+      int operator()(ThrowingOps&) const { return 42; }
+    };
+
+    pf::optional<NoexceptOps&> a{nv};
+    pf::optional<ThrowingOps&> b{tv};
+    NoexceptTransform nt;
+    ThrowingTransform tt;
+
+    // transform propagates noexcept from callable
+    STATIC_REQUIRE(noexcept(a.transform(nt)));
+    STATIC_REQUIRE(!noexcept(b.transform(tt)));
+  }
+
+  // Monadic operations - or_else
+  {
+    struct NoexceptProducer {
+      pf::optional<NoexceptOps&> operator()() const noexcept { return pf::optional<NoexceptOps&>{}; }
+    };
+    struct ThrowingProducer {
+      pf::optional<ThrowingOps&> operator()() const { return pf::optional<ThrowingOps&>{}; }
+    };
+
+    pf::optional<NoexceptOps&> a;
+    pf::optional<ThrowingOps&> b;
+    NoexceptProducer np;
+    ThrowingProducer tp;
+
+    // or_else propagates noexcept from callable
+    STATIC_REQUIRE(noexcept(a.or_else(np)));
+    STATIC_REQUIRE(!noexcept(b.or_else(tp)));
+  }
+
+  // Iterator operations (always noexcept)
+  {
+    pf::optional<NoexceptOps&> a{nv};
+    pf::optional<ThrowingOps&> b{tv};
+
+    STATIC_REQUIRE(noexcept(a.begin()));
+    STATIC_REQUIRE(noexcept(a.end()));
+    STATIC_REQUIRE(noexcept(b.begin()));
+    STATIC_REQUIRE(noexcept(b.end()));
   }
 }
