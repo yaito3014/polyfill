@@ -832,6 +832,7 @@ public:
       optional<typename std::remove_cv<typename invoke_result<F, T&>::type>::type>
   {
     using U = typename std::remove_cv<typename invoke_result<F, T&>::type>::type;
+    static_assert(std::is_constructible<U, typename invoke_result<F, T&>::type>::value, "result type of F must be copy/move constructible");
     if (has_value()) {
       return optional<U>(invoke(std::forward<F>(f), **this));
     } else {
