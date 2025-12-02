@@ -1282,3 +1282,107 @@ TEST_CASE("optional<T&> noexcept propagation")
     STATIC_REQUIRE(noexcept(b.end()));
   }
 }
+
+TEST_CASE("optional iterator comparison operators")
+{
+  // Test iterator comparisons for optional<T>
+  {
+    pf::optional<int> a = 42;
+    pf::optional<int> b;
+
+    auto it1 = a.begin();
+    auto it2 = a.end();
+    auto it3 = a.begin();
+
+    // Equality
+    CHECK((it1 == it3));
+    CHECK_FALSE((it1 == it2));
+
+    // Inequality
+    CHECK((it1 != it2));
+    CHECK_FALSE((it1 != it3));
+
+    // Less than
+    CHECK((it1 < it2));
+    CHECK_FALSE((it2 < it1));
+    CHECK_FALSE((it1 < it3));
+
+    // Less than or equal
+    CHECK((it1 <= it2));
+    CHECK((it1 <= it3));
+    CHECK_FALSE((it2 <= it1));
+
+    // Greater than
+    CHECK((it2 > it1));
+    CHECK_FALSE((it1 > it2));
+    CHECK_FALSE((it1 > it3));
+
+    // Greater than or equal
+    CHECK((it2 >= it1));
+    CHECK((it1 >= it3));
+    CHECK_FALSE((it1 >= it2));
+
+    // Empty optional
+    auto empty_begin = b.begin();
+    auto empty_end = b.end();
+    CHECK((empty_begin == empty_end));
+  }
+
+  // Test iterator comparisons for optional<T&>
+  {
+    int x = 42;
+    pf::optional<int&> a{x};
+    pf::optional<int&> b;
+
+    auto it1 = a.begin();
+    auto it2 = a.end();
+    auto it3 = a.begin();
+
+    // Equality
+    CHECK((it1 == it3));
+    CHECK_FALSE((it1 == it2));
+
+    // Inequality
+    CHECK((it1 != it2));
+    CHECK_FALSE((it1 != it3));
+
+    // Less than
+    CHECK((it1 < it2));
+    CHECK_FALSE((it2 < it1));
+    CHECK_FALSE((it1 < it3));
+
+    // Less than or equal
+    CHECK((it1 <= it2));
+    CHECK((it1 <= it3));
+    CHECK_FALSE((it2 <= it1));
+
+    // Greater than
+    CHECK((it2 > it1));
+    CHECK_FALSE((it1 > it2));
+    CHECK_FALSE((it1 > it3));
+
+    // Greater than or equal
+    CHECK((it2 >= it1));
+    CHECK((it1 >= it3));
+    CHECK_FALSE((it1 >= it2));
+
+    // Empty optional
+    auto empty_begin = b.begin();
+    auto empty_end = b.end();
+    CHECK((empty_begin == empty_end));
+  }
+
+  // Test noexcept specifications
+  {
+    pf::optional<int> a = 42;
+    auto it1 = a.begin();
+    auto it2 = a.end();
+
+    STATIC_REQUIRE(noexcept(it1 == it2));
+    STATIC_REQUIRE(noexcept(it1 != it2));
+    STATIC_REQUIRE(noexcept(it1 < it2));
+    STATIC_REQUIRE(noexcept(it1 <= it2));
+    STATIC_REQUIRE(noexcept(it1 > it2));
+    STATIC_REQUIRE(noexcept(it1 >= it2));
+  }
+}

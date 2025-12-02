@@ -80,3 +80,26 @@ TEST_CASE("optional three-way comparison")
     STATIC_REQUIRE(!noexcept(c <=> tv));
   }
 }
+
+TEST_CASE("optional iterator three-way comparison")
+{
+  pf::optional<int> a = 42;
+  pf::optional<int> b;
+
+  auto it1 = a.begin();
+  auto it2 = a.end();
+  auto it3 = a.begin();
+
+  // Three-way comparison
+  CHECK(((it1 <=> it3) == std::strong_ordering::equal));
+  CHECK(((it1 <=> it2) == std::strong_ordering::less));
+  CHECK(((it2 <=> it1) == std::strong_ordering::greater));
+
+  // Empty optional iterators
+  auto empty_begin = b.begin();
+  auto empty_end = b.end();
+  CHECK(((empty_begin <=> empty_end) == std::strong_ordering::equal));
+
+  // noexcept specification
+  STATIC_REQUIRE(noexcept(it1 <=> it2));
+}

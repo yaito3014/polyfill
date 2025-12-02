@@ -98,6 +98,22 @@ public:
 
   friend constexpr difference_type operator-(optional_iterator const& a, optional_iterator const& b) noexcept { return a.ptr_ - b.ptr_; }
 
+  friend constexpr bool operator==(optional_iterator const& a, optional_iterator const& b) noexcept { return a.ptr_ == b.ptr_; }
+
+  friend constexpr bool operator!=(optional_iterator const& a, optional_iterator const& b) noexcept { return a.ptr_ != b.ptr_; }
+
+  friend constexpr bool operator<(optional_iterator const& a, optional_iterator const& b) noexcept { return a.ptr_ < b.ptr_; }
+
+  friend constexpr bool operator<=(optional_iterator const& a, optional_iterator const& b) noexcept { return a.ptr_ <= b.ptr_; }
+
+  friend constexpr bool operator>(optional_iterator const& a, optional_iterator const& b) noexcept { return a.ptr_ > b.ptr_; }
+
+  friend constexpr bool operator>=(optional_iterator const& a, optional_iterator const& b) noexcept { return a.ptr_ >= b.ptr_; }
+
+#if __cplusplus >= 202002L
+  friend constexpr std::strong_ordering operator<=>(optional_iterator const& a, optional_iterator const& b) noexcept { return a.ptr_ <=> b.ptr_; }
+#endif
+
 private:
   friend optional<T>;
   friend optional<T&>;
