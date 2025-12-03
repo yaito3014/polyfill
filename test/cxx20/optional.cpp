@@ -184,3 +184,157 @@ TEST_CASE("optional<T&> three-way comparison")
     STATIC_REQUIRE(!noexcept(c <=> tv1));
   }
 }
+
+TEST_CASE("optional constexpr C++20")
+{
+  // C++20: constexpr destructors allow more complex constexpr scenarios
+  {
+    // Test with non-trivially destructible types
+    struct NonTrivial {
+      int value;
+      constexpr NonTrivial(int v) : value(v) {}
+      constexpr ~NonTrivial() {}
+    };
+
+    // Construction and destruction
+    constexpr auto test_nontrivial_construct = []() {
+      pf::optional<NonTrivial> opt(pf::in_place_holder::value, 42);
+      return opt.has_value() && opt->value == 42;
+    };
+    STATIC_REQUIRE(test_nontrivial_construct());
+
+    // Assignment with non-trivial type
+    constexpr auto test_nontrivial_assign = []() {
+      pf::optional<NonTrivial> opt1(pf::in_place_holder::value, 42);
+      pf::optional<NonTrivial> opt2;
+      opt2 = opt1;
+      return opt2.has_value() && opt2->value == 42;
+    };
+    STATIC_REQUIRE(test_nontrivial_assign());
+
+    // Reset with non-trivial type
+    constexpr auto test_nontrivial_reset = []() {
+      pf::optional<NonTrivial> opt(pf::in_place_holder::value, 42);
+      opt.reset();
+      return !opt.has_value();
+    };
+    STATIC_REQUIRE(test_nontrivial_reset());
+
+    // Emplace with non-trivial type
+    constexpr auto test_nontrivial_emplace = []() {
+      pf::optional<NonTrivial> opt(pf::in_place_holder::value, 10);
+      opt.emplace(42);
+      return opt.has_value() && opt->value == 42;
+    };
+    STATIC_REQUIRE(test_nontrivial_emplace());
+  }
+
+  // C++20: Three-way comparison in constexpr context
+  {
+    constexpr auto test_spaceship = []() {
+      pf::optional<int> a(pf::in_place_holder::value, 42);
+      pf::optional<int> b(pf::in_place_holder::value, 42);
+      pf::optional<int> c(pf::in_place_holder::value, 99);
+      pf::optional<int> empty;
+
+      return (a <=> b) == std::strong_ordering::equal &&
+             (a <=> c) == std::strong_ordering::less &&
+             (c <=> a) == std::strong_ordering::greater &&
+             (empty <=> a) == std::strong_ordering::less &&
+             (a <=> empty) == std::strong_ordering::greater &&
+             (empty <=> empty) == std::strong_ordering::equal;
+    };
+    STATIC_REQUIRE(test_spaceship());
+
+    // Three-way comparison with nullopt
+    constexpr auto test_spaceship_nullopt = []() {
+      pf::optional<int> a(pf::in_place_holder::value, 42);
+      pf::optional<int> empty;
+
+      return (a <=> pf::nullopt_holder::value) == std::strong_ordering::greater &&
+             (empty <=> pf::nullopt_holder::value) == std::strong_ordering::equal &&
+             (pf::nullopt_holder::value <=> a) == std::strong_ordering::less &&
+             (pf::nullopt_holder::value <=> empty) == std::strong_ordering::equal;
+    };
+    STATIC_REQUIRE(test_spaceship_nullopt());
+
+    // Three-way comparison with values
+    constexpr auto test_spaceship_value = []() {
+      pf::optional<int> a(pf::in_place_holder::value, 42);
+      pf::optional<int> empty;
+
+      return (a <=> 42) == std::strong_ordering::equal &&
+             (a <=> 99) == std::strong_ordering::less &&
+             (a <=> 10) == std::strong_ordering::greater &&
+             (empty <=> 42) == std::strong_ordering::less;
+    };
+    STATIC_REQUIRE(test_spaceship_value());
+  }
+
+  // C++20: Iterator three-way comparison
+  {
+    constexpr auto test_iterator_spaceship = []() {
+      pf::optional<int> opt(pf::in_place_holder::value, 42);
+      auto it1 = opt.begin();
+      auto it2 = opt.end();
+      auto it3 = opt.begin();
+
+      return (it1 <=> it3) == std::strong_ordering::equal &&
+             (it1 <=> it2) == std::strong_ordering::less &&
+             (it2 <=> it1) == std::strong_ordering::greater;
+    };
+    STATIC_REQUIRE(test_iterator_spaceship());
+  }
+
+  // C++20: Complex constexpr scenarios combining multiple operations
+  {
+    constexpr auto test_complex = []() {
+      struct Data {
+        int x;
+        int y;
+        constexpr Data(int a, int b) : x(a), y(b) {}
+        constexpr ~Data() {}
+      };
+
+      pf::optional<Data> opt1(pf::in_place_holder::value, 10, 20);
+      pf::optional<Data> opt2;
+
+      // Copy assign
+      opt2 = opt1;
+
+      // Modify through emplace
+      opt1.emplace(30, 40);
+
+      // Swap
+      opt1.swap(opt2);
+
+      // Check results
+      return opt1.has_value() && opt1->x == 10 && opt1->y == 20 &&
+             opt2.has_value() && opt2->x == 30 && opt2->y == 40;
+    };
+    STATIC_REQUIRE(test_complex());
+  }
+}
+
+TEST_CASE("optional<T&> constexpr C++20")
+{
+  // C++20: Reference optional with three-way comparison
+  {
+    constexpr auto test_ref_spaceship = []() {
+      int x = 42;
+      int y = 42;
+      int z = 99;
+
+      pf::optional<int&> a{x};
+      pf::optional<int&> b{y};
+      pf::optional<int&> c{z};
+      pf::optional<int&> empty;
+
+      return (a <=> b) == std::strong_ordering::equal &&
+             (a <=> c) == std::strong_ordering::less &&
+             (c <=> a) == std::strong_ordering::greater &&
+             (empty <=> a) == std::strong_ordering::less;
+    };
+    STATIC_REQUIRE(test_ref_spaceship());
+  }
+}

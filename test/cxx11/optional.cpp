@@ -1386,3 +1386,92 @@ TEST_CASE("optional iterator comparison operators")
     STATIC_REQUIRE(noexcept(it1 >= it2));
   }
 }
+
+TEST_CASE("optional constexpr C++11")
+{
+  // C++11: constexpr construction and basic operations with literal types
+  {
+    // Default construction
+    constexpr pf::optional<int> empty;
+    STATIC_REQUIRE(!empty.has_value());
+
+    // Nullopt construction
+    constexpr pf::optional<int> null_opt(pf::nullopt_holder::value);
+    STATIC_REQUIRE(!null_opt.has_value());
+
+    // In-place value construction
+    constexpr pf::optional<int> opt_value(pf::in_place_holder::value, 42);
+    STATIC_REQUIRE(opt_value.has_value());
+    STATIC_REQUIRE(*opt_value == 42);
+
+    // Copy construction from empty
+    constexpr pf::optional<int> empty_copy(empty);
+    STATIC_REQUIRE(!empty_copy.has_value());
+
+    // Copy construction from engaged
+    constexpr pf::optional<int> opt_copy(opt_value);
+    STATIC_REQUIRE(opt_copy.has_value());
+    STATIC_REQUIRE(*opt_copy == 42);
+
+    // Converting construction
+    constexpr pf::optional<double> opt_convert(opt_value);
+    STATIC_REQUIRE(opt_convert.has_value());
+    STATIC_REQUIRE(*opt_convert == 42.0);
+
+    // Dereference operator
+    STATIC_REQUIRE(*opt_value == 42);
+
+    // Boolean conversion
+    STATIC_REQUIRE(static_cast<bool>(opt_value));
+    STATIC_REQUIRE(!static_cast<bool>(empty));
+    STATIC_REQUIRE(opt_value.has_value());
+    STATIC_REQUIRE(!empty.has_value());
+  }
+
+  // C++11: constexpr comparison operators
+  {
+    constexpr pf::optional<int> opt1(pf::in_place_holder::value, 42);
+    constexpr pf::optional<int> opt2(pf::in_place_holder::value, 42);
+    constexpr pf::optional<int> opt3(pf::in_place_holder::value, 99);
+    constexpr pf::optional<int> empty;
+
+    // optional vs optional
+    STATIC_REQUIRE(opt1 == opt2);
+    STATIC_REQUIRE(opt1 != opt3);
+    STATIC_REQUIRE(opt1 < opt3);
+    STATIC_REQUIRE(opt1 <= opt2);
+    STATIC_REQUIRE(opt3 > opt1);
+    STATIC_REQUIRE(opt1 >= opt2);
+    STATIC_REQUIRE(empty != opt1);
+    STATIC_REQUIRE(empty == empty);
+
+    // optional vs nullopt
+    STATIC_REQUIRE(opt1 != pf::nullopt_holder::value);
+    STATIC_REQUIRE(empty == pf::nullopt_holder::value);
+    STATIC_REQUIRE(pf::nullopt_holder::value < opt1);
+    STATIC_REQUIRE(pf::nullopt_holder::value <= empty);
+    STATIC_REQUIRE(opt1 > pf::nullopt_holder::value);
+
+    // optional vs value
+    STATIC_REQUIRE(opt1 == 42);
+    STATIC_REQUIRE(42 == opt1);
+    STATIC_REQUIRE(opt1 != 99);
+    STATIC_REQUIRE(opt1 < 99);
+    STATIC_REQUIRE(10 < opt1);
+    STATIC_REQUIRE(empty < 42);
+    STATIC_REQUIRE(42 > empty);
+  }
+}
+
+TEST_CASE("optional<T&> constexpr C++11")
+{
+  // Note: Reference optionals have limited constexpr support in C++11
+  // Most operations require C++14 or later
+  {
+    constexpr pf::optional<int&> empty;
+    STATIC_REQUIRE(!empty.has_value());
+
+    constexpr pf::optional<int&> null_opt(pf::nullopt_holder::value);
+    STATIC_REQUIRE(!null_opt.has_value());
+  }
+}
