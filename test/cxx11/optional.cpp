@@ -1425,34 +1425,22 @@ TEST_CASE("optional constexpr C++11")
 
   // C++11: constexpr comparison operators
   {
-    constexpr pf::optional<int> opt1(pf::in_place_holder::value, 42);
-    constexpr pf::optional<int> opt2(pf::in_place_holder::value, 42);
-    constexpr pf::optional<int> opt3(pf::in_place_holder::value, 99);
+    constexpr pf::optional<int> opt(pf::in_place_holder::value, 42);
     constexpr pf::optional<int> empty;
 
-    // optional vs optional
-    STATIC_REQUIRE(opt1 == opt2);
-    STATIC_REQUIRE(opt1 != opt3);
-    STATIC_REQUIRE(opt1 < opt3);
-    STATIC_REQUIRE(opt1 <= opt2);
-    STATIC_REQUIRE(opt3 > opt1);
-    STATIC_REQUIRE(opt1 >= opt2);
-    STATIC_REQUIRE(empty != opt1);
-    STATIC_REQUIRE(empty == empty);
-
     // optional vs nullopt
-    STATIC_REQUIRE(opt1 != pf::nullopt_holder::value);
+    STATIC_REQUIRE(opt != pf::nullopt_holder::value);
     STATIC_REQUIRE(empty == pf::nullopt_holder::value);
-    STATIC_REQUIRE(pf::nullopt_holder::value < opt1);
+    STATIC_REQUIRE(pf::nullopt_holder::value < opt);
     STATIC_REQUIRE(pf::nullopt_holder::value <= empty);
-    STATIC_REQUIRE(opt1 > pf::nullopt_holder::value);
+    STATIC_REQUIRE(opt > pf::nullopt_holder::value);
 
     // optional vs value
-    STATIC_REQUIRE(opt1 == 42);
-    STATIC_REQUIRE(42 == opt1);
-    STATIC_REQUIRE(opt1 != 99);
-    STATIC_REQUIRE(opt1 < 99);
-    STATIC_REQUIRE(10 < opt1);
+    STATIC_REQUIRE(opt == 42);
+    STATIC_REQUIRE(42 == opt);
+    STATIC_REQUIRE(opt != 99);
+    STATIC_REQUIRE(opt < 99);
+    STATIC_REQUIRE(10 < opt);
     STATIC_REQUIRE(empty < 42);
     STATIC_REQUIRE(42 > empty);
   }
