@@ -31,7 +31,7 @@ jobs:
               - '.github/workflows/**/*'
   build:
     needs: check-changes
-    if: needs.check-changes.outputs.need_build
+    if: needs.check-changes.outputs.need_build == 'true'
     strategy:
       fail-fast: false
       matrix:
