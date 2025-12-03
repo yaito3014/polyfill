@@ -207,7 +207,7 @@ struct optional_storage_base : public optional_destruct_base<T> {  // T is NOT a
   }
 
   template<class Arg>
-  YK_POLYFILL_CXX20_CONSTEXPR void assign(Arg&& arg) noexcept(std::is_nothrow_assignable<T&, Arg>::value && std::is_nothrow_constructible<T, Arg>::value)
+  YK_POLYFILL_CXX20_CONSTEXPR void assign(Arg&& arg) noexcept(conjunction<std::is_nothrow_assignable<T&, Arg>, std::is_nothrow_constructible<T, Arg>>::value)
   {
     if (this->engaged) {
       this->value = std::forward<Arg>(arg);
@@ -320,7 +320,7 @@ public:
 
   template<
       class U, typename std::enable_if<
-                   std::is_constructible<T, U>::value && optional_detail::allow_unwrapping<T, U>::value && std::is_convertible<U const&, T>::value,
+                   conjunction<std::is_constructible<T, U>, optional_detail::allow_unwrapping<T, U>>::value && std::is_convertible<U const&, T>::value,
                    std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR optional(optional<U> const& rhs) noexcept(std::is_nothrow_constructible<T, U const&>::value)
   {
@@ -331,7 +331,7 @@ public:
 
   template<
       class U, typename std::enable_if<
-                   std::is_constructible<T, U>::value && optional_detail::allow_unwrapping<T, U>::value && !std::is_convertible<U const&, T>::value,
+                   conjunction<std::is_constructible<T, U>, optional_detail::allow_unwrapping<T, U>>::value && !std::is_convertible<U const&, T>::value,
                    std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR explicit optional(optional<U> const& rhs) noexcept(std::is_nothrow_constructible<T, U const&>::value)
   {
