@@ -20,6 +20,7 @@ foreach(required_cxx_version ${YK_POLYFILL_CXX_VERSIONS})
             GIT_SHALLOW ON
         )
 
+        set(CMAKE_POSITION_INDEPENDENT_CODE ON)
         set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
         set(CATCH_BUILD_STATIC_LIBRARY ON)
         FetchContent_MakeAvailable(Catch2)
