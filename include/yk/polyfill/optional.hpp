@@ -1162,7 +1162,7 @@ constexpr std::compare_three_way_result_t<T, U> operator<=>(optional<T> const& o
 template<
     class T, typename std::enable_if<
                  disjunction<std::is_reference<T>, conjunction<std::is_move_constructible<T>, is_swappable<T>>>::value, std::nullptr_t>::type = nullptr>
-constexpr void swap(optional<T>& lhs, optional<T>& rhs) noexcept(noexcept(lhs.swap(rhs)))
+YK_POLYFILL_CXX14_CONSTEXPR void swap(optional<T>& lhs, optional<T>& rhs) noexcept(noexcept(lhs.swap(rhs)))
 {
   lhs.swap(rhs);
 }
