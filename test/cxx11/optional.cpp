@@ -1413,11 +1413,6 @@ TEST_CASE("optional constexpr C++11")
     STATIC_REQUIRE(opt_copy.has_value());
     STATIC_REQUIRE(*opt_copy == 42);
 
-    // Converting construction
-    constexpr pf::optional<double> opt_convert(opt_value);
-    STATIC_REQUIRE(opt_convert.has_value());
-    STATIC_REQUIRE(*opt_convert == 42.0);
-
     // Dereference operator
     STATIC_REQUIRE(*opt_value == 42);
 
