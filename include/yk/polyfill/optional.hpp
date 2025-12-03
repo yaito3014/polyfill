@@ -828,8 +828,8 @@ public:
   }
 
   template<class F>
-  YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) const noexcept(is_nothrow_invocable<F, T&>::value) ->
-      optional<typename std::remove_cv<typename invoke_result<F, T&>::type>::type>
+  YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) const noexcept(is_nothrow_invocable<F, T&>::value)
+      -> optional<typename std::remove_cv<typename invoke_result<F, T&>::type>::type>
   {
     using U = typename std::remove_cv<typename invoke_result<F, T&>::type>::type;
     static_assert(std::is_constructible<U, typename invoke_result<F, T&>::type>::value, "result type of F must be copy/move constructible");
@@ -1158,6 +1158,34 @@ constexpr std::compare_three_way_result_t<T, U> operator<=>(optional<T> const& o
 }
 
 #endif
+
+template<
+    class T, typename std::enable_if<
+                 disjunction<std::is_reference<T>, conjunction<std::is_move_constructible<T>, is_swappable<T>>>::value, std::nullptr_t>::type = nullptr>
+constexpr void swap(optional<T>& lhs, optional<T>& rhs) noexcept(noexcept(lhs.swap(rhs)))
+{
+  lhs.swap(rhs);
+}
+
+template<int = 0, class T>
+constexpr optional<typename std::decay<T>::type> make_optional(T&& v) noexcept(std::is_nothrow_constructible<optional<typename std::decay<T>::type>, T>::value)
+{
+  return optional<typename std::decay<T>::type>(std::forward<T>(v));
+}
+
+template<class T, class... Args>
+constexpr optional<T> make_optional(Args&&... args) noexcept(std::is_nothrow_constructible<optional<T>, in_place_t, Args...>::value)
+{
+  return optional<T>(in_place_holder::value, std::forward<Args>(args)...);
+}
+
+template<class T, class U, class... Args>
+constexpr optional<T> make_optional(std::initializer_list<U> il, Args&&... args) noexcept(
+    std::is_nothrow_constructible<optional<T>, in_place_t, std::initializer_list<U>&, Args...>::value
+)
+{
+  return optional<T>(in_place_holder::value, il, std::forward<Args>(args)...);
+}
 
 }  // namespace polyfill
 
