@@ -188,21 +188,63 @@ public:
 
   constexpr bool has_value() const noexcept(noexcept(Traits::is_engaged(data))) { return Traits::is_engaged(data); }
 
-  YK_POLYFILL_CXX14_CONSTEXPR T& value() & { return has_value() ? **this : throw bad_optional_access{}; }
-  constexpr T const& value() const& { return has_value() ? **this : throw bad_optional_access{}; }
-  YK_POLYFILL_CXX14_CONSTEXPR T&& value() && { return has_value() ? **this : throw bad_optional_access{}; }
-  constexpr T const&& value() const&& { return has_value() ? **this : throw bad_optional_access{}; }
+  YK_POLYFILL_CXX14_CONSTEXPR T& value() &
+  {
+    if (has_value()) {
+      return **this;
+    } else {
+      throw bad_optional_access{};
+    }
+  }
+  YK_POLYFILL_CXX14_CONSTEXPR T const& value() const&
+  {
+    if (has_value()) {
+      return **this;
+    } else {
+      throw bad_optional_access{};
+    }
+  }
+  YK_POLYFILL_CXX14_CONSTEXPR T&& value() &&
+  {
+    if (has_value()) {
+      return std::move(**this);
+    } else {
+      throw bad_optional_access{};
+    }
+  }
+  YK_POLYFILL_CXX14_CONSTEXPR T const&& value() const&&
+  {
+    if (has_value()) {
+      return std::move(**this);
+    } else {
+      throw bad_optional_access{};
+    }
+  }
 
   template<class U = typename std::remove_cv<T>::type>
-  constexpr T value_or(U&& u) const&
+  YK_POLYFILL_CXX14_CONSTEXPR T value_or(U&& u) const&
   {
-    return has_value() ? **this : static_cast<T>(std::forward<U>(u));
+    static_assert(
+        conjunction<std::is_copy_constructible<T>, std::is_convertible<U&&, T>>::value, "T must be copy constructible and the argument must be convertible to T"
+    );
+    if (has_value()) {
+      return **this;
+    } else {
+      return std::forward<U>(u);
+    }
   }
 
   template<class U = typename std::remove_cv<T>::type>
   YK_POLYFILL_CXX14_CONSTEXPR T value_or(U&& u) &&
   {
-    return has_value() ? **this : static_cast<T>(std::forward<U>(u));
+    static_assert(
+        conjunction<std::is_move_constructible<T>, std::is_convertible<U&&, T>>::value, "T must be move constructible and the argument must be convertible to T"
+    );
+    if (has_value()) {
+      return std::move(**this);
+    } else {
+      return std::forward<U>(u);
+    }
   }
 
   YK_POLYFILL_CXX14_CONSTEXPR void reset() noexcept(noexcept(Traits::tombstone_value())) { emplace(Traits::tombstone_value()); }
