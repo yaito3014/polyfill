@@ -41,6 +41,8 @@ struct non_zero_traits<T, typename std::enable_if<std::is_arithmetic<T>::value>:
 
 template<class T, class Traits = non_zero_traits<T>>
 class toptional {
+  static_assert(!std::is_reference<T>::value, "toptional doesn't support reference type");
+
 public:
   using value_type = T;
 
@@ -211,8 +213,6 @@ public:
 private:
   T data;
 };
-
-// Consideration: should we add toptional<T&>?
 
 }  // namespace extension
 
