@@ -88,22 +88,24 @@ public:
       class U,
       typename std::enable_if<
           std::is_constructible<T, U const&>::value && !optional_detail::converts_from_any_cvref<T, toptional<U>>::value, std::nullptr_t>::type = nullptr>
-  constexpr toptional(toptional<U> const& other) noexcept(std::is_nothrow_constructible<T, U const&>::value) : data(other.data)
+  constexpr toptional(toptional<U> const& other) : data(other.data)
   {
+    if (!Traits::is_engaged(data)) throw bad_toptional_initialization{};
   }
   template<
       class U, typename std::enable_if<
                    std::is_constructible<T, U>::value && !optional_detail::converts_from_any_cvref<T, toptional<U>>::value, std::nullptr_t>::type = nullptr>
-  constexpr toptional(toptional<U>&& other) noexcept(std::is_nothrow_constructible<T, U>::value) : data(std::move(other.data))
+  constexpr toptional(toptional<U>&& other) : data(std::move(other.data))
   {
+    if (!Traits::is_engaged(data)) throw bad_toptional_initialization{};
   }
 
   toptional(toptional const&) = default;
   toptional(toptional&&) = default;
 
-  toptional& operator=(nullopt_t) noexcept(noexcept(Traits::tombstone_value()))
+  toptional& operator=(nullopt_t) noexcept(noexcept(unchecked_emplace(Traits::tombstone_value())))
   {
-    data = Traits::tombstone_value();
+    unchecked_emplace(Traits::tombstone_value());
     return *this;
   }
 
@@ -116,9 +118,10 @@ public:
           !std::is_same<typename remove_cvref<U>::type, toptional>::value
               && conjunction<std::is_scalar<T>, std::is_same<U, typename std::decay<U>::type>>::value && std::is_assignable<T&, U>::value,
           std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX14_CONSTEXPR toptional& operator=(U&& u) noexcept(std::is_nothrow_assignable<T, U>::value)
+  YK_POLYFILL_CXX14_CONSTEXPR toptional& operator=(U&& u)
   {
     data = std::forward<U>(u);
+    if (!Traits::is_engaged(data)) throw bad_toptional_initialization{};
     return *this;
   }
 
@@ -128,9 +131,10 @@ public:
                        && !std::is_assignable<T&, toptional<U>&>::value && !std::is_assignable<T&, toptional<U> const&>::value
                        && !std::is_assignable<T&, toptional<U>&&>::value && !std::is_assignable<T&, toptional<U> const&&>::value,
                    std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX14_CONSTEXPR toptional& operator=(toptional<U> const& other) noexcept(std::is_nothrow_assignable<T&, U const&>::value)
+  YK_POLYFILL_CXX14_CONSTEXPR toptional& operator=(toptional<U> const& other)
   {
     data = other.data;
+    if (!Traits::is_engaged(data)) throw bad_toptional_initialization{};
     return *this;
   }
 
@@ -140,14 +144,15 @@ public:
                        && !std::is_assignable<T&, toptional<U>&>::value && !std::is_assignable<T&, toptional<U> const&>::value
                        && !std::is_assignable<T&, toptional<U>&&>::value && !std::is_assignable<T&, toptional<U> const&&>::value,
                    std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX14_CONSTEXPR toptional& operator=(toptional<U>&& other) noexcept(std::is_nothrow_assignable<T&, U>::value)
+  YK_POLYFILL_CXX14_CONSTEXPR toptional& operator=(toptional<U>&& other)
   {
     data = std::move(other.data);
+    if (!Traits::is_engaged(data)) throw bad_toptional_initialization{};
     return *this;
   }
 
   template<class... Args, typename std::enable_if<std::is_constructible<T, Args...>::value, std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX20_CONSTEXPR T& emplace(Args&&... args) noexcept(std::is_nothrow_constructible<T, Args...>::value)
+  YK_POLYFILL_CXX20_CONSTEXPR T& emplace(Args&&... args)
   {
     data.~T();
 #if __cpp_lib_constexpr_dynamic_alloc >= 201907L
@@ -155,12 +160,12 @@ public:
 #else
     new (std::addressof(data)) T(std::forward<Args>(args)...);
 #endif
+    if (!Traits::is_engaged(data)) throw bad_toptional_initialization{};
+    return data;
   }
 
   template<class U, class... Args, typename std::enable_if<std::is_constructible<T, std::initializer_list<U>&, Args...>::value, std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX20_CONSTEXPR T& emplace(std::initializer_list<U> il, Args&&... args) noexcept(
-      std::is_nothrow_constructible<T, std::initializer_list<U>&, Args...>::value
-  )
+  YK_POLYFILL_CXX20_CONSTEXPR T& emplace(std::initializer_list<U> il, Args&&... args)
   {
     data.~T();
 #if __cpp_lib_constexpr_dynamic_alloc >= 201907L
@@ -168,6 +173,8 @@ public:
 #else
     new (std::addressof(data)) T(il, std::forward<Args>(args)...);
 #endif
+    if (!Traits::is_engaged(data)) throw bad_toptional_initialization{};
+    return data;
   }
 
   YK_POLYFILL_CXX14_CONSTEXPR void swap(toptional& other) noexcept(is_nothrow_swappable<T>::value)
@@ -247,12 +254,23 @@ public:
     }
   }
 
-  YK_POLYFILL_CXX14_CONSTEXPR void reset() noexcept(noexcept(Traits::tombstone_value())) { emplace(Traits::tombstone_value()); }
+  YK_POLYFILL_CXX14_CONSTEXPR void reset() noexcept(noexcept(Traits::tombstone_value())) { unchecked_emplace(Traits::tombstone_value()); }
 
   // TODO: add monadic operations
   // TODO: add iterator support
 
 private:
+  template<class... Args>
+  YK_POLYFILL_CXX20_CONSTEXPR void unchecked_emplace(Args&&... args) noexcept(std::is_nothrow_constructible<T, Args...>::value)
+  {
+    data.~T();
+#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
+    std::construct_at(std::addressof(data), std::forward<Args>(args)...);
+#else
+    new (std::addressof(data)) T(std::forward<Args>(args)...);
+#endif
+  }
+
   T data;
 };
 
