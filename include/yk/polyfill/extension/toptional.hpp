@@ -114,8 +114,12 @@ public:
           std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX14_CONSTEXPR toptional& operator=(U&& u)
   {
-    data = std::forward<U>(u);
-    if (!Traits::is_engaged(data)) throw bad_toptional_initialization{};
+    if (has_value()) {
+      data = std::forward<U>(u);
+      if (!Traits::is_engaged(data)) throw bad_toptional_initialization{};
+    } else {
+      unchecked_emplace(checked_construct(std::forward<U>(u)));
+    }
     return *this;
   }
 
@@ -127,8 +131,12 @@ public:
                    std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX14_CONSTEXPR toptional& operator=(toptional<U> const& other)
   {
-    data = other.data;
-    if (!Traits::is_engaged(data)) throw bad_toptional_initialization{};
+    if (has_value()) {
+      data = other.data;
+      if (!Traits::is_engaged(data)) throw bad_toptional_initialization{};
+    } else {
+      unchecked_emplace(checked_construct(other.data));
+    }
     return *this;
   }
 
@@ -140,8 +148,12 @@ public:
                    std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX14_CONSTEXPR toptional& operator=(toptional<U>&& other)
   {
-    data = std::move(other.data);
-    if (!Traits::is_engaged(data)) throw bad_toptional_initialization{};
+    if (has_value()) {
+      data = std::move(other.data);
+      if (!Traits::is_engaged(data)) throw bad_toptional_initialization{};
+    } else {
+      unchecked_emplace(checked_construct(std::move(other.data)));
+    }
     return *this;
   }
 
