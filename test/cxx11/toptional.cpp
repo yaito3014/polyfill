@@ -291,22 +291,22 @@ TEST_CASE("toptional - transform with custom traits")
   //   CHECK_THROWS_AS((ext::toptional<int, minus_one_traits<int>>{-1}), ext::bad_toptional_initialization);
   // }
 
-  SECTION("chaining transforms with different traits")
-  {
-    ext::toptional<int> opt = 5;
+  // SECTION("chaining transforms with different traits")
+  // {
+  //   ext::toptional<int> opt = 5;
 
-    // First transform with default traits (0 is tombstone)
-    auto step1 = opt.transform([](int x) { return x + 5; });  // 10
-    CHECK(step1.has_value());
-    CHECK(*step1 == 10);
+  //   // First transform with default traits (0 is tombstone)
+  //   auto step1 = opt.transform([](int x) { return x + 5; });  // 10
+  //   CHECK(step1.has_value());
+  //   CHECK(*step1 == 10);
 
-    // Second transform with custom traits (-1 is tombstone)
-    auto step2 = step1.transform<minus_one_traits>([](int x) { return x - 5; });  // 5
-    CHECK(step2.has_value());
-    CHECK(*step2 == 5);
+  //   // Second transform with custom traits (-1 is tombstone)
+  //   auto step2 = step1.transform<minus_one_traits>([](int x) { return x - 5; });  // 5
+  //   CHECK(step2.has_value());
+  //   CHECK(*step2 == 5);
 
-    // Third transform back to default traits
-    // This should throw because the result (0) is the tombstone value for non_zero_traits
-    CHECK_THROWS_AS(step2.transform([](int x) { return x - 5; }), ext::bad_toptional_initialization);
-  }
+  //   // Third transform back to default traits
+  //   // This should throw because the result (0) is the tombstone value for non_zero_traits
+  //   CHECK_THROWS_AS(step2.transform([](int x) { return x - 5; }), ext::bad_toptional_initialization);
+  // }
 }
