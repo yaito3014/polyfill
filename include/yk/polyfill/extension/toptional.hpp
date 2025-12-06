@@ -5,6 +5,9 @@
 
 #include <yk/polyfill/bits/optional_common.hpp>
 
+#include <yk/polyfill/extension/specialization_of.hpp>
+
+#include <yk/polyfill/functional.hpp>
 #include <yk/polyfill/type_traits.hpp>
 #include <yk/polyfill/utility.hpp>
 
@@ -14,13 +17,118 @@
 #include <type_traits>
 #include <utility>
 
+#if __cplusplus >= 202002L
+#include <compare>
+#endif
+
 namespace yk {
 
 namespace polyfill {
 
 namespace extension {
 
-class bad_toptional_initialization : std::exception {
+template<class T, class Traits>
+class toptional;
+
+namespace toptional_detail {
+
+template<class T, class Traits, bool Const>
+class toptional_iterator {
+public:
+  using iterator_category =
+#if __cpp_lib_ranges >= 201911L
+      std::contiguous_iterator_tag
+#else
+      std::random_access_iterator_tag
+#endif
+      ;
+  using difference_type = std::ptrdiff_t;
+  using value_type = T;
+  using pointer = typename std::conditional<Const, T const*, T*>::type;
+  using reference = typename std::conditional<Const, T const&, T&>::type;
+
+  constexpr toptional_iterator() noexcept = default;
+
+  constexpr reference operator*() const noexcept { return *ptr_; }
+
+  YK_POLYFILL_CXX14_CONSTEXPR toptional_iterator& operator++() noexcept
+  {
+    ++ptr_;
+    return *this;
+  }
+
+  YK_POLYFILL_CXX14_CONSTEXPR toptional_iterator operator++(int) noexcept
+  {
+    toptional_iterator temporary = *this;
+    ++*this;
+    return temporary;
+  }
+
+  YK_POLYFILL_CXX14_CONSTEXPR toptional_iterator& operator--() noexcept
+  {
+    --ptr_;
+    return *this;
+  }
+
+  YK_POLYFILL_CXX14_CONSTEXPR toptional_iterator operator--(int) noexcept
+  {
+    toptional_iterator temporary = *this;
+    --*this;
+    return temporary;
+  }
+
+  YK_POLYFILL_CXX14_CONSTEXPR toptional_iterator& operator+=(difference_type n) noexcept
+  {
+    ptr_ += n;
+    return *this;
+  }
+
+  YK_POLYFILL_CXX14_CONSTEXPR toptional_iterator& operator-=(difference_type n) noexcept
+  {
+    ptr_ -= n;
+    return *this;
+  }
+
+  constexpr pointer operator->() const noexcept { return ptr_; }
+
+  constexpr reference operator[](difference_type n) const noexcept { return ptr_[n]; }
+
+  friend constexpr toptional_iterator operator+(toptional_iterator const& it, difference_type n) noexcept { return toptional_iterator{it.ptr_ + n}; }
+
+  friend constexpr toptional_iterator operator+(difference_type n, toptional_iterator const& it) noexcept { return toptional_iterator{it.ptr_ + n}; }
+
+  friend constexpr toptional_iterator operator-(toptional_iterator const& it, difference_type n) noexcept { return toptional_iterator{it.ptr_ - n}; }
+
+  friend constexpr difference_type operator-(toptional_iterator const& a, toptional_iterator const& b) noexcept { return a.ptr_ - b.ptr_; }
+
+  friend constexpr bool operator==(toptional_iterator const& a, toptional_iterator const& b) noexcept { return a.ptr_ == b.ptr_; }
+
+  friend constexpr bool operator!=(toptional_iterator const& a, toptional_iterator const& b) noexcept { return a.ptr_ != b.ptr_; }
+
+  friend constexpr bool operator<(toptional_iterator const& a, toptional_iterator const& b) noexcept { return a.ptr_ < b.ptr_; }
+
+  friend constexpr bool operator<=(toptional_iterator const& a, toptional_iterator const& b) noexcept { return a.ptr_ <= b.ptr_; }
+
+  friend constexpr bool operator>(toptional_iterator const& a, toptional_iterator const& b) noexcept { return a.ptr_ > b.ptr_; }
+
+  friend constexpr bool operator>=(toptional_iterator const& a, toptional_iterator const& b) noexcept { return a.ptr_ >= b.ptr_; }
+
+#if __cplusplus >= 202002L
+  friend constexpr std::strong_ordering operator<=>(toptional_iterator const& a, toptional_iterator const& b) noexcept { return a.ptr_ <=> b.ptr_; }
+#endif
+
+private:
+  friend toptional<T, Traits>;
+
+  constexpr toptional_iterator(pointer ptr) noexcept : ptr_(ptr) {}
+
+private:
+  pointer ptr_ = nullptr;
+};
+
+}  // namespace toptional_detail
+
+class bad_toptional_initialization : public std::exception {
   char const* what() const noexcept override { return "initializing toptional with tombstone value"; }
 };
 
@@ -262,8 +370,148 @@ public:
 
   YK_POLYFILL_CXX14_CONSTEXPR void reset() noexcept(noexcept(Traits::tombstone_value())) { unchecked_emplace(Traits::tombstone_value()); }
 
-  // TODO: add monadic operations
-  // TODO: add iterator support
+  template<class F>
+  YK_POLYFILL_CXX14_CONSTEXPR auto and_then(F&& f) & noexcept(is_nothrow_invocable<F, decltype(**this)>::value) ->
+      typename remove_cvref<typename invoke_result<F, decltype(**this)>::type>::type
+  {
+    using U = typename invoke_result<F, decltype(**this)>::type;
+    static_assert(extension::is_specialization_of<typename remove_cvref<U>::type, toptional>::value, "result type of F must be specialization of toptional");
+    if (has_value()) {
+      return invoke(std::forward<F>(f), **this);
+    } else {
+      return nullopt_holder::value;
+    }
+  }
+
+  template<class F>
+  YK_POLYFILL_CXX14_CONSTEXPR auto and_then(F&& f) const& noexcept(is_nothrow_invocable<F, decltype(**this)>::value) ->
+      typename remove_cvref<typename invoke_result<F, decltype(**this)>::type>::type
+  {
+    using U = typename invoke_result<F, decltype(**this)>::type;
+    static_assert(extension::is_specialization_of<typename remove_cvref<U>::type, toptional>::value, "result type of F must be specialization of toptional");
+    if (has_value()) {
+      return invoke(std::forward<F>(f), **this);
+    } else {
+      return nullopt_holder::value;
+    }
+  }
+
+  template<class F>
+  YK_POLYFILL_CXX14_CONSTEXPR auto and_then(F&& f) && noexcept(is_nothrow_invocable<F, decltype(std::move(**this))>::value) ->
+      typename remove_cvref<typename invoke_result<F, decltype(std::move(**this))>::type>::type
+  {
+    using U = typename invoke_result<F, decltype(std::move(**this))>::type;
+    static_assert(extension::is_specialization_of<typename remove_cvref<U>::type, toptional>::value, "result type of F must be specialization of toptional");
+    if (has_value()) {
+      return invoke(std::forward<F>(f), std::move(**this));
+    } else {
+      return nullopt_holder::value;
+    }
+  }
+
+  template<class F>
+  YK_POLYFILL_CXX14_CONSTEXPR auto and_then(F&& f) const&& noexcept(is_nothrow_invocable<F, decltype(std::move(**this))>::value) ->
+      typename remove_cvref<typename invoke_result<F, decltype(std::move(**this))>::type>::type
+  {
+    using U = typename invoke_result<F, decltype(std::move(**this))>::type;
+    static_assert(extension::is_specialization_of<typename remove_cvref<U>::type, toptional>::value, "result type of F must be specialization of toptional");
+    if (has_value()) {
+      return invoke(std::forward<F>(f), std::move(**this));
+    } else {
+      return nullopt_holder::value;
+    }
+  }
+
+  template<template<class> class UTraits = non_zero_traits, class F>
+  YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) & noexcept(is_nothrow_invocable<F, decltype(**this)>::value)
+      -> toptional<typename std::remove_cv<typename invoke_result<F, decltype(**this)>::type>::type, UTraits<typename std::remove_cv<typename invoke_result<F, decltype(**this)>::type>::type>>
+  {
+    using U = typename std::remove_cv<typename invoke_result<F, decltype(**this)>::type>::type;
+    static_assert(std::is_constructible<U, typename invoke_result<F, decltype(**this)>::type>::value, "result type of F must be copy/move constructible");
+    if (has_value()) {
+      return toptional<U, UTraits<U>>(invoke(std::forward<F>(f), **this));
+    } else {
+      return nullopt_holder::value;
+    }
+  }
+
+  template<template<class> class UTraits = non_zero_traits, class F>
+  YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) const& noexcept(is_nothrow_invocable<F, decltype(**this)>::value)
+      -> toptional<typename std::remove_cv<typename invoke_result<F, decltype(**this)>::type>::type, UTraits<typename std::remove_cv<typename invoke_result<F, decltype(**this)>::type>::type>>
+  {
+    using U = typename std::remove_cv<typename invoke_result<F, decltype(**this)>::type>::type;
+    static_assert(std::is_constructible<U, typename invoke_result<F, decltype(**this)>::type>::value, "result type of F must be copy/move constructible");
+    if (has_value()) {
+      return toptional<U, UTraits<U>>(invoke(std::forward<F>(f), **this));
+    } else {
+      return nullopt_holder::value;
+    }
+  }
+
+  template<template<class> class UTraits = non_zero_traits, class F>
+  YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) && noexcept(is_nothrow_invocable<F, decltype(std::move(**this))>::value)
+      -> toptional<typename std::remove_cv<typename invoke_result<F, decltype(std::move(**this))>::type>::type, UTraits<typename std::remove_cv<typename invoke_result<F, decltype(std::move(**this))>::type>::type>>
+  {
+    using U = typename std::remove_cv<typename invoke_result<F, decltype(std::move(**this))>::type>::type;
+    static_assert(
+        std::is_constructible<U, typename invoke_result<F, decltype(std::move(**this))>::type>::value, "result type of F must be copy/move constructible"
+    );
+    if (has_value()) {
+      return toptional<U, UTraits<U>>(invoke(std::forward<F>(f), std::move(**this)));
+    } else {
+      return nullopt_holder::value;
+    }
+  }
+
+  template<template<class> class UTraits = non_zero_traits, class F>
+  YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) const&& noexcept(is_nothrow_invocable<F, decltype(std::move(**this))>::value)
+      -> toptional<typename std::remove_cv<typename invoke_result<F, decltype(std::move(**this))>::type>::type, UTraits<typename std::remove_cv<typename invoke_result<F, decltype(std::move(**this))>::type>::type>>
+  {
+    using U = typename std::remove_cv<typename invoke_result<F, decltype(std::move(**this))>::type>::type;
+    static_assert(
+        std::is_constructible<U, typename invoke_result<F, decltype(std::move(**this))>::type>::value, "result type of F must be copy/move constructible"
+    );
+    if (has_value()) {
+      return toptional<U, UTraits<U>>(invoke(std::forward<F>(f), std::move(**this)));
+    } else {
+      return nullopt_holder::value;
+    }
+  }
+
+  template<class F, typename std::enable_if<conjunction<is_invocable<F>, std::is_copy_constructible<T>>::value, std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX14_CONSTEXPR toptional or_else(F&& f) const& noexcept(is_nothrow_invocable<F>::value)
+  {
+    static_assert(
+        std::is_same<typename remove_cvref<typename invoke_result<F>::type>::type, toptional>::value, "result type of F must be equal to toptional<T>"
+    );
+    if (has_value()) {
+      return *this;
+    } else {
+      return invoke(std::forward<F>(f));
+    }
+  }
+
+  template<class F, typename std::enable_if<conjunction<is_invocable<F>, std::is_move_constructible<T>>::value, std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX14_CONSTEXPR toptional or_else(F&& f) && noexcept(is_nothrow_invocable<F>::value)
+  {
+    static_assert(
+        std::is_same<typename remove_cvref<typename invoke_result<F>::type>::type, toptional>::value, "result type of F must be equal to toptional<T>"
+    );
+    if (has_value()) {
+      return std::move(*this);
+    } else {
+      return invoke(std::forward<F>(f));
+    }
+  }
+
+  using iterator = toptional_detail::toptional_iterator<T, Traits, false>;
+  using const_iterator = toptional_detail::toptional_iterator<T, Traits, true>;
+
+  YK_POLYFILL_CXX17_CONSTEXPR iterator begin() noexcept { return iterator{std::addressof(data) + !has_value()}; }
+  constexpr const_iterator begin() const noexcept { return const_iterator{std::addressof(data) + !has_value()}; }
+
+  YK_POLYFILL_CXX17_CONSTEXPR iterator end() noexcept { return begin() + has_value(); }
+  constexpr const_iterator end() const noexcept { return begin() + has_value(); }
 
 private:
   template<class... Args>
