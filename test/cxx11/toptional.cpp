@@ -272,41 +272,41 @@ TEST_CASE("toptional - transform with custom traits")
     static_assert(std::is_same<decltype(result), ext::toptional<int, ext::non_zero_traits<int>>>::value, "Default should use non_zero_traits");
   }
 
-  // SECTION("transform with custom traits")
-  // {
-  //   ext::toptional<int> opt = 5;
-  //   auto result = opt.transform<minus_one_traits>([](int x) { return x * 2; });
-  //   CHECK(result.has_value());
-  //   CHECK(*result == 10);
+  SECTION("transform with custom traits")
+  {
+    ext::toptional<int> opt = 5;
+    auto result = opt.transform<minus_one_traits>([](int x) { return x * 2; });
+    CHECK(result.has_value());
+    CHECK(*result == 10);
 
-  //   // Result uses minus_one_traits, so -1 is tombstone
-  //   static_assert(std::is_same<decltype(result), ext::toptional<int, minus_one_traits<int>>>::value, "Should use minus_one_traits");
+    // Result uses minus_one_traits, so -1 is tombstone
+    static_assert(std::is_same<decltype(result), ext::toptional<int, minus_one_traits<int>>>::value, "Should use minus_one_traits");
 
-  //   // Can construct with 0 (valid value with minus_one_traits)
-  //   ext::toptional<int, minus_one_traits<int>> zero_opt = 0;
-  //   CHECK(zero_opt.has_value());
-  //   CHECK(*zero_opt == 0);
+    // Can construct with 0 (valid value with minus_one_traits)
+    ext::toptional<int, minus_one_traits<int>> zero_opt = 0;
+    CHECK(zero_opt.has_value());
+    CHECK(*zero_opt == 0);
 
-  //   // Cannot construct with -1 (tombstone with minus_one_traits)
-  //   CHECK_THROWS_AS((ext::toptional<int, minus_one_traits<int>>{-1}), ext::bad_toptional_initialization);
-  // }
+    // Cannot construct with -1 (tombstone with minus_one_traits)
+    CHECK_THROWS_AS((ext::toptional<int, minus_one_traits<int>>{-1}), ext::bad_toptional_initialization);
+  }
 
-  // SECTION("chaining transforms with different traits")
-  // {
-  //   ext::toptional<int> opt = 5;
+  SECTION("chaining transforms with different traits")
+  {
+    ext::toptional<int> opt = 5;
 
-  //   // First transform with default traits (0 is tombstone)
-  //   auto step1 = opt.transform([](int x) { return x + 5; });  // 10
-  //   CHECK(step1.has_value());
-  //   CHECK(*step1 == 10);
+    // First transform with default traits (0 is tombstone)
+    auto step1 = opt.transform([](int x) { return x + 5; });  // 10
+    CHECK(step1.has_value());
+    CHECK(*step1 == 10);
 
-  //   // Second transform with custom traits (-1 is tombstone)
-  //   auto step2 = step1.transform<minus_one_traits>([](int x) { return x - 5; });  // 5
-  //   CHECK(step2.has_value());
-  //   CHECK(*step2 == 5);
+    // Second transform with custom traits (-1 is tombstone)
+    auto step2 = step1.transform<minus_one_traits>([](int x) { return x - 5; });  // 5
+    CHECK(step2.has_value());
+    CHECK(*step2 == 5);
 
-  //   // Third transform back to default traits
-  //   // This should throw because the result (0) is the tombstone value for non_zero_traits
-  //   CHECK_THROWS_AS(step2.transform([](int x) { return x - 5; }), ext::bad_toptional_initialization);
-  // }
+    // Third transform back to default traits
+    // This should throw because the result (0) is the tombstone value for non_zero_traits
+    CHECK_THROWS_AS(step2.transform([](int x) { return x - 5; }), ext::bad_toptional_initialization);
+  }
 }

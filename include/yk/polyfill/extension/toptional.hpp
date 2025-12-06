@@ -422,7 +422,7 @@ public:
     }
   }
 
-  template<template<class> class UTraits = non_zero_traits, class F>
+  template<template<class...> class UTraits = non_zero_traits, class F>
   YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) & noexcept(is_nothrow_invocable<F, decltype(**this)>::value)
       -> toptional<typename std::remove_cv<typename invoke_result<F, decltype(**this)>::type>::type, UTraits<typename std::remove_cv<typename invoke_result<F, decltype(**this)>::type>::type>>
   {
@@ -435,7 +435,7 @@ public:
     }
   }
 
-  template<template<class> class UTraits = non_zero_traits, class F>
+  template<template<class...> class UTraits = non_zero_traits, class F>
   YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) const& noexcept(is_nothrow_invocable<F, decltype(**this)>::value)
       -> toptional<typename std::remove_cv<typename invoke_result<F, decltype(**this)>::type>::type, UTraits<typename std::remove_cv<typename invoke_result<F, decltype(**this)>::type>::type>>
   {
@@ -448,7 +448,7 @@ public:
     }
   }
 
-  template<template<class> class UTraits = non_zero_traits, class F>
+  template<template<class...> class UTraits = non_zero_traits, class F>
   YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) && noexcept(is_nothrow_invocable<F, decltype(std::move(**this))>::value)
       -> toptional<typename std::remove_cv<typename invoke_result<F, decltype(std::move(**this))>::type>::type, UTraits<typename std::remove_cv<typename invoke_result<F, decltype(std::move(**this))>::type>::type>>
   {
@@ -463,7 +463,7 @@ public:
     }
   }
 
-  template<template<class> class UTraits = non_zero_traits, class F>
+  template<template<class...> class UTraits = non_zero_traits, class F>
   YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) const&& noexcept(is_nothrow_invocable<F, decltype(std::move(**this))>::value)
       -> toptional<typename std::remove_cv<typename invoke_result<F, decltype(std::move(**this))>::type>::type, UTraits<typename std::remove_cv<typename invoke_result<F, decltype(std::move(**this))>::type>::type>>
   {
