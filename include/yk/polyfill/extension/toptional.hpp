@@ -51,13 +51,13 @@ public:
   constexpr toptional(nullopt_t) noexcept(noexcept(Traits::tombstone_value())) : data(Traits::tombstone_value()) {}
 
   template<class... Args, typename std::enable_if<std::is_constructible<T, Args...>::value, std::nullptr_t>::type = nullptr>
-  constexpr explicit toptional(in_place_t, Args&&... args) : data(std::forward<Args>(args)...)
+  YK_POLYFILL_CXX14_CONSTEXPR explicit toptional(in_place_t, Args&&... args) : data(std::forward<Args>(args)...)
   {
     if (!Traits::is_engaged(data)) throw bad_toptional_initialization{};
   }
 
   template<class U, class... Args, typename std::enable_if<std::is_constructible<T, std::initializer_list<U>&, Args...>::value, std::nullptr_t>::type = nullptr>
-  constexpr explicit toptional(in_place_t, std::initializer_list<U> il, Args&&... args) : data(il, std::forward<Args>(args)...)
+  YK_POLYFILL_CXX14_CONSTEXPR explicit toptional(in_place_t, std::initializer_list<U> il, Args&&... args) : data(il, std::forward<Args>(args)...)
   {
     if (!Traits::is_engaged(data)) throw bad_toptional_initialization{};
   }
@@ -68,7 +68,7 @@ public:
           std::is_constructible<T, U>::value && !std::is_same<typename remove_cvref<T>::type, toptional>::value
               && !std::is_same<typename remove_cvref<T>::type, in_place_t>::value && std::is_convertible<U, T>::value,
           std::nullptr_t>::type = nullptr>
-  constexpr toptional(U&& u) : data(std::forward<U>(u))
+  YK_POLYFILL_CXX14_CONSTEXPR toptional(U&& u) : data(std::forward<U>(u))
   {
     if (!Traits::is_engaged(data)) throw bad_toptional_initialization{};
   }
@@ -79,7 +79,7 @@ public:
           std::is_constructible<T, U>::value && !std::is_same<typename remove_cvref<T>::type, toptional>::value
               && !std::is_same<typename remove_cvref<T>::type, in_place_t>::value && !std::is_convertible<U, T>::value,
           std::nullptr_t>::type = nullptr>
-  constexpr explicit toptional(U&& u) : data(std::forward<U>(u))
+  YK_POLYFILL_CXX14_CONSTEXPR explicit toptional(U&& u) : data(std::forward<U>(u))
   {
     if (!Traits::is_engaged(data)) throw bad_toptional_initialization{};
   }
@@ -88,14 +88,14 @@ public:
       class U,
       typename std::enable_if<
           std::is_constructible<T, U const&>::value && !optional_detail::converts_from_any_cvref<T, toptional<U>>::value, std::nullptr_t>::type = nullptr>
-  constexpr toptional(toptional<U> const& other) : data(other.data)
+  YK_POLYFILL_CXX14_CONSTEXPR toptional(toptional<U> const& other) : data(other.data)
   {
     if (!Traits::is_engaged(data)) throw bad_toptional_initialization{};
   }
   template<
       class U, typename std::enable_if<
                    std::is_constructible<T, U>::value && !optional_detail::converts_from_any_cvref<T, toptional<U>>::value, std::nullptr_t>::type = nullptr>
-  constexpr toptional(toptional<U>&& other) : data(std::move(other.data))
+  YK_POLYFILL_CXX14_CONSTEXPR toptional(toptional<U>&& other) : data(std::move(other.data))
   {
     if (!Traits::is_engaged(data)) throw bad_toptional_initialization{};
   }
