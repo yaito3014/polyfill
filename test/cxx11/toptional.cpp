@@ -40,6 +40,35 @@ TEST_CASE("toptional")
   CHECK_THROWS_AS(ext::toptional<int*>{nullptr}, ext::bad_toptional_initialization);
 }
 
+TEST_CASE("toptional - conversion")
+{
+  SECTION("copy constructor")
+  {
+    ext::toptional<double> d = 3.14;
+    ext::toptional<int> i = d;
+  }
+
+  SECTION("move constructor")
+  {
+    ext::toptional<double> d = 3.14;
+    ext::toptional<int> i = std::move(d);
+  }
+
+  SECTION("copy assignment")
+  {
+    ext::toptional<double> d = 3.14;
+    ext::toptional<int> i;
+    i = d;
+  }
+
+  SECTION("move assignment")
+  {
+    ext::toptional<double> d = 3.14;
+    ext::toptional<int> i;
+    i = std::move(d);
+  }
+}
+
 TEST_CASE("toptional - monadic operations")
 {
   SECTION("and_then")

@@ -151,6 +151,9 @@ template<class T, class Traits = non_zero_traits<T>>
 class toptional {
   static_assert(!std::is_reference<T>::value, "toptional doesn't support reference type");
 
+  template<class U, class UTraits>
+  friend class toptional;
+
 public:
   using value_type = T;
 
