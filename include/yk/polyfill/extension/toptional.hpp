@@ -432,61 +432,65 @@ public:
     }
   }
 
-  template<template<class...> class UTraits = non_zero_traits, class F>
-  YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) & noexcept(is_nothrow_invocable<F, decltype(**this)>::value) -> toptional<
-      typename std::remove_cv<typename invoke_result<F, decltype(**this)>::type>::type,
-      UTraits<typename std::remove_cv<typename invoke_result<F, decltype(**this)>::type>::type>>
+  template<class UTraits = void, class F>
+  YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) & noexcept(is_nothrow_invocable<F, decltype(**this)>::value) -> typename std::conditional<
+      std::is_void<UTraits>::value, toptional<typename std::remove_cv<typename invoke_result<F, decltype(**this)>::type>::type>,
+      toptional<typename std::remove_cv<typename invoke_result<F, decltype(**this)>::type>::type, UTraits>>::type
   {
     using U = typename std::remove_cv<typename invoke_result<F, decltype(**this)>::type>::type;
+    using ResultType = typename std::conditional<std::is_void<UTraits>::value, toptional<U>, toptional<U, UTraits>>::type;
     static_assert(std::is_constructible<U, typename invoke_result<F, decltype(**this)>::type>::value, "result type of F must be copy/move constructible");
     if (has_value()) {
-      return toptional<U, UTraits<U>>(invoke(std::forward<F>(f), **this));
+      return ResultType(invoke(std::forward<F>(f), **this));
     } else {
       return nullopt_holder::value;
     }
   }
 
-  template<template<class...> class UTraits = non_zero_traits, class F>
-  YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) const& noexcept(is_nothrow_invocable<F, decltype(**this)>::value) -> toptional<
-      typename std::remove_cv<typename invoke_result<F, decltype(**this)>::type>::type,
-      UTraits<typename std::remove_cv<typename invoke_result<F, decltype(**this)>::type>::type>>
+  template<class UTraits, class F>
+  YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) const& noexcept(is_nothrow_invocable<F, decltype(**this)>::value) -> typename std::conditional<
+      std::is_void<UTraits>::value, toptional<typename std::remove_cv<typename invoke_result<F, decltype(**this)>::type>::type>,
+      toptional<typename std::remove_cv<typename invoke_result<F, decltype(**this)>::type>::type, UTraits>>::type
   {
     using U = typename std::remove_cv<typename invoke_result<F, decltype(**this)>::type>::type;
+    using ResultType = typename std::conditional<std::is_void<UTraits>::value, toptional<U>, toptional<U, UTraits>>::type;
     static_assert(std::is_constructible<U, typename invoke_result<F, decltype(**this)>::type>::value, "result type of F must be copy/move constructible");
     if (has_value()) {
-      return toptional<U, UTraits<U>>(invoke(std::forward<F>(f), **this));
+      return ResultType(invoke(std::forward<F>(f), **this));
     } else {
       return nullopt_holder::value;
     }
   }
 
-  template<template<class...> class UTraits = non_zero_traits, class F>
-  YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) && noexcept(is_nothrow_invocable<F, decltype(std::move(**this))>::value) -> toptional<
-      typename std::remove_cv<typename invoke_result<F, decltype(std::move(**this))>::type>::type,
-      UTraits<typename std::remove_cv<typename invoke_result<F, decltype(std::move(**this))>::type>::type>>
+  template<class UTraits = void, class F>
+  YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) && noexcept(is_nothrow_invocable<F, decltype(std::move(**this))>::value) -> typename std::conditional<
+      std::is_void<UTraits>::value, toptional<typename std::remove_cv<typename invoke_result<F, decltype(std::move(**this))>::type>::type>,
+      toptional<typename std::remove_cv<typename invoke_result<F, decltype(std::move(**this))>::type>::type, UTraits>>::type
   {
     using U = typename std::remove_cv<typename invoke_result<F, decltype(std::move(**this))>::type>::type;
+    using ResultType = typename std::conditional<std::is_void<UTraits>::value, toptional<U>, toptional<U, UTraits>>::type;
     static_assert(
         std::is_constructible<U, typename invoke_result<F, decltype(std::move(**this))>::type>::value, "result type of F must be copy/move constructible"
     );
     if (has_value()) {
-      return toptional<U, UTraits<U>>(invoke(std::forward<F>(f), std::move(**this)));
+      return ResultType(invoke(std::forward<F>(f), std::move(**this)));
     } else {
       return nullopt_holder::value;
     }
   }
 
-  template<template<class...> class UTraits = non_zero_traits, class F>
-  YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) const&& noexcept(is_nothrow_invocable<F, decltype(std::move(**this))>::value) -> toptional<
-      typename std::remove_cv<typename invoke_result<F, decltype(std::move(**this))>::type>::type,
-      UTraits<typename std::remove_cv<typename invoke_result<F, decltype(std::move(**this))>::type>::type>>
+  template<class UTraits = void, class F>
+  YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) const&& noexcept(is_nothrow_invocable<F, decltype(std::move(**this))>::value) -> typename std::conditional<
+      std::is_void<UTraits>::value, toptional<typename std::remove_cv<typename invoke_result<F, decltype(std::move(**this))>::type>::type>,
+      toptional<typename std::remove_cv<typename invoke_result<F, decltype(std::move(**this))>::type>::type, UTraits>>::type
   {
     using U = typename std::remove_cv<typename invoke_result<F, decltype(std::move(**this))>::type>::type;
+    using ResultType = typename std::conditional<std::is_void<UTraits>::value, toptional<U>, toptional<U, UTraits>>::type;
     static_assert(
         std::is_constructible<U, typename invoke_result<F, decltype(std::move(**this))>::type>::value, "result type of F must be copy/move constructible"
     );
     if (has_value()) {
-      return toptional<U, UTraits<U>>(invoke(std::forward<F>(f), std::move(**this)));
+      return ResultType(invoke(std::forward<F>(f), std::move(**this)));
     } else {
       return nullopt_holder::value;
     }
