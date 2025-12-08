@@ -515,7 +515,7 @@ public:
 
 private:
   template<class... Args>
-  constexpr T checked_construct(Args&&... args)
+  static YK_POLYFILL_CXX14_CONSTEXPR T checked_construct(Args&&... args)
   {
     T value(std::forward<Args>(args)...);
     if (!Traits::is_engaged(value)) throw bad_toptional_initialization{};
@@ -523,7 +523,7 @@ private:
   }
 
   template<class U, class... Args>
-  constexpr T checked_construct(std::initializer_list<U> il, Args&&... args)
+  static YK_POLYFILL_CXX14_CONSTEXPR T checked_construct(std::initializer_list<U> il, Args&&... args)
   {
     T value(il, std::forward<Args>(args)...);
     if (!Traits::is_engaged(value)) throw bad_toptional_initialization{};
