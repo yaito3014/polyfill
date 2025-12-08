@@ -268,26 +268,26 @@ public:
   template<class... Args, typename std::enable_if<std::is_constructible<T, Args...>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR T& emplace(Args&&... args)
   {
+    T temp = checked_construct(std::forward<Args>(args)...);
     data.~T();
 #if __cpp_lib_constexpr_dynamic_alloc >= 201907L
-    std::construct_at(std::addressof(data), std::forward<Args>(args)...);
+    std::construct_at(std::addressof(data), std::move(temp));
 #else
-    new (std::addressof(data)) T(std::forward<Args>(args)...);
+    new (std::addressof(data)) T(std::move(temp));
 #endif
-    if (!Traits::is_engaged(data)) throw bad_toptional_initialization{};
     return data;
   }
 
   template<class U, class... Args, typename std::enable_if<std::is_constructible<T, std::initializer_list<U>&, Args...>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR T& emplace(std::initializer_list<U> il, Args&&... args)
   {
+    T temp = checked_construct(il, std::forward<Args>(args)...);
     data.~T();
 #if __cpp_lib_constexpr_dynamic_alloc >= 201907L
-    std::construct_at(std::addressof(data), il, std::forward<Args>(args)...);
+    std::construct_at(std::addressof(data), std::move(temp));
 #else
-    new (std::addressof(data)) T(il, std::forward<Args>(args)...);
+    new (std::addressof(data)) T(std::move(temp));
 #endif
-    if (!Traits::is_engaged(data)) throw bad_toptional_initialization{};
     return data;
   }
 
