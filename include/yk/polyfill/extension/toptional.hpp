@@ -562,6 +562,293 @@ private:
   T data;
 };
 
+template<
+    class T, class TTraits, class U, class UTraits,
+    typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() == std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+constexpr bool operator==(toptional<T, TTraits> const& lhs, toptional<U, UTraits> const& rhs) noexcept(noexcept(*lhs == *rhs))
+{
+  if (lhs.has_value() != rhs.has_value()) {
+    return false;
+  } else if (lhs.has_value() == false) {
+    return true;
+  } else {
+    return *lhs == *rhs;
+  }
+}
+
+template<
+    class T, class TTraits, class U, class UTraits,
+    typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() != std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+constexpr bool operator!=(toptional<T, TTraits> const& lhs, toptional<U, UTraits> const& rhs) noexcept(noexcept(*lhs != *rhs))
+{
+  if (lhs.has_value() != rhs.has_value()) {
+    return true;
+  } else if (!lhs.has_value()) {
+    return false;
+  } else {
+    return *lhs != *rhs;
+  }
+}
+
+template<
+    class T, class TTraits, class U, class UTraits,
+    typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() < std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+constexpr bool operator<(toptional<T, TTraits> const& lhs, toptional<U, UTraits> const& rhs) noexcept(noexcept(*lhs < *rhs))
+{
+  if (!rhs.has_value()) {
+    return false;
+  } else if (!lhs.has_value()) {
+    return true;
+  } else {
+    return *lhs < *rhs;
+  }
+}
+
+template<
+    class T, class TTraits, class U, class UTraits,
+    typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() <= std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+constexpr bool operator<=(toptional<T, TTraits> const& lhs, toptional<U, UTraits> const& rhs) noexcept(noexcept(*lhs <= *rhs))
+{
+  if (!lhs.has_value()) {
+    return true;
+  } else if (!rhs.has_value()) {
+    return false;
+  } else {
+    return *lhs <= *rhs;
+  }
+}
+
+template<
+    class T, class TTraits, class U, class UTraits,
+    typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() > std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+constexpr bool operator>(toptional<T, TTraits> const& lhs, toptional<U, UTraits> const& rhs) noexcept(noexcept(*lhs > *rhs))
+{
+  if (!lhs.has_value()) {
+    return false;
+  } else if (!rhs.has_value()) {
+    return true;
+  } else {
+    return *lhs > *rhs;
+  }
+}
+
+template<
+    class T, class TTraits, class U, class UTraits,
+    typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() >= std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+constexpr bool operator>=(toptional<T, TTraits> const& lhs, toptional<U, UTraits> const& rhs) noexcept(noexcept(*lhs >= *rhs))
+{
+  if (!rhs.has_value()) {
+    return true;
+  } else if (!lhs.has_value()) {
+    return false;
+  } else {
+    return *lhs >= *rhs;
+  }
+}
+
+// Comparisons with nullopt_t
+template<class T, class Traits>
+constexpr bool operator==(toptional<T, Traits> const& opt, nullopt_t) noexcept
+{
+  return !opt.has_value();
+}
+
+template<class T, class Traits>
+constexpr bool operator==(nullopt_t, toptional<T, Traits> const& opt) noexcept
+{
+  return !opt.has_value();
+}
+
+template<class T, class Traits>
+constexpr bool operator!=(toptional<T, Traits> const& opt, nullopt_t) noexcept
+{
+  return opt.has_value();
+}
+
+template<class T, class Traits>
+constexpr bool operator!=(nullopt_t, toptional<T, Traits> const& opt) noexcept
+{
+  return opt.has_value();
+}
+
+template<class T, class Traits>
+constexpr bool operator<(toptional<T, Traits> const&, nullopt_t) noexcept
+{
+  return false;
+}
+
+template<class T, class Traits>
+constexpr bool operator<(nullopt_t, toptional<T, Traits> const& opt) noexcept
+{
+  return opt.has_value();
+}
+
+template<class T, class Traits>
+constexpr bool operator<=(toptional<T, Traits> const& opt, nullopt_t) noexcept
+{
+  return !opt.has_value();
+}
+
+template<class T, class Traits>
+constexpr bool operator<=(nullopt_t, toptional<T, Traits> const&) noexcept
+{
+  return true;
+}
+
+template<class T, class Traits>
+constexpr bool operator>(toptional<T, Traits> const& opt, nullopt_t) noexcept
+{
+  return opt.has_value();
+}
+
+template<class T, class Traits>
+constexpr bool operator>(nullopt_t, toptional<T, Traits> const&) noexcept
+{
+  return false;
+}
+
+template<class T, class Traits>
+constexpr bool operator>=(toptional<T, Traits> const&, nullopt_t) noexcept
+{
+  return true;
+}
+
+template<class T, class Traits>
+constexpr bool operator>=(nullopt_t, toptional<T, Traits> const& opt) noexcept
+{
+  return !opt.has_value();
+}
+
+// Comparisons with T
+template<
+    class T, class Traits, class U,
+    typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() == std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+constexpr bool operator==(toptional<T, Traits> const& opt, U const& u) noexcept(noexcept(*opt == u))
+{
+  return opt.has_value() ? *opt == u : false;
+}
+
+template<
+    class T, class U, class UTraits,
+    typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() == std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+constexpr bool operator==(T const& t, toptional<U, UTraits> const& opt) noexcept(noexcept(t == *opt))
+{
+  return opt.has_value() ? t == *opt : false;
+}
+
+template<
+    class T, class Traits, class U,
+    typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() != std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+constexpr bool operator!=(toptional<T, Traits> const& opt, U const& u) noexcept(noexcept(*opt != u))
+{
+  return opt.has_value() ? *opt != u : true;
+}
+
+template<
+    class T, class U, class UTraits,
+    typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() != std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+constexpr bool operator!=(T const& t, toptional<U, UTraits> const& opt) noexcept(noexcept(t != *opt))
+{
+  return opt.has_value() ? t != *opt : true;
+}
+
+template<
+    class T, class Traits, class U,
+    typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() < std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+constexpr bool operator<(toptional<T, Traits> const& opt, U const& u) noexcept(noexcept(*opt < u))
+{
+  return opt.has_value() ? *opt < u : true;
+}
+
+template<
+    class T, class U, class UTraits,
+    typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() < std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+constexpr bool operator<(T const& t, toptional<U, UTraits> const& opt) noexcept(noexcept(t < *opt))
+{
+  return opt.has_value() ? t < *opt : false;
+}
+
+template<
+    class T, class Traits, class U,
+    typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() <= std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+constexpr bool operator<=(toptional<T, Traits> const& opt, U const& u) noexcept(noexcept(*opt <= u))
+{
+  return opt.has_value() ? *opt <= u : true;
+}
+
+template<
+    class T, class U, class UTraits,
+    typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() <= std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+constexpr bool operator<=(T const& t, toptional<U, UTraits> const& opt) noexcept(noexcept(t <= *opt))
+{
+  return opt.has_value() ? t <= *opt : false;
+}
+
+template<
+    class T, class Traits, class U,
+    typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() > std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+constexpr bool operator>(toptional<T, Traits> const& opt, U const& u) noexcept(noexcept(*opt > u))
+{
+  return opt.has_value() ? *opt > u : false;
+}
+
+template<
+    class T, class U, class UTraits,
+    typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() > std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+constexpr bool operator>(T const& t, toptional<U, UTraits> const& opt) noexcept(noexcept(t > *opt))
+{
+  return opt.has_value() ? t > *opt : true;
+}
+
+template<
+    class T, class Traits, class U,
+    typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() >= std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+constexpr bool operator>=(toptional<T, Traits> const& opt, U const& u) noexcept(noexcept(*opt >= u))
+{
+  return opt.has_value() ? *opt >= u : false;
+}
+
+template<
+    class T, class U, class UTraits,
+    typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() >= std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
+constexpr bool operator>=(T const& t, toptional<U, UTraits> const& opt) noexcept(noexcept(t >= *opt))
+{
+  return opt.has_value() ? t >= *opt : true;
+}
+
+#if __cplusplus >= 202002L
+
+// Three-way comparison between toptional objects
+template<class T, class TTraits, class U, class UTraits>
+  requires std::three_way_comparable_with<T, U>
+constexpr std::compare_three_way_result_t<T, U> operator<=>(toptional<T, TTraits> const& lhs, toptional<U, UTraits> const& rhs) noexcept(
+    noexcept(*lhs <=> *rhs)
+)
+{
+  if (lhs.has_value() && rhs.has_value()) {
+    return *lhs <=> *rhs;
+  } else {
+    return lhs.has_value() <=> rhs.has_value();
+  }
+}
+
+// Three-way comparison with nullopt_t
+template<class T, class Traits>
+constexpr std::strong_ordering operator<=>(toptional<T, Traits> const& opt, nullopt_t) noexcept
+{
+  return opt.has_value() <=> false;
+}
+
+// Three-way comparison with T
+template<class T, class Traits, class U>
+  requires (!extension::is_specialization_of<U, toptional>) && std::three_way_comparable_with<T, U>
+constexpr std::compare_three_way_result_t<T, U> operator<=>(toptional<T, Traits> const& opt, U const& u) noexcept(noexcept(*opt <=> u))
+{
+  return opt.has_value() ? *opt <=> u : std::strong_ordering::less;
+}
+
+#endif
+
 }  // namespace extension
 
 }  // namespace polyfill

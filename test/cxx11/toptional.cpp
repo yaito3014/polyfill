@@ -618,4 +618,239 @@ TEST_CASE("toptional - non-trivial type with destructor side effects")
     CHECK(opt2.has_value());
     CHECK(opt2->value == 42);
   }
+
+  SECTION("assignment to nullopt with non-trivial type")
+  {
+    LifetimeTracker::reset();
+    ext::toptional<LifetimeTracker, lifetime_tracker_traits> opt{pf::in_place_holder::value, 42};
+
+    int destructions_before = LifetimeTracker::destructions;
+    opt = pf::nullopt_holder::value;
+
+    CHECK(!opt.has_value());
+    CHECK(LifetimeTracker::destructions > destructions_before);
+  }
+
+  SECTION("cannot construct with tombstone value")
+  {
+    CHECK_THROWS_AS((ext::toptional<LifetimeTracker, lifetime_tracker_traits>{pf::in_place_holder::value, 0}), ext::bad_toptional_initialization);
+  }
+
+  SECTION("disengaged to engaged assignment")
+  {
+    LifetimeTracker::reset();
+    ext::toptional<LifetimeTracker, lifetime_tracker_traits> opt1;
+    ext::toptional<LifetimeTracker, lifetime_tracker_traits> opt2{pf::in_place_holder::value, 42};
+
+    opt1 = opt2;
+    CHECK(opt1.has_value());
+    CHECK(opt1->value == 42);
+  }
+
+  SECTION("self-assignment preserves state")
+  {
+    LifetimeTracker::reset();
+    ext::toptional<LifetimeTracker, lifetime_tracker_traits> opt{pf::in_place_holder::value, 42};
+
+    opt = opt;  // copy self-assignment
+    CHECK(opt.has_value());
+    CHECK(opt->value == 42);
+  }
+}
+
+TEST_CASE("toptional - relational operators")
+{
+  SECTION("comparison between two toptionals")
+  {
+    ext::toptional<int> opt1 = 10;
+    ext::toptional<int> opt2 = 20;
+    ext::toptional<int> opt3 = 10;
+    ext::toptional<int> opt4;  // disengaged
+
+    // Equality
+    CHECK(opt1 == opt3);
+    CHECK_FALSE(opt1 == opt2);
+    CHECK_FALSE(opt1 == opt4);
+    CHECK(opt4 == ext::toptional<int>{});
+
+    // Inequality
+    CHECK(opt1 != opt2);
+    CHECK_FALSE(opt1 != opt3);
+    CHECK(opt1 != opt4);
+
+    // Less than
+    CHECK(opt1 < opt2);
+    CHECK_FALSE(opt2 < opt1);
+    CHECK_FALSE(opt1 < opt3);
+    CHECK(opt4 < opt1);        // disengaged < engaged
+    CHECK_FALSE(opt1 < opt4);  // engaged < disengaged
+
+    // Less than or equal
+    CHECK(opt1 <= opt2);
+    CHECK(opt1 <= opt3);
+    CHECK_FALSE(opt2 <= opt1);
+    CHECK(opt4 <= opt1);
+    CHECK(opt4 <= ext::toptional<int>{});  // disengaged <= disengaged
+
+    // Greater than
+    CHECK(opt2 > opt1);
+    CHECK_FALSE(opt1 > opt2);
+    CHECK_FALSE(opt1 > opt3);
+    CHECK(opt1 > opt4);
+    CHECK_FALSE(opt4 > opt1);
+
+    // Greater than or equal
+    CHECK(opt2 >= opt1);
+    CHECK(opt1 >= opt3);
+    CHECK_FALSE(opt1 >= opt2);
+    CHECK(opt1 >= opt4);
+    CHECK(opt4 >= ext::toptional<int>{});  // disengaged >= disengaged
+  }
+
+  SECTION("comparison with nullopt")
+  {
+    ext::toptional<int> opt1 = 42;
+    ext::toptional<int> opt2;
+
+    // Equality
+    CHECK(opt2 == pf::nullopt_holder::value);
+    CHECK(pf::nullopt_holder::value == opt2);
+    CHECK_FALSE(opt1 == pf::nullopt_holder::value);
+    CHECK_FALSE(pf::nullopt_holder::value == opt1);
+
+    // Inequality
+    CHECK(opt1 != pf::nullopt_holder::value);
+    CHECK(pf::nullopt_holder::value != opt1);
+    CHECK_FALSE(opt2 != pf::nullopt_holder::value);
+    CHECK_FALSE(pf::nullopt_holder::value != opt2);
+
+    // Less than
+    CHECK_FALSE(opt1 < pf::nullopt_holder::value);  // engaged < nullopt is false
+    CHECK(pf::nullopt_holder::value < opt1);        // nullopt < engaged is true
+    CHECK_FALSE(opt2 < pf::nullopt_holder::value);  // disengaged < nullopt is false
+    CHECK_FALSE(pf::nullopt_holder::value < opt2);  // nullopt < disengaged is false
+
+    // Less than or equal
+    CHECK_FALSE(opt1 <= pf::nullopt_holder::value);  // engaged <= nullopt is false
+    CHECK(pf::nullopt_holder::value <= opt1);        // nullopt <= engaged is true
+    CHECK(opt2 <= pf::nullopt_holder::value);        // disengaged <= nullopt is true
+    CHECK(pf::nullopt_holder::value <= opt2);        // nullopt <= disengaged is true
+
+    // Greater than
+    CHECK(opt1 > pf::nullopt_holder::value);        // engaged > nullopt is true
+    CHECK_FALSE(pf::nullopt_holder::value > opt1);  // nullopt > engaged is false
+    CHECK_FALSE(opt2 > pf::nullopt_holder::value);  // disengaged > nullopt is false
+    CHECK_FALSE(pf::nullopt_holder::value > opt2);  // nullopt > disengaged is false
+
+    // Greater than or equal
+    CHECK(opt1 >= pf::nullopt_holder::value);        // engaged >= nullopt is true
+    CHECK_FALSE(pf::nullopt_holder::value >= opt1);  // nullopt >= engaged is false
+    CHECK(opt2 >= pf::nullopt_holder::value);        // disengaged >= nullopt is true
+    CHECK(pf::nullopt_holder::value >= opt2);        // nullopt >= disengaged is true
+  }
+
+  SECTION("comparison with value")
+  {
+    ext::toptional<int> opt1 = 42;
+    ext::toptional<int> opt2;
+
+    // Equality
+    CHECK(opt1 == 42);
+    CHECK(42 == opt1);
+    CHECK_FALSE(opt1 == 10);
+    CHECK_FALSE(10 == opt1);
+    CHECK_FALSE(opt2 == 42);  // disengaged != any value
+    CHECK_FALSE(42 == opt2);
+
+    // Inequality
+    CHECK(opt1 != 10);
+    CHECK(10 != opt1);
+    CHECK_FALSE(opt1 != 42);
+    CHECK_FALSE(42 != opt1);
+    CHECK(opt2 != 42);  // disengaged != any value
+    CHECK(42 != opt2);
+
+    // Less than
+    CHECK(opt1 < 50);
+    CHECK(30 < opt1);
+    CHECK_FALSE(opt1 < 30);
+    CHECK_FALSE(50 < opt1);
+    CHECK(opt2 < 42);        // disengaged < any value is true
+    CHECK_FALSE(42 < opt2);  // value < disengaged is false
+
+    // Less than or equal
+    CHECK(opt1 <= 42);
+    CHECK(opt1 <= 50);
+    CHECK(42 <= opt1);
+    CHECK(30 <= opt1);
+    CHECK_FALSE(opt1 <= 30);
+    CHECK_FALSE(50 <= opt1);
+    CHECK(opt2 <= 42);        // disengaged <= any value is true
+    CHECK_FALSE(42 <= opt2);  // value <= disengaged is false
+
+    // Greater than
+    CHECK(opt1 > 30);
+    CHECK(50 > opt1);
+    CHECK_FALSE(opt1 > 50);
+    CHECK_FALSE(30 > opt1);
+    CHECK_FALSE(opt2 > 42);  // disengaged > any value is false
+    CHECK(42 > opt2);        // value > disengaged is true
+
+    // Greater than or equal
+    CHECK(opt1 >= 42);
+    CHECK(opt1 >= 30);
+    CHECK(42 >= opt1);
+    CHECK(50 >= opt1);
+    CHECK_FALSE(opt1 >= 50);
+    CHECK_FALSE(30 >= opt1);
+    CHECK_FALSE(opt2 >= 42);  // disengaged >= any value is false
+    CHECK(42 >= opt2);        // value >= disengaged is true
+  }
+
+  SECTION("comparison with different traits")
+  {
+    ext::toptional<int> opt1 = 10;                         // uses non_zero_traits
+    ext::toptional<int, minus_one_traits<int>> opt2 = 10;  // uses minus_one_traits
+
+    // These have the same value, so they should be equal
+    CHECK(opt1 == opt2);
+    CHECK_FALSE(opt1 != opt2);
+    CHECK_FALSE(opt1 < opt2);
+    CHECK(opt1 <= opt2);
+    CHECK_FALSE(opt1 > opt2);
+    CHECK(opt1 >= opt2);
+  }
+
+  SECTION("comparison ordering semantics")
+  {
+    ext::toptional<int> none1;
+    ext::toptional<int> none2;
+    ext::toptional<int> some1 = 10;
+    ext::toptional<int> some2 = 20;
+
+    // Two disengaged optionals are equal
+    CHECK(none1 == none2);
+    CHECK_FALSE(none1 < none2);
+    CHECK_FALSE(none1 > none2);
+    CHECK(none1 <= none2);
+    CHECK(none1 >= none2);
+
+    // Disengaged < Engaged
+    CHECK(none1 < some1);
+    CHECK(none1 <= some1);
+    CHECK_FALSE(none1 > some1);
+    CHECK_FALSE(none1 >= some1);
+
+    // Engaged > Disengaged
+    CHECK(some1 > none1);
+    CHECK(some1 >= none1);
+    CHECK_FALSE(some1 < none1);
+    CHECK_FALSE(some1 <= none1);
+
+    // Engaged values compare by value
+    CHECK(some1 < some2);
+    CHECK(some1 <= some2);
+    CHECK_FALSE(some1 > some2);
+    CHECK_FALSE(some1 >= some2);
+  }
 }
