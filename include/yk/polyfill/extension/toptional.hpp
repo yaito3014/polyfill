@@ -189,16 +189,18 @@ public:
   }
 
   template<
-      class U,
+      class U, class UTraits,
       typename std::enable_if<
-          std::is_constructible<T, U const&>::value && !optional_detail::converts_from_any_cvref<T, toptional<U>>::value, std::nullptr_t>::type = nullptr>
-  constexpr toptional(toptional<U> const& other) : data(checked_construct(other.data))
+          std::is_constructible<T, U const&>::value && !optional_detail::converts_from_any_cvref<T, toptional<U, UTraits>>::value, std::nullptr_t>::type =
+          nullptr>
+  constexpr toptional(toptional<U, UTraits> const& other) : data(checked_construct(other.data))
   {
   }
   template<
-      class U, typename std::enable_if<
-                   std::is_constructible<T, U>::value && !optional_detail::converts_from_any_cvref<T, toptional<U>>::value, std::nullptr_t>::type = nullptr>
-  constexpr toptional(toptional<U>&& other) : data(checked_construct(std::move(other.data)))
+      class U, class UTraits,
+      typename std::enable_if<
+          std::is_constructible<T, U>::value && !optional_detail::converts_from_any_cvref<T, toptional<U, UTraits>>::value, std::nullptr_t>::type = nullptr>
+  constexpr toptional(toptional<U, UTraits>&& other) : data(checked_construct(std::move(other.data)))
   {
   }
 
@@ -232,12 +234,13 @@ public:
   }
 
   template<
-      class U, typename std::enable_if<
-                   std::is_assignable<T&, U const&>::value && !optional_detail::converts_from_any_cvref<T, toptional<U>>::value
-                       && !std::is_assignable<T&, toptional<U>&>::value && !std::is_assignable<T&, toptional<U> const&>::value
-                       && !std::is_assignable<T&, toptional<U>&&>::value && !std::is_assignable<T&, toptional<U> const&&>::value,
-                   std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX14_CONSTEXPR toptional& operator=(toptional<U> const& other)
+      class U, class UTraits,
+      typename std::enable_if<
+          std::is_assignable<T&, U const&>::value && !optional_detail::converts_from_any_cvref<T, toptional<U, UTraits>>::value
+              && !std::is_assignable<T&, toptional<U, UTraits>&>::value && !std::is_assignable<T&, toptional<U, UTraits> const&>::value
+              && !std::is_assignable<T&, toptional<U, UTraits>&&>::value && !std::is_assignable<T&, toptional<U, UTraits> const&&>::value,
+          std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX14_CONSTEXPR toptional& operator=(toptional<U, UTraits> const& other)
   {
     if (has_value()) {
       data = other.data;
@@ -249,12 +252,13 @@ public:
   }
 
   template<
-      class U, typename std::enable_if<
-                   std::is_assignable<T&, U>::value && !optional_detail::converts_from_any_cvref<T, toptional<U>>::value
-                       && !std::is_assignable<T&, toptional<U>&>::value && !std::is_assignable<T&, toptional<U> const&>::value
-                       && !std::is_assignable<T&, toptional<U>&&>::value && !std::is_assignable<T&, toptional<U> const&&>::value,
-                   std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX14_CONSTEXPR toptional& operator=(toptional<U>&& other)
+      class U, class UTraits,
+      typename std::enable_if<
+          std::is_assignable<T&, U>::value && !optional_detail::converts_from_any_cvref<T, toptional<U, UTraits>>::value
+              && !std::is_assignable<T&, toptional<U, UTraits>&>::value && !std::is_assignable<T&, toptional<U, UTraits> const&>::value
+              && !std::is_assignable<T&, toptional<U, UTraits>&&>::value && !std::is_assignable<T&, toptional<U, UTraits> const&&>::value,
+          std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX14_CONSTEXPR toptional& operator=(toptional<U, UTraits>&& other)
   {
     if (has_value()) {
       data = std::move(other.data);
