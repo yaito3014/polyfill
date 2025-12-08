@@ -565,7 +565,7 @@ private:
 template<
     class T, class TTraits, class U, class UTraits,
     typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() == std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
-constexpr bool operator==(toptional<T, TTraits> const& lhs, toptional<U, UTraits> const& rhs) noexcept(noexcept(*lhs == *rhs))
+YK_POLYFILL_CXX14_CONSTEXPR bool operator==(toptional<T, TTraits> const& lhs, toptional<U, UTraits> const& rhs) noexcept(noexcept(*lhs == *rhs))
 {
   if (lhs.has_value() != rhs.has_value()) {
     return false;
@@ -579,7 +579,7 @@ constexpr bool operator==(toptional<T, TTraits> const& lhs, toptional<U, UTraits
 template<
     class T, class TTraits, class U, class UTraits,
     typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() != std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
-constexpr bool operator!=(toptional<T, TTraits> const& lhs, toptional<U, UTraits> const& rhs) noexcept(noexcept(*lhs != *rhs))
+YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(toptional<T, TTraits> const& lhs, toptional<U, UTraits> const& rhs) noexcept(noexcept(*lhs != *rhs))
 {
   if (lhs.has_value() != rhs.has_value()) {
     return true;
@@ -593,7 +593,7 @@ constexpr bool operator!=(toptional<T, TTraits> const& lhs, toptional<U, UTraits
 template<
     class T, class TTraits, class U, class UTraits,
     typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() < std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
-constexpr bool operator<(toptional<T, TTraits> const& lhs, toptional<U, UTraits> const& rhs) noexcept(noexcept(*lhs < *rhs))
+YK_POLYFILL_CXX14_CONSTEXPR bool operator<(toptional<T, TTraits> const& lhs, toptional<U, UTraits> const& rhs) noexcept(noexcept(*lhs < *rhs))
 {
   if (!rhs.has_value()) {
     return false;
@@ -607,7 +607,7 @@ constexpr bool operator<(toptional<T, TTraits> const& lhs, toptional<U, UTraits>
 template<
     class T, class TTraits, class U, class UTraits,
     typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() <= std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
-constexpr bool operator<=(toptional<T, TTraits> const& lhs, toptional<U, UTraits> const& rhs) noexcept(noexcept(*lhs <= *rhs))
+YK_POLYFILL_CXX14_CONSTEXPR bool operator<=(toptional<T, TTraits> const& lhs, toptional<U, UTraits> const& rhs) noexcept(noexcept(*lhs <= *rhs))
 {
   if (!lhs.has_value()) {
     return true;
@@ -621,7 +621,7 @@ constexpr bool operator<=(toptional<T, TTraits> const& lhs, toptional<U, UTraits
 template<
     class T, class TTraits, class U, class UTraits,
     typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() > std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
-constexpr bool operator>(toptional<T, TTraits> const& lhs, toptional<U, UTraits> const& rhs) noexcept(noexcept(*lhs > *rhs))
+YK_POLYFILL_CXX14_CONSTEXPR bool operator>(toptional<T, TTraits> const& lhs, toptional<U, UTraits> const& rhs) noexcept(noexcept(*lhs > *rhs))
 {
   if (!lhs.has_value()) {
     return false;
@@ -635,7 +635,7 @@ constexpr bool operator>(toptional<T, TTraits> const& lhs, toptional<U, UTraits>
 template<
     class T, class TTraits, class U, class UTraits,
     typename std::enable_if<std::is_convertible<decltype(std::declval<T const&>() >= std::declval<U const&>()), bool>::value, std::nullptr_t>::type = nullptr>
-constexpr bool operator>=(toptional<T, TTraits> const& lhs, toptional<U, UTraits> const& rhs) noexcept(noexcept(*lhs >= *rhs))
+YK_POLYFILL_CXX14_CONSTEXPR bool operator>=(toptional<T, TTraits> const& lhs, toptional<U, UTraits> const& rhs) noexcept(noexcept(*lhs >= *rhs))
 {
   if (!rhs.has_value()) {
     return true;
