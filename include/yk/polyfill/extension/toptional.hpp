@@ -841,7 +841,7 @@ constexpr std::strong_ordering operator<=>(toptional<T, Traits> const& opt, null
 
 // Three-way comparison with T
 template<class T, class Traits, class U>
-  requires (!extension::is_specialization_of<U, toptional>) && std::three_way_comparable_with<T, U>
+  requires (!extension::is_specialization_of<U, toptional>::value) && std::three_way_comparable_with<T, U>
 constexpr std::compare_three_way_result_t<T, U> operator<=>(toptional<T, Traits> const& opt, U const& u) noexcept(noexcept(*opt <=> u))
 {
   return opt.has_value() ? *opt <=> u : std::strong_ordering::less;
