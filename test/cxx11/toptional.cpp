@@ -31,11 +31,11 @@ TEST_CASE("toptional")
 
   STATIC_REQUIRE(sizeof(ext::toptional<int*>) == sizeof(int*));
   {
-    int* ptr = new int(42);
+    int x = 42;
+    int* ptr = &x;
     ext::toptional<int*> opt = ptr;
     CHECK(opt.has_value());
     CHECK(*opt == ptr);
-    delete ptr;
   }
   CHECK_THROWS_AS(ext::toptional<int*>{nullptr}, ext::bad_toptional_initialization);
 }
