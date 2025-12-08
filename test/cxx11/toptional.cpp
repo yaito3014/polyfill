@@ -446,7 +446,7 @@ TEST_CASE("toptional - non-trivial types with lifetime tracking")
     CHECK(LifetimeTracker::destructions >= 1);
   }
 
-  SECTION("disengaged state doesn't call destructor on tombstone")
+  SECTION("disengaged state does call destructor on tombstone")
   {
     LifetimeTracker::reset();
 
