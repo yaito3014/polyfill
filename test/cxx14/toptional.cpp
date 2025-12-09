@@ -125,23 +125,6 @@ constexpr bool test_has_value_empty()
   return !opt.has_value();
 }
 
-// Swap tests (CXX14_CONSTEXPR)
-constexpr bool test_swap_both_engaged()
-{
-  ext::toptional<int> opt1(pf::in_place, 42);
-  ext::toptional<int> opt2(pf::in_place, 99);
-  opt1.swap(opt2);
-  return opt1.has_value() && *opt1 == 99 && opt2.has_value() && *opt2 == 42;
-}
-
-constexpr bool test_swap_one_empty()
-{
-  ext::toptional<int> opt1(pf::in_place, 42);
-  ext::toptional<int> opt2;
-  opt1.swap(opt2);
-  return !opt1.has_value() && opt2.has_value() && *opt2 == 42;
-}
-
 // Iterator tests (CXX14_CONSTEXPR for iterator operations)
 constexpr bool test_iterator_engaged()
 {
@@ -354,12 +337,6 @@ TEST_CASE("toptional constexpr C++14")
     STATIC_REQUIRE(test_has_value_empty());
   }
 
-  // C++14: swap operation
-  {
-    STATIC_REQUIRE(test_swap_both_engaged());
-    STATIC_REQUIRE(test_swap_one_empty());
-  }
-
   // C++14: Iterator operations
   {
     STATIC_REQUIRE(test_iterator_engaged());
@@ -409,4 +386,9 @@ TEST_CASE("toptional constexpr C++14")
     STATIC_REQUIRE(test_chaining_monadic_ops());
     STATIC_REQUIRE(test_chaining_with_or_else());
   }
+
+  // Note: swap, emplace, reset, and assignment operations for toptional
+  // are marked as CXX20_CONSTEXPR because they require constexpr destructors
+  // (and constexpr std::swap in the case of swap) which are only available in C++20+.
+  // Those tests are in the C++20 test file.
 }

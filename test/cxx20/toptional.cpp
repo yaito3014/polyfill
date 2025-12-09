@@ -235,4 +235,40 @@ TEST_CASE("toptional constexpr C++20")
     };
     STATIC_REQUIRE(test_complex());
   }
+
+  // C++20: swap operations (requires constexpr std::swap)
+  {
+    constexpr auto test_swap_both_engaged = []() {
+      ext::toptional<int> opt1(pf::in_place, 42);
+      ext::toptional<int> opt2(pf::in_place, 99);
+      opt1.swap(opt2);
+      return opt1.has_value() && *opt1 == 99 && opt2.has_value() && *opt2 == 42;
+    };
+    STATIC_REQUIRE(test_swap_both_engaged());
+
+    constexpr auto test_swap_one_empty = []() {
+      ext::toptional<int> opt1(pf::in_place, 42);
+      ext::toptional<int> opt2;
+      opt1.swap(opt2);
+      return !opt1.has_value() && opt2.has_value() && *opt2 == 42;
+    };
+    STATIC_REQUIRE(test_swap_one_empty());
+
+    constexpr auto test_swap_both_empty = []() {
+      ext::toptional<int> opt1;
+      ext::toptional<int> opt2;
+      opt1.swap(opt2);
+      return !opt1.has_value() && !opt2.has_value();
+    };
+    STATIC_REQUIRE(test_swap_both_empty());
+
+    constexpr auto test_free_swap = []() {
+      ext::toptional<int> opt1(pf::in_place, 10);
+      ext::toptional<int> opt2(pf::in_place, 20);
+      using pf::extension::swap;
+      swap(opt1, opt2);
+      return *opt1 == 20 && *opt2 == 10;
+    };
+    STATIC_REQUIRE(test_free_swap());
+  }
 }
