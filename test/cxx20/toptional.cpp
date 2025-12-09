@@ -4,7 +4,32 @@
 
 #include <compare>
 
-namespace ext = yk::polyfill::extension;
+namespace pf = yk::polyfill;
+namespace ext = pf::extension;
+
+struct NoexceptComparable {
+  int value;
+  constexpr auto operator<=>(NoexceptComparable const& other) const noexcept { return value <=> other.value; }
+  constexpr bool operator==(NoexceptComparable const& other) const noexcept = default;
+};
+
+struct ThrowingComparable {
+  int value;
+  auto operator<=>(ThrowingComparable const& other) const { return value <=> other.value; }
+  bool operator==(ThrowingComparable const& other) const = default;
+};
+
+template<>
+struct ext::non_zero_traits<NoexceptComparable> {
+  static constexpr bool is_engaged(NoexceptComparable const& nc) noexcept { return nc.value != 0; }
+  static constexpr NoexceptComparable tombstone_value() noexcept { return NoexceptComparable{0}; }
+};
+
+template<>
+struct ext::non_zero_traits<ThrowingComparable> {
+  static constexpr bool is_engaged(ThrowingComparable const& nc) noexcept { return nc.value != 0; }
+  static constexpr ThrowingComparable tombstone_value() noexcept { return ThrowingComparable{0}; }
+};
 
 TEST_CASE("toptional three-way comparison")
 {
@@ -47,18 +72,6 @@ TEST_CASE("toptional three-way comparison")
 
   // noexcept propagation tests for three-way comparison
   {
-    struct NoexceptComparable {
-      int value;
-      constexpr auto operator<=>(NoexceptComparable const& other) const noexcept { return value <=> other.value; }
-      constexpr bool operator==(NoexceptComparable const& other) const noexcept = default;
-    };
-
-    struct ThrowingComparable {
-      int value;
-      auto operator<=>(ThrowingComparable const& other) const { return value <=> other.value; }
-      bool operator==(ThrowingComparable const& other) const = default;
-    };
-
     ext::toptional<NoexceptComparable> a = NoexceptComparable{42};
     ext::toptional<NoexceptComparable> b = NoexceptComparable{42};
     ext::toptional<ThrowingComparable> c = ThrowingComparable{42};
@@ -69,8 +82,8 @@ TEST_CASE("toptional three-way comparison")
     STATIC_REQUIRE(!noexcept(c <=> d));
 
     // Verify noexcept for nullopt comparisons (always noexcept)
-    STATIC_REQUIRE(noexcept(a <=> yk::polyfill::nullopt));
-    STATIC_REQUIRE(noexcept(c <=> yk::polyfill::nullopt));
+    STATIC_REQUIRE(noexcept(a <=> pf::nullopt));
+    STATIC_REQUIRE(noexcept(c <=> pf::nullopt));
 
     // Verify noexcept propagation for toptional vs value
     NoexceptComparable nv{42};
@@ -204,7 +217,7 @@ TEST_CASE("toptional constexpr C++20")
         static constexpr Data tombstone_value() noexcept { return Data{-1, -1}; }
       };
 
-      ext::toptional<Data, data_traits> opt1(10, 20);
+      ext::toptional<Data, data_traits> opt1(pf::in_place, 10, 20);
       ext::toptional<Data, data_traits> opt2;
 
       // Copy assign
