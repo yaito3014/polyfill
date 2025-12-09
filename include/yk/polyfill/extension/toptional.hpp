@@ -214,9 +214,9 @@ public:
   toptional(toptional const&) = default;
   toptional(toptional&&) = default;
 
-  YK_POLYFILL_CXX20_CONSTEXPR toptional& operator=(nullopt_t) noexcept(noexcept(unchecked_emplace(Traits::tombstone_value())))
+  YK_POLYFILL_CXX20_CONSTEXPR toptional& operator=(nullopt_t) noexcept(noexcept(Traits::tombstone_value()))
   {
-    unchecked_emplace(Traits::tombstone_value());
+    reset();
     return *this;
   }
 
@@ -249,11 +249,15 @@ public:
           std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR toptional& operator=(toptional<U, UTraits> const& other)
   {
-    if (has_value()) {
-      data = *other;
-      if (!has_value()) throw bad_toptional_initialization{};
+    if (other.has_value()) {
+      if (has_value()) {
+        data = *other;
+        if (!has_value()) throw bad_toptional_initialization{};
+      } else {
+        emplace(*other);
+      }
     } else {
-      emplace(*other);
+      reset();
     }
     return *this;
   }
@@ -267,11 +271,15 @@ public:
           std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR toptional& operator=(toptional<U, UTraits>&& other)
   {
-    if (has_value()) {
-      data = *std::move(other);
-      if (!has_value()) throw bad_toptional_initialization{};
+    if (other.has_value()) {
+      if (has_value()) {
+        data = *std::move(other);
+        if (!has_value()) throw bad_toptional_initialization{};
+      } else {
+        emplace(*std::move(other));
+      }
     } else {
-      emplace(*std::move(other));
+      reset();
     }
     return *this;
   }
