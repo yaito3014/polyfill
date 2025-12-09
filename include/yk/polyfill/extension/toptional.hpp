@@ -849,6 +849,24 @@ constexpr std::compare_three_way_result_t<T, U> operator<=>(toptional<T, Traits>
 
 #endif
 
+template<int = 0, class T>
+constexpr toptional<typename std::decay<T>::type> make_toptional(T&& v)
+{
+  return toptional<typename std::decay<T>::type>(std::forward<T>(v));
+}
+
+template<class T, class... Args>
+constexpr toptional<T> make_toptional(Args&&... args)
+{
+  return toptional<T>(in_place, std::forward<Args>(args)...);
+}
+
+template<class T, class U, class... Args>
+constexpr toptional<T> make_toptional(std::initializer_list<U> il, Args&&... args)
+{
+  return toptional<T>(in_place, il, std::forward<Args>(args)...);
+}
+
 }  // namespace extension
 
 }  // namespace polyfill
