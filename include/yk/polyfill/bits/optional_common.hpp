@@ -25,6 +25,10 @@ struct nullopt_holder {
 
 inline constexpr nullopt_t nullopt{nullopt_t::construct_tag{}};
 
+#else
+
+nullopt_t nullopt_holder::value;
+
 #endif
 
 class bad_optional_access : public std::exception {

@@ -21,6 +21,10 @@ struct in_place_holder {
 
 inline constexpr in_place_t in_place{};
 
+#else
+
+in_place_t in_place_holder::value;
+
 #endif
 
 template<class T, T... Is>
