@@ -206,7 +206,7 @@ public:
   YK_POLYFILL_CXX14_CONSTEXPR toptional(toptional<U, UTraits>&& other) : toptional(nullopt)
   {
     if (other.has_value()) {
-      emplace(*other);
+      emplace(*std::move(other));
     }
   }
 
