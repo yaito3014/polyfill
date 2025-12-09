@@ -5,6 +5,7 @@
 #endif
 
 #include <yk/polyfill/extension/toptional.hpp>
+#include <yk/polyfill/utility.hpp>
 
 namespace pf = yk::polyfill;
 namespace ext = pf::extension;
@@ -123,28 +124,6 @@ constexpr bool test_has_value_empty()
 {
   ext::toptional<int> opt;
   return !opt.has_value();
-}
-
-// Iterator tests (CXX14_CONSTEXPR for iterator operations)
-constexpr bool test_iterator_engaged()
-{
-  ext::toptional<int> opt(pf::in_place, 42);
-  auto it = opt.begin();
-  return it != opt.end() && *it == 42;
-}
-
-constexpr bool test_iterator_empty()
-{
-  ext::toptional<int> opt;
-  return opt.begin() == opt.end();
-}
-
-constexpr bool test_iterator_operations()
-{
-  ext::toptional<int> opt(pf::in_place, 42);
-  auto it = opt.begin();
-  auto end = opt.end();
-  return (end - it) == 1 && (it + 1) == end;
 }
 
 // Custom traits tests
@@ -297,17 +276,15 @@ constexpr bool test_or_else_const()
 constexpr bool test_chaining_monadic_ops()
 {
   ext::toptional<int> opt(pf::in_place, 5);
-  auto result = opt.transform(double_value{})     // 10
-                    .and_then(safe_divide{});     // 100 / 10 = 10
+  auto result = opt.transform(double_value{})  // 10
+                    .and_then(safe_divide{});  // 100 / 10 = 10
   return result.has_value() && *result == 10;
 }
 
 constexpr bool test_chaining_with_or_else()
 {
   ext::toptional<int> opt;
-  auto result = opt.transform(double_value{})
-                    .and_then(safe_divide{})
-                    .or_else(return_default_value{});
+  auto result = opt.transform(double_value{}).and_then(safe_divide{}).or_else(return_default_value{});
   return result.has_value() && *result == 99;
 }
 
@@ -335,13 +312,6 @@ TEST_CASE("toptional constexpr C++14")
     STATIC_REQUIRE(test_operator_bool_empty());
     STATIC_REQUIRE(test_has_value_engaged());
     STATIC_REQUIRE(test_has_value_empty());
-  }
-
-  // C++14: Iterator operations
-  {
-    STATIC_REQUIRE(test_iterator_engaged());
-    STATIC_REQUIRE(test_iterator_empty());
-    STATIC_REQUIRE(test_iterator_operations());
   }
 
   // C++14: Custom traits

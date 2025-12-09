@@ -533,10 +533,10 @@ public:
   using const_iterator = toptional_detail::toptional_iterator<T, Traits, true>;
 
   YK_POLYFILL_CXX17_CONSTEXPR iterator begin() noexcept { return iterator{std::addressof(data) + !has_value()}; }
-  constexpr const_iterator begin() const noexcept { return const_iterator{std::addressof(data) + !has_value()}; }
+  YK_POLYFILL_CXX17_CONSTEXPR const_iterator begin() const noexcept { return const_iterator{std::addressof(data) + !has_value()}; }
 
   YK_POLYFILL_CXX17_CONSTEXPR iterator end() noexcept { return begin() + has_value(); }
-  constexpr const_iterator end() const noexcept { return begin() + has_value(); }
+  YK_POLYFILL_CXX17_CONSTEXPR const_iterator end() const noexcept { return begin() + has_value(); }
 
 private:
   template<class... Args>

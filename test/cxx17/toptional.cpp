@@ -48,8 +48,31 @@ TEST_CASE("toptional constexpr C++17")
     STATIC_REQUIRE(test_arrow_const());
   }
 
-  // C++17: begin/end with operator-> in iterator (CXX17_CONSTEXPR)
+  // C++17: Iterator operations (CXX17_CONSTEXPR)
   {
+    // Basic iterator tests
+    constexpr auto test_iterator_engaged = []() {
+      ext::toptional<int> opt(pf::in_place, 42);
+      auto it = opt.begin();
+      return it != opt.end() && *it == 42;
+    };
+    STATIC_REQUIRE(test_iterator_engaged());
+
+    constexpr auto test_iterator_empty = []() {
+      ext::toptional<int> opt;
+      return opt.begin() == opt.end();
+    };
+    STATIC_REQUIRE(test_iterator_empty());
+
+    constexpr auto test_iterator_operations = []() {
+      ext::toptional<int> opt(pf::in_place, 42);
+      auto it = opt.begin();
+      auto end = opt.end();
+      return (end - it) == 1 && (it + 1) == end;
+    };
+    STATIC_REQUIRE(test_iterator_operations());
+
+    // Iterator arrow operator tests
     constexpr auto test_iterator_arrow = []() {
       struct Point {
         int x, y;
@@ -67,6 +90,7 @@ TEST_CASE("toptional constexpr C++17")
     };
     STATIC_REQUIRE(test_iterator_arrow());
 
+    // Range-based for loop tests
     constexpr auto test_iterator_range = []() {
       ext::toptional<int> opt(pf::in_place, 42);
       int sum = 0;
