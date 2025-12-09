@@ -447,7 +447,7 @@ public:
     }
   }
 
-  template<class UTraits, class F>
+  template<class UTraits = void, class F>
   YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) const& noexcept(is_nothrow_invocable<F, decltype(**this)>::value) -> typename std::conditional<
       std::is_void<UTraits>::value, toptional<typename std::remove_cv<typename invoke_result<F, decltype(**this)>::type>::type>,
       toptional<typename std::remove_cv<typename invoke_result<F, decltype(**this)>::type>::type, UTraits>>::type
@@ -536,14 +536,6 @@ private:
   static YK_POLYFILL_CXX14_CONSTEXPR T checked_construct(Args&&... args)
   {
     T value(std::forward<Args>(args)...);
-    if (!Traits::is_engaged(value)) throw bad_toptional_initialization{};
-    return value;
-  }
-
-  template<class U, class... Args>
-  static YK_POLYFILL_CXX14_CONSTEXPR T checked_construct(std::initializer_list<U> il, Args&&... args)
-  {
-    T value(il, std::forward<Args>(args)...);
     if (!Traits::is_engaged(value)) throw bad_toptional_initialization{};
     return value;
   }
