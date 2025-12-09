@@ -847,7 +847,7 @@ constexpr std::compare_three_way_result_t<T, U> operator<=>(toptional<T, Traits>
 #endif
 
 template<class T, class TTraits, class U, class UTraits>
-constexpr void swap(toptional<T, TTraits>& x, toptional<U, UTraits>& y) noexcept(noexcept(x.swap(y)))
+YK_POLYFILL_CXX14_CONSTEXPR void swap(toptional<T, TTraits>& x, toptional<U, UTraits>& y) noexcept(noexcept(x.swap(y)))
 {
   return x.swap(y);
 }
