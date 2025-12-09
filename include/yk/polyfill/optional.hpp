@@ -307,14 +307,14 @@ public:
   template<
       class U = typename std::remove_cv<T>::type,
       typename std::enable_if<optional_detail::is_eligible_for_construction<T, U>::value && std::is_convertible<U, T>::value, std::nullptr_t>::type = nullptr>
-  constexpr optional(U&& v) noexcept(std::is_nothrow_constructible<T, U>::value) : base(in_place_holder::value, std::forward<U>(v))
+  constexpr optional(U&& v) noexcept(std::is_nothrow_constructible<T, U>::value) : base(in_place, std::forward<U>(v))
   {
   }
 
   template<
       class U = typename std::remove_cv<T>::type,
       typename std::enable_if<optional_detail::is_eligible_for_construction<T, U>::value && !std::is_convertible<U, T>::value, std::nullptr_t>::type = nullptr>
-  constexpr explicit optional(U&& v) noexcept(std::is_nothrow_constructible<T, U>::value) : base(in_place_holder::value, std::forward<U>(v))
+  constexpr explicit optional(U&& v) noexcept(std::is_nothrow_constructible<T, U>::value) : base(in_place, std::forward<U>(v))
   {
   }
 
@@ -516,7 +516,7 @@ public:
     if (has_value()) {
       return invoke(std::forward<F>(f), **this);
     } else {
-      return nullopt_holder::value;
+      return nullopt;
     }
   }
 
@@ -529,7 +529,7 @@ public:
     if (has_value()) {
       return invoke(std::forward<F>(f), **this);
     } else {
-      return nullopt_holder::value;
+      return nullopt;
     }
   }
 
@@ -542,7 +542,7 @@ public:
     if (has_value()) {
       return invoke(std::forward<F>(f), std::move(**this));
     } else {
-      return nullopt_holder::value;
+      return nullopt;
     }
   }
 
@@ -555,7 +555,7 @@ public:
     if (has_value()) {
       return invoke(std::forward<F>(f), std::move(**this));
     } else {
-      return nullopt_holder::value;
+      return nullopt;
     }
   }
 
@@ -568,7 +568,7 @@ public:
     if (has_value()) {
       return optional<U>(invoke(std::forward<F>(f), **this));
     } else {
-      return nullopt_holder::value;
+      return nullopt;
     }
   }
 
@@ -581,7 +581,7 @@ public:
     if (has_value()) {
       return optional<U>(invoke(std::forward<F>(f), **this));
     } else {
-      return nullopt_holder::value;
+      return nullopt;
     }
   }
 
@@ -596,7 +596,7 @@ public:
     if (has_value()) {
       return optional<U>(invoke(std::forward<F>(f), std::move(**this)));
     } else {
-      return nullopt_holder::value;
+      return nullopt;
     }
   }
 
@@ -611,7 +611,7 @@ public:
     if (has_value()) {
       return optional<U>(invoke(std::forward<F>(f), std::move(**this)));
     } else {
-      return nullopt_holder::value;
+      return nullopt;
     }
   }
 
@@ -823,7 +823,7 @@ public:
     if (has_value()) {
       return invoke(std::forward<F>(f), **this);
     } else {
-      return nullopt_holder::value;
+      return nullopt;
     }
   }
 
@@ -836,7 +836,7 @@ public:
     if (has_value()) {
       return optional<U>(invoke(std::forward<F>(f), **this));
     } else {
-      return nullopt_holder::value;
+      return nullopt;
     }
   }
 
@@ -1176,7 +1176,7 @@ constexpr optional<typename std::decay<T>::type> make_optional(T&& v) noexcept(s
 template<class T, class... Args>
 constexpr optional<T> make_optional(Args&&... args) noexcept(std::is_nothrow_constructible<optional<T>, in_place_t, Args...>::value)
 {
-  return optional<T>(in_place_holder::value, std::forward<Args>(args)...);
+  return optional<T>(in_place, std::forward<Args>(args)...);
 }
 
 template<class T, class U, class... Args>
@@ -1184,7 +1184,7 @@ constexpr optional<T> make_optional(std::initializer_list<U> il, Args&&... args)
     std::is_nothrow_constructible<optional<T>, in_place_t, std::initializer_list<U>&, Args...>::value
 )
 {
-  return optional<T>(in_place_holder::value, il, std::forward<Args>(args)...);
+  return optional<T>(in_place, il, std::forward<Args>(args)...);
 }
 
 }  // namespace polyfill

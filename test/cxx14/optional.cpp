@@ -21,7 +21,7 @@ namespace {
 // value_or tests (CXX14_CONSTEXPR)
 constexpr int test_value_or_engaged()
 {
-  pf::optional<int> opt(pf::in_place_holder::value, 42);
+  pf::optional<int> opt(pf::in_place, 42);
   return opt.value_or(99);
 }
 
@@ -38,13 +38,13 @@ constexpr int test_value_or_empty()
 // Dereference tests (CXX14_CONSTEXPR for & and &&)
 constexpr bool test_dereference_lvalue()
 {
-  pf::optional<int> opt(pf::in_place_holder::value, 42);
+  pf::optional<int> opt(pf::in_place, 42);
   return *opt == 42;
 }
 
 constexpr bool test_dereference_rvalue()
 {
-  pf::optional<int> opt(pf::in_place_holder::value, 42);
+  pf::optional<int> opt(pf::in_place, 42);
   pf::optional<int> opt2 = std::move(opt);
   return *opt2 == 42;
 }

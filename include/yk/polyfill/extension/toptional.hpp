@@ -154,7 +154,7 @@ class toptional {
 public:
   using value_type = T;
 
-  constexpr toptional() : toptional(nullopt_holder::value) {}
+  constexpr toptional() : toptional(nullopt) {}
 
   constexpr toptional(nullopt_t) noexcept(noexcept(Traits::tombstone_value())) : data(Traits::tombstone_value()) {}
 
@@ -193,7 +193,7 @@ public:
       typename std::enable_if<
           std::is_constructible<T, U const&>::value && !optional_detail::converts_from_any_cvref<T, toptional<U, UTraits>>::value, std::nullptr_t>::type =
           nullptr>
-  YK_POLYFILL_CXX14_CONSTEXPR toptional(toptional<U, UTraits> const& other) : toptional(nullopt_holder::value)
+  YK_POLYFILL_CXX14_CONSTEXPR toptional(toptional<U, UTraits> const& other) : toptional(nullopt)
   {
     if (other.has_value()) {
       emplace(*other);
@@ -203,7 +203,7 @@ public:
       class U, class UTraits,
       typename std::enable_if<
           std::is_constructible<T, U>::value && !optional_detail::converts_from_any_cvref<T, toptional<U, UTraits>>::value, std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX14_CONSTEXPR toptional(toptional<U, UTraits>&& other) : toptional(nullopt_holder::value)
+  YK_POLYFILL_CXX14_CONSTEXPR toptional(toptional<U, UTraits>&& other) : toptional(nullopt)
   {
     if (other.has_value()) {
       emplace(*other);
@@ -389,7 +389,7 @@ public:
     if (has_value()) {
       return invoke(std::forward<F>(f), **this);
     } else {
-      return nullopt_holder::value;
+      return nullopt;
     }
   }
 
@@ -402,7 +402,7 @@ public:
     if (has_value()) {
       return invoke(std::forward<F>(f), **this);
     } else {
-      return nullopt_holder::value;
+      return nullopt;
     }
   }
 
@@ -415,7 +415,7 @@ public:
     if (has_value()) {
       return invoke(std::forward<F>(f), std::move(**this));
     } else {
-      return nullopt_holder::value;
+      return nullopt;
     }
   }
 
@@ -428,7 +428,7 @@ public:
     if (has_value()) {
       return invoke(std::forward<F>(f), std::move(**this));
     } else {
-      return nullopt_holder::value;
+      return nullopt;
     }
   }
 
@@ -443,7 +443,7 @@ public:
     if (has_value()) {
       return ResultType(invoke(std::forward<F>(f), **this));
     } else {
-      return nullopt_holder::value;
+      return nullopt;
     }
   }
 
@@ -458,7 +458,7 @@ public:
     if (has_value()) {
       return ResultType(invoke(std::forward<F>(f), **this));
     } else {
-      return nullopt_holder::value;
+      return nullopt;
     }
   }
 
@@ -475,7 +475,7 @@ public:
     if (has_value()) {
       return ResultType(invoke(std::forward<F>(f), std::move(**this)));
     } else {
-      return nullopt_holder::value;
+      return nullopt;
     }
   }
 
@@ -492,7 +492,7 @@ public:
     if (has_value()) {
       return ResultType(invoke(std::forward<F>(f), std::move(**this)));
     } else {
-      return nullopt_holder::value;
+      return nullopt;
     }
   }
 

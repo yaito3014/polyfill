@@ -17,19 +17,7 @@ struct nullopt_t {
   explicit constexpr nullopt_t(construct_tag) noexcept {}
 };
 
-struct nullopt_holder {
-  static constexpr nullopt_t value{nullopt_t::construct_tag{}};
-};
-
-#if __cpp_inline_variables >= 201606L
-
-inline constexpr nullopt_t nullopt{nullopt_t::construct_tag{}};
-
-#else
-
-nullopt_t nullopt_holder::value;
-
-#endif
+YK_POLYFILL_INLINE constexpr nullopt_t nullopt{nullopt_t::construct_tag{}};
 
 class bad_optional_access : public std::exception {
 public:

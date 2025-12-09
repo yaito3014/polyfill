@@ -436,7 +436,7 @@ TEST_CASE("toptional - non-trivial types with lifetime tracking")
     LifetimeTracker::reset();
 
     {
-      ext::toptional<LifetimeTracker, lifetime_tracker_traits> opt{pf::in_place_holder::value, 42};
+      ext::toptional<LifetimeTracker, lifetime_tracker_traits> opt{pf::in_place, 42};
       CHECK(opt.has_value());
       CHECK(opt->value == 42);
       CHECK(LifetimeTracker::constructions >= 1);
@@ -463,7 +463,7 @@ TEST_CASE("toptional - non-trivial types with lifetime tracking")
   {
     LifetimeTracker::reset();
 
-    ext::toptional<LifetimeTracker, lifetime_tracker_traits> opt1{pf::in_place_holder::value, 42};
+    ext::toptional<LifetimeTracker, lifetime_tracker_traits> opt1{pf::in_place, 42};
     int copies_before = LifetimeTracker::copies;
 
     ext::toptional<LifetimeTracker, lifetime_tracker_traits> opt2 = opt1;
@@ -477,7 +477,7 @@ TEST_CASE("toptional - non-trivial types with lifetime tracking")
   {
     LifetimeTracker::reset();
 
-    ext::toptional<LifetimeTracker, lifetime_tracker_traits> opt1{pf::in_place_holder::value, 42};
+    ext::toptional<LifetimeTracker, lifetime_tracker_traits> opt1{pf::in_place, 42};
     int moves_before = LifetimeTracker::moves;
 
     ext::toptional<LifetimeTracker, lifetime_tracker_traits> opt2 = std::move(opt1);
@@ -491,8 +491,8 @@ TEST_CASE("toptional - non-trivial types with lifetime tracking")
   {
     LifetimeTracker::reset();
 
-    ext::toptional<LifetimeTracker, lifetime_tracker_traits> opt1{pf::in_place_holder::value, 42};
-    ext::toptional<LifetimeTracker, lifetime_tracker_traits> opt2{pf::in_place_holder::value, 99};
+    ext::toptional<LifetimeTracker, lifetime_tracker_traits> opt1{pf::in_place, 42};
+    ext::toptional<LifetimeTracker, lifetime_tracker_traits> opt2{pf::in_place, 99};
 
     int copies_before = LifetimeTracker::copies;
     opt2 = opt1;
@@ -506,8 +506,8 @@ TEST_CASE("toptional - non-trivial types with lifetime tracking")
   {
     LifetimeTracker::reset();
 
-    ext::toptional<LifetimeTracker, lifetime_tracker_traits> opt1{pf::in_place_holder::value, 42};
-    ext::toptional<LifetimeTracker, lifetime_tracker_traits> opt2{pf::in_place_holder::value, 99};
+    ext::toptional<LifetimeTracker, lifetime_tracker_traits> opt1{pf::in_place, 42};
+    ext::toptional<LifetimeTracker, lifetime_tracker_traits> opt2{pf::in_place, 99};
 
     int moves_before = LifetimeTracker::moves;
     opt2 = std::move(opt1);
@@ -521,7 +521,7 @@ TEST_CASE("toptional - non-trivial types with lifetime tracking")
   {
     LifetimeTracker::reset();
 
-    ext::toptional<LifetimeTracker, lifetime_tracker_traits> opt{pf::in_place_holder::value, 42};
+    ext::toptional<LifetimeTracker, lifetime_tracker_traits> opt{pf::in_place, 42};
     CHECK(opt->value == 42);
 
     int destructions_before = LifetimeTracker::destructions;
@@ -537,7 +537,7 @@ TEST_CASE("toptional - non-trivial types with lifetime tracking")
   {
     LifetimeTracker::reset();
 
-    ext::toptional<LifetimeTracker, lifetime_tracker_traits> opt{pf::in_place_holder::value, 42};
+    ext::toptional<LifetimeTracker, lifetime_tracker_traits> opt{pf::in_place, 42};
     CHECK(opt.has_value());
 
     int destructions_before = LifetimeTracker::destructions;
@@ -552,7 +552,7 @@ TEST_CASE("toptional - non-trivial types with lifetime tracking")
   {
     LifetimeTracker::reset();
 
-    ext::toptional<LifetimeTracker, lifetime_tracker_traits> opt{pf::in_place_holder::value, 5};
+    ext::toptional<LifetimeTracker, lifetime_tracker_traits> opt{pf::in_place, 5};
 
     auto result = opt.transform<lifetime_tracker_traits>([](LifetimeTracker const& lt) { return LifetimeTracker{lt.value * 2}; });
 
@@ -568,7 +568,7 @@ TEST_CASE("toptional - non-trivial type with destructor side effects")
   {
     NonTrivialWithDestructor::destructor_calls = 0;
 
-    ext::toptional<NonTrivialWithDestructor, non_trivial_traits> opt{pf::in_place_holder::value, 42};
+    ext::toptional<NonTrivialWithDestructor, non_trivial_traits> opt{pf::in_place, 42};
     CHECK(opt.has_value());
     CHECK(opt->value == 42);
 
@@ -585,7 +585,7 @@ TEST_CASE("toptional - non-trivial type with destructor side effects")
   {
     NonTrivialWithDestructor::destructor_calls = 0;
 
-    ext::toptional<NonTrivialWithDestructor, non_trivial_traits> opt{pf::in_place_holder::value, 42};
+    ext::toptional<NonTrivialWithDestructor, non_trivial_traits> opt{pf::in_place, 42};
     CHECK(opt.has_value());
 
     int calls_before = NonTrivialWithDestructor::destructor_calls;
@@ -600,7 +600,7 @@ TEST_CASE("toptional - non-trivial type with destructor side effects")
     NonTrivialWithDestructor::destructor_calls = 0;
 
     {
-      ext::toptional<NonTrivialWithDestructor, non_trivial_traits> opt{pf::in_place_holder::value, 42};
+      ext::toptional<NonTrivialWithDestructor, non_trivial_traits> opt{pf::in_place, 42};
       CHECK(opt.has_value());
     }
 
@@ -612,7 +612,7 @@ TEST_CASE("toptional - non-trivial type with destructor side effects")
   {
     NonTrivialWithDestructor::destructor_calls = 0;
 
-    ext::toptional<NonTrivialWithDestructor, non_trivial_traits> opt1{pf::in_place_holder::value, 42};
+    ext::toptional<NonTrivialWithDestructor, non_trivial_traits> opt1{pf::in_place, 42};
     ext::toptional<NonTrivialWithDestructor, non_trivial_traits> opt2 = std::move(opt1);
 
     CHECK(opt2.has_value());
@@ -622,10 +622,10 @@ TEST_CASE("toptional - non-trivial type with destructor side effects")
   SECTION("assignment to nullopt with non-trivial type")
   {
     LifetimeTracker::reset();
-    ext::toptional<LifetimeTracker, lifetime_tracker_traits> opt{pf::in_place_holder::value, 42};
+    ext::toptional<LifetimeTracker, lifetime_tracker_traits> opt{pf::in_place, 42};
 
     int destructions_before = LifetimeTracker::destructions;
-    opt = pf::nullopt_holder::value;
+    opt = pf::nullopt;
 
     CHECK(!opt.has_value());
     CHECK(LifetimeTracker::destructions > destructions_before);
@@ -633,14 +633,14 @@ TEST_CASE("toptional - non-trivial type with destructor side effects")
 
   SECTION("cannot construct with tombstone value")
   {
-    CHECK_THROWS_AS((ext::toptional<LifetimeTracker, lifetime_tracker_traits>{pf::in_place_holder::value, 0}), ext::bad_toptional_initialization);
+    CHECK_THROWS_AS((ext::toptional<LifetimeTracker, lifetime_tracker_traits>{pf::in_place, 0}), ext::bad_toptional_initialization);
   }
 
   SECTION("disengaged to engaged assignment")
   {
     LifetimeTracker::reset();
     ext::toptional<LifetimeTracker, lifetime_tracker_traits> opt1;
-    ext::toptional<LifetimeTracker, lifetime_tracker_traits> opt2{pf::in_place_holder::value, 42};
+    ext::toptional<LifetimeTracker, lifetime_tracker_traits> opt2{pf::in_place, 42};
 
     opt1 = opt2;
     CHECK(opt1.has_value());
@@ -650,7 +650,7 @@ TEST_CASE("toptional - non-trivial type with destructor side effects")
   SECTION("self-assignment preserves state")
   {
     LifetimeTracker::reset();
-    ext::toptional<LifetimeTracker, lifetime_tracker_traits> opt{pf::in_place_holder::value, 42};
+    ext::toptional<LifetimeTracker, lifetime_tracker_traits> opt{pf::in_place, 42};
 
     opt = opt;  // copy self-assignment
     CHECK(opt.has_value());
@@ -713,40 +713,40 @@ TEST_CASE("toptional - relational operators")
     ext::toptional<int> opt2;
 
     // Equality
-    CHECK(opt2 == pf::nullopt_holder::value);
-    CHECK(pf::nullopt_holder::value == opt2);
-    CHECK_FALSE(opt1 == pf::nullopt_holder::value);
-    CHECK_FALSE(pf::nullopt_holder::value == opt1);
+    CHECK(opt2 == pf::nullopt);
+    CHECK(pf::nullopt == opt2);
+    CHECK_FALSE(opt1 == pf::nullopt);
+    CHECK_FALSE(pf::nullopt == opt1);
 
     // Inequality
-    CHECK(opt1 != pf::nullopt_holder::value);
-    CHECK(pf::nullopt_holder::value != opt1);
-    CHECK_FALSE(opt2 != pf::nullopt_holder::value);
-    CHECK_FALSE(pf::nullopt_holder::value != opt2);
+    CHECK(opt1 != pf::nullopt);
+    CHECK(pf::nullopt != opt1);
+    CHECK_FALSE(opt2 != pf::nullopt);
+    CHECK_FALSE(pf::nullopt != opt2);
 
     // Less than
-    CHECK_FALSE(opt1 < pf::nullopt_holder::value);  // engaged < nullopt is false
-    CHECK(pf::nullopt_holder::value < opt1);        // nullopt < engaged is true
-    CHECK_FALSE(opt2 < pf::nullopt_holder::value);  // disengaged < nullopt is false
-    CHECK_FALSE(pf::nullopt_holder::value < opt2);  // nullopt < disengaged is false
+    CHECK_FALSE(opt1 < pf::nullopt);  // engaged < nullopt is false
+    CHECK(pf::nullopt < opt1);        // nullopt < engaged is true
+    CHECK_FALSE(opt2 < pf::nullopt);  // disengaged < nullopt is false
+    CHECK_FALSE(pf::nullopt < opt2);  // nullopt < disengaged is false
 
     // Less than or equal
-    CHECK_FALSE(opt1 <= pf::nullopt_holder::value);  // engaged <= nullopt is false
-    CHECK(pf::nullopt_holder::value <= opt1);        // nullopt <= engaged is true
-    CHECK(opt2 <= pf::nullopt_holder::value);        // disengaged <= nullopt is true
-    CHECK(pf::nullopt_holder::value <= opt2);        // nullopt <= disengaged is true
+    CHECK_FALSE(opt1 <= pf::nullopt);  // engaged <= nullopt is false
+    CHECK(pf::nullopt <= opt1);        // nullopt <= engaged is true
+    CHECK(opt2 <= pf::nullopt);        // disengaged <= nullopt is true
+    CHECK(pf::nullopt <= opt2);        // nullopt <= disengaged is true
 
     // Greater than
-    CHECK(opt1 > pf::nullopt_holder::value);        // engaged > nullopt is true
-    CHECK_FALSE(pf::nullopt_holder::value > opt1);  // nullopt > engaged is false
-    CHECK_FALSE(opt2 > pf::nullopt_holder::value);  // disengaged > nullopt is false
-    CHECK_FALSE(pf::nullopt_holder::value > opt2);  // nullopt > disengaged is false
+    CHECK(opt1 > pf::nullopt);        // engaged > nullopt is true
+    CHECK_FALSE(pf::nullopt > opt1);  // nullopt > engaged is false
+    CHECK_FALSE(opt2 > pf::nullopt);  // disengaged > nullopt is false
+    CHECK_FALSE(pf::nullopt > opt2);  // nullopt > disengaged is false
 
     // Greater than or equal
-    CHECK(opt1 >= pf::nullopt_holder::value);        // engaged >= nullopt is true
-    CHECK_FALSE(pf::nullopt_holder::value >= opt1);  // nullopt >= engaged is false
-    CHECK(opt2 >= pf::nullopt_holder::value);        // disengaged >= nullopt is true
-    CHECK(pf::nullopt_holder::value >= opt2);        // nullopt >= disengaged is true
+    CHECK(opt1 >= pf::nullopt);        // engaged >= nullopt is true
+    CHECK_FALSE(pf::nullopt >= opt1);  // nullopt >= engaged is false
+    CHECK(opt2 >= pf::nullopt);        // disengaged >= nullopt is true
+    CHECK(pf::nullopt >= opt2);        // nullopt >= disengaged is true
   }
 
   SECTION("comparison with value")

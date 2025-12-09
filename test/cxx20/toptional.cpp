@@ -28,10 +28,10 @@ TEST_CASE("toptional three-way comparison")
     ext::toptional<int> a = 42;
     ext::toptional<int> b;
 
-    CHECK(((a <=> yk::polyfill::nullopt_holder::value) == std::strong_ordering::greater));
-    CHECK(((b <=> yk::polyfill::nullopt_holder::value) == std::strong_ordering::equal));
-    CHECK(((yk::polyfill::nullopt_holder::value <=> a) == std::strong_ordering::less));
-    CHECK(((yk::polyfill::nullopt_holder::value <=> b) == std::strong_ordering::equal));
+    CHECK(((a <=> yk::polyfill::nullopt) == std::strong_ordering::greater));
+    CHECK(((b <=> yk::polyfill::nullopt) == std::strong_ordering::equal));
+    CHECK(((yk::polyfill::nullopt <=> a) == std::strong_ordering::less));
+    CHECK(((yk::polyfill::nullopt <=> b) == std::strong_ordering::equal));
   }
 
   // Three-way comparison with values
@@ -69,8 +69,8 @@ TEST_CASE("toptional three-way comparison")
     STATIC_REQUIRE(!noexcept(c <=> d));
 
     // Verify noexcept for nullopt comparisons (always noexcept)
-    STATIC_REQUIRE(noexcept(a <=> yk::polyfill::nullopt_holder::value));
-    STATIC_REQUIRE(noexcept(c <=> yk::polyfill::nullopt_holder::value));
+    STATIC_REQUIRE(noexcept(a <=> yk::polyfill::nullopt));
+    STATIC_REQUIRE(noexcept(c <=> yk::polyfill::nullopt));
 
     // Verify noexcept propagation for toptional vs value
     NoexceptComparable nv{42};
@@ -169,10 +169,10 @@ TEST_CASE("toptional constexpr C++20")
       ext::toptional<int> a = 42;
       ext::toptional<int> empty;
 
-      return (a <=> yk::polyfill::nullopt_holder::value) == std::strong_ordering::greater &&
-             (empty <=> yk::polyfill::nullopt_holder::value) == std::strong_ordering::equal &&
-             (yk::polyfill::nullopt_holder::value <=> a) == std::strong_ordering::less &&
-             (yk::polyfill::nullopt_holder::value <=> empty) == std::strong_ordering::equal;
+      return (a <=> yk::polyfill::nullopt) == std::strong_ordering::greater &&
+             (empty <=> yk::polyfill::nullopt) == std::strong_ordering::equal &&
+             (yk::polyfill::nullopt <=> a) == std::strong_ordering::less &&
+             (yk::polyfill::nullopt <=> empty) == std::strong_ordering::equal;
     };
     STATIC_REQUIRE(test_spaceship_nullopt());
 
