@@ -147,10 +147,12 @@ struct non_zero_traits<T, typename std::enable_if<std::is_arithmetic<T>::value>:
   static constexpr T tombstone_value() noexcept { return T{0}; }
 };
 
-// Precondition: construction from Tombstone Value never throws
+// Precondition: T's construction from tombstone value never throws
+// Mandates: invocation of Traits::tombstone_value() never throws
 template<class T, class Traits = non_zero_traits<T>>
 class toptional {
   static_assert(!std::is_reference<T>::value, "toptional doesn't support reference type");
+  static_assert(noexcept(Traits::tombstone_value()), "Traits::tombstone_value() must be noexcept");
 
 public:
   using value_type = T;
