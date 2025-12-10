@@ -6,6 +6,9 @@
 
 #include <yk/polyfill/extension/toptional.hpp>
 
+#include <stdexcept>
+#include <vector>
+
 namespace pf = yk::polyfill;
 namespace ext = pf::extension;
 
@@ -852,5 +855,246 @@ TEST_CASE("toptional - relational operators")
     CHECK(some1 <= some2);
     CHECK_FALSE(some1 > some2);
     CHECK_FALSE(some1 >= some2);
+  }
+}
+
+// Exception safety test types
+namespace {
+
+struct ThrowingConstructor {
+  static int construction_count;
+  static int destruction_count;
+  static int throw_on_construction;  // Throw when construction_count reaches this value
+
+  int value;
+
+  explicit ThrowingConstructor(int v) : value(v)
+  {
+    ++construction_count;
+    if (throw_on_construction > 0 && construction_count == throw_on_construction) {
+      throw std::runtime_error("Construction failed");
+    }
+  }
+
+  ~ThrowingConstructor() { ++destruction_count; }
+
+  ThrowingConstructor(ThrowingConstructor const& other) : value(other.value)
+  {
+    ++construction_count;
+    if (throw_on_construction > 0 && construction_count == throw_on_construction) {
+      throw std::runtime_error("Copy construction failed");
+    }
+  }
+
+  ThrowingConstructor(ThrowingConstructor&& other) noexcept : value(other.value) { ++construction_count; }
+
+  ThrowingConstructor& operator=(ThrowingConstructor const& other)
+  {
+    value = other.value;
+    return *this;
+  }
+
+  ThrowingConstructor& operator=(ThrowingConstructor&& other) noexcept
+  {
+    value = other.value;
+    return *this;
+  }
+};
+
+int ThrowingConstructor::construction_count = 0;
+int ThrowingConstructor::destruction_count = 0;
+int ThrowingConstructor::throw_on_construction = 0;
+
+// Traits for ThrowingConstructor (value -999 is tombstone)
+struct throwing_constructor_traits {
+  static bool is_engaged(ThrowingConstructor const& x) noexcept { return x.value != -999; }
+  static ThrowingConstructor tombstone_value() noexcept { return ThrowingConstructor{-999}; }
+};
+
+}  // namespace
+
+TEST_CASE("toptional - emplace exception safety")
+{
+  SECTION("emplace throws during construction - object left in valid disengaged state")
+  {
+    ThrowingConstructor::construction_count = 0;
+    ThrowingConstructor::destruction_count = 0;
+    ThrowingConstructor::throw_on_construction = 0;
+
+    ext::toptional<ThrowingConstructor, throwing_constructor_traits> opt{pf::in_place, 42};
+    CHECK(opt.has_value());
+    CHECK(opt->value == 42);
+
+    // Reset counters and set to throw on next construction
+    ThrowingConstructor::construction_count = 0;
+    ThrowingConstructor::destruction_count = 0;
+    ThrowingConstructor::throw_on_construction = 1;  // Throw on first construction attempt
+
+    // emplace should throw
+    CHECK_THROWS_AS(opt.emplace(100), std::runtime_error);
+
+    // After exception, the toptional should be in a valid disengaged state (tombstone)
+    CHECK(!opt.has_value());
+
+    // Verify the old object was destroyed before attempting construction
+    CHECK(ThrowingConstructor::destruction_count >= 1);
+
+    // Should be able to emplace again successfully
+    ThrowingConstructor::throw_on_construction = 0;
+    opt.emplace(200);
+    CHECK(opt.has_value());
+    CHECK(opt->value == 200);
+  }
+
+  SECTION("emplace with initializer_list - basic functionality")
+  {
+    struct VectorLike {
+      std::vector<int> data;
+      int extra;
+
+      VectorLike(std::initializer_list<int> il, int e) : data(il), extra(e) {}
+
+      VectorLike(VectorLike const& other) : data(other.data), extra(other.extra) {}
+      VectorLike(VectorLike&& other) noexcept : data(std::move(other.data)), extra(other.extra) {}
+      VectorLike& operator=(VectorLike const&) = default;
+      VectorLike& operator=(VectorLike&&) = default;
+    };
+
+    struct vector_like_traits {
+      static bool is_engaged(VectorLike const& x) noexcept { return x.extra != -1; }
+      static VectorLike tombstone_value() noexcept { return VectorLike{{}, -1}; }
+    };
+
+    ext::toptional<VectorLike, vector_like_traits> opt{pf::in_place, {1, 2, 3}, 10};
+    CHECK(opt.has_value());
+    CHECK(opt->data.size() == 3);
+    CHECK(opt->extra == 10);
+
+    // Successful emplace with initializer_list
+    opt.emplace({4, 5, 6, 7}, 20);
+    CHECK(opt.has_value());
+    CHECK(opt->data.size() == 4);
+    CHECK(opt->extra == 20);
+
+    // Another emplace
+    opt.emplace({8, 9}, 30);
+    CHECK(opt.has_value());
+    CHECK(opt->data.size() == 2);
+    CHECK(opt->extra == 30);
+  }
+
+  SECTION("exception safety guarantee - strong exception guarantee check")
+  {
+    ThrowingConstructor::construction_count = 0;
+    ThrowingConstructor::destruction_count = 0;
+    ThrowingConstructor::throw_on_construction = 0;
+
+    ext::toptional<ThrowingConstructor, throwing_constructor_traits> opt{pf::in_place, 42};
+
+    // Remember the initial state
+    int initial_value = opt->value;
+    CHECK(initial_value == 42);
+
+    // Set to throw
+    ThrowingConstructor::throw_on_construction = 1;  // Throw on second construction (tombstone is first)
+    ThrowingConstructor::construction_count = 0;
+
+    bool exception_caught = false;
+    try {
+      opt.emplace(999);
+    } catch (std::runtime_error&) {
+      exception_caught = true;
+    }
+
+    CHECK(exception_caught);
+
+    // The toptional should be in a valid state (disengaged with tombstone)
+    CHECK(!opt.has_value());
+
+    // Should be able to check has_value without issues
+    CHECK(!opt.has_value());
+
+    // Should be able to assign a new value
+    ThrowingConstructor::throw_on_construction = 0;
+    opt = ThrowingConstructor{123};
+    CHECK(opt.has_value());
+    CHECK(opt->value == 123);
+  }
+
+  SECTION("multiple emplace failures in sequence")
+  {
+    ThrowingConstructor::construction_count = 0;
+    ThrowingConstructor::destruction_count = 0;
+    ThrowingConstructor::throw_on_construction = 0;
+
+    ext::toptional<ThrowingConstructor, throwing_constructor_traits> opt{pf::in_place, 10};
+    CHECK(opt.has_value());
+
+    // First failure
+    ThrowingConstructor::throw_on_construction = 1;
+    ThrowingConstructor::construction_count = 0;
+    CHECK_THROWS_AS(opt.emplace(20), std::runtime_error);
+    CHECK(!opt.has_value());
+
+    // Second failure (starting from disengaged state)
+    ThrowingConstructor::throw_on_construction = 1;
+    ThrowingConstructor::construction_count = 0;
+    CHECK_THROWS_AS(opt.emplace(30), std::runtime_error);
+    CHECK(!opt.has_value());
+
+    // Third failure
+    ThrowingConstructor::throw_on_construction = 1;
+    ThrowingConstructor::construction_count = 0;
+    CHECK_THROWS_AS(opt.emplace(40), std::runtime_error);
+    CHECK(!opt.has_value());
+
+    // Finally succeed
+    ThrowingConstructor::throw_on_construction = 0;
+    opt.emplace(50);
+    CHECK(opt.has_value());
+    CHECK(opt->value == 50);
+  }
+
+  SECTION("destructor is called exactly once before new construction")
+  {
+    NonTrivialWithDestructor::destructor_calls = 0;
+
+    ext::toptional<NonTrivialWithDestructor, non_trivial_traits> opt{pf::in_place, 42};
+    CHECK(opt.has_value());
+
+    int calls_before = NonTrivialWithDestructor::destructor_calls;
+
+    // Successful emplace
+    opt.emplace(99);
+
+    // The old value's destructor should have been called exactly once
+    CHECK(NonTrivialWithDestructor::destructor_calls == calls_before + 1);
+    CHECK(opt.has_value());
+    CHECK(opt->value == 99);
+  }
+
+  SECTION("emplace from disengaged state with exception")
+  {
+    ThrowingConstructor::construction_count = 0;
+    ThrowingConstructor::destruction_count = 0;
+    ThrowingConstructor::throw_on_construction = 0;
+
+    ext::toptional<ThrowingConstructor, throwing_constructor_traits> opt;
+    CHECK(!opt.has_value());
+
+    // Set to throw
+    ThrowingConstructor::throw_on_construction = 1;
+    ThrowingConstructor::construction_count = 0;
+
+    CHECK_THROWS_AS(opt.emplace(100), std::runtime_error);
+
+    // Should remain disengaged
+    CHECK(!opt.has_value());
+
+    // Should be able to retry
+    ThrowingConstructor::throw_on_construction = 0;
+    opt.emplace(200);
+    CHECK(opt.has_value());
+    CHECK(opt->value == 200);
   }
 }

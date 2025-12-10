@@ -283,8 +283,13 @@ public:
   template<class... Args, typename std::enable_if<std::is_constructible<T, Args...>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR T& emplace(Args&&... args)
   {
-    reset();
-    construct_from(std::forward<Args>(args)...);
+    data.~T();
+    try {
+      construct_from(std::forward<Args>(args)...);
+    } catch (...) {
+      construct_from(Traits::tombstone_value());
+      throw;
+    }
     if (!has_value()) throw bad_toptional_initialization{};
     return data;
   }
@@ -292,8 +297,13 @@ public:
   template<class U, class... Args, typename std::enable_if<std::is_constructible<T, std::initializer_list<U>&, Args...>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR T& emplace(std::initializer_list<U> il, Args&&... args)
   {
-    reset();
-    construct_from(il, std::forward<Args>(args)...);
+    data.~T();
+    try {
+      construct_from(il, std::forward<Args>(args)...);
+    } catch (...) {
+      construct_from(Traits::tombstone_value());
+      throw;
+    }
     if (!has_value()) throw bad_toptional_initialization{};
     return data;
   }
