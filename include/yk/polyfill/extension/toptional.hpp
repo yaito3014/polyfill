@@ -220,11 +220,11 @@ public:
   toptional& operator=(toptional&&) = default;
 
   template<
-      class U = typename std::remove_cv<T>::type,
-      typename std::enable_if<
-          !std::is_same<typename remove_cvref<U>::type, toptional>::value
-              && conjunction<std::is_scalar<T>, std::is_same<U, typename std::decay<U>::type>>::value && std::is_assignable<T&, U>::value,
-          std::nullptr_t>::type = nullptr>
+      class U = typename std::remove_cv<T>::type, typename std::enable_if<
+                                                      !std::is_same<typename remove_cvref<U>::type, toptional>::value
+                                                          && !conjunction<std::is_scalar<T>, std::is_same<U, typename std::decay<U>::type>>::value
+                                                          && std::is_constructible<T, U>::value & std::is_assignable<T&, U>::value,
+                                                      std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR toptional& operator=(U&& u)
   {
     if (has_value()) {
