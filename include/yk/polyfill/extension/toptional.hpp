@@ -148,7 +148,7 @@ struct non_zero_traits<T, typename std::enable_if<std::is_arithmetic<T>::value>:
 };
 
 template<class T, T V>
-struct tombstone_value {
+struct tombstone_value_for {
   static constexpr bool is_engaged(T const& x) noexcept(noexcept(x != V)) { return x != V; }
   static constexpr T tombstone_value() noexcept { return V; }
 };
