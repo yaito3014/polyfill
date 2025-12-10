@@ -147,6 +147,7 @@ struct non_zero_traits<T, typename std::enable_if<std::is_arithmetic<T>::value>:
   static constexpr T tombstone_value() noexcept { return T{0}; }
 };
 
+// Precondition: construction from Tombstone Value never throws
 template<class T, class Traits = non_zero_traits<T>>
 class toptional {
   static_assert(!std::is_reference<T>::value, "toptional doesn't support reference type");
@@ -210,7 +211,7 @@ public:
   toptional(toptional const&) = default;
   toptional(toptional&&) = default;
 
-  YK_POLYFILL_CXX20_CONSTEXPR toptional& operator=(nullopt_t) noexcept(noexcept(Traits::tombstone_value()))
+  YK_POLYFILL_CXX20_CONSTEXPR toptional& operator=(nullopt_t) noexcept(std::is_nothrow_destructible<T>::value && noexcept(Traits::tombstone_value()))
   {
     reset();
     return *this;
@@ -385,7 +386,7 @@ public:
     }
   }
 
-  YK_POLYFILL_CXX20_CONSTEXPR void reset() noexcept(noexcept(Traits::tombstone_value()))
+  YK_POLYFILL_CXX20_CONSTEXPR void reset() noexcept(std::is_nothrow_destructible<T>::value && noexcept(Traits::tombstone_value()))
   {
     if (has_value()) {
       data.~T();
