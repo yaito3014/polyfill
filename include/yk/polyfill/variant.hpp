@@ -16,6 +16,21 @@ namespace yk {
 
 namespace polyfill {
 
+namespace variant_detail {
+
+template<class... Ts>
+struct variadic_union {};
+
+template<class Head, class... Rest>
+struct variadic_union<Head, Rest...> {
+  union {
+    Head head;
+    variadic_union<Rest...> rest;
+  };
+};
+
+}  // namespace variant_detail
+
 template<class... Ts>
 class variant;
 
