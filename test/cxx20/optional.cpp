@@ -28,10 +28,10 @@ TEST_CASE("optional three-way comparison")
     pf::optional<int> a = 42;
     pf::optional<int> b;
 
-    CHECK(((a <=> pf::nullopt_holder::value) == std::strong_ordering::greater));
-    CHECK(((b <=> pf::nullopt_holder::value) == std::strong_ordering::equal));
-    CHECK(((pf::nullopt_holder::value <=> a) == std::strong_ordering::less));
-    CHECK(((pf::nullopt_holder::value <=> b) == std::strong_ordering::equal));
+    CHECK(((a <=> pf::nullopt) == std::strong_ordering::greater));
+    CHECK(((b <=> pf::nullopt) == std::strong_ordering::equal));
+    CHECK(((pf::nullopt <=> a) == std::strong_ordering::less));
+    CHECK(((pf::nullopt <=> b) == std::strong_ordering::equal));
   }
 
   // Three-way comparison with values
@@ -69,8 +69,8 @@ TEST_CASE("optional three-way comparison")
     STATIC_REQUIRE(!noexcept(c <=> d));
 
     // Verify noexcept for nullopt comparisons (always noexcept)
-    STATIC_REQUIRE(noexcept(a <=> pf::nullopt_holder::value));
-    STATIC_REQUIRE(noexcept(c <=> pf::nullopt_holder::value));
+    STATIC_REQUIRE(noexcept(a <=> pf::nullopt));
+    STATIC_REQUIRE(noexcept(c <=> pf::nullopt));
 
     // Verify noexcept propagation for optional vs value
     NoexceptComparable nv{42};
@@ -130,10 +130,10 @@ TEST_CASE("optional<T&> three-way comparison")
     pf::optional<int&> a{x};
     pf::optional<int&> b;
 
-    CHECK(((a <=> pf::nullopt_holder::value) == std::strong_ordering::greater));
-    CHECK(((b <=> pf::nullopt_holder::value) == std::strong_ordering::equal));
-    CHECK(((pf::nullopt_holder::value <=> a) == std::strong_ordering::less));
-    CHECK(((pf::nullopt_holder::value <=> b) == std::strong_ordering::equal));
+    CHECK(((a <=> pf::nullopt) == std::strong_ordering::greater));
+    CHECK(((b <=> pf::nullopt) == std::strong_ordering::equal));
+    CHECK(((pf::nullopt <=> a) == std::strong_ordering::less));
+    CHECK(((pf::nullopt <=> b) == std::strong_ordering::equal));
   }
 
   // Three-way comparison with values
@@ -176,8 +176,8 @@ TEST_CASE("optional<T&> three-way comparison")
     STATIC_REQUIRE(!noexcept(c <=> d));
 
     // Verify noexcept for nullopt comparisons (always noexcept)
-    STATIC_REQUIRE(noexcept(a <=> pf::nullopt_holder::value));
-    STATIC_REQUIRE(noexcept(c <=> pf::nullopt_holder::value));
+    STATIC_REQUIRE(noexcept(a <=> pf::nullopt));
+    STATIC_REQUIRE(noexcept(c <=> pf::nullopt));
 
     // Verify noexcept propagation for optional vs value
     STATIC_REQUIRE(noexcept(a <=> nv1));
@@ -198,14 +198,14 @@ TEST_CASE("optional constexpr C++20")
 
     // Construction and destruction
     constexpr auto test_nontrivial_construct = []() {
-      pf::optional<NonTrivial> opt(pf::in_place_holder::value, 42);
+      pf::optional<NonTrivial> opt(pf::in_place, 42);
       return opt.has_value() && opt->value == 42;
     };
     STATIC_REQUIRE(test_nontrivial_construct());
 
     // Assignment with non-trivial type
     constexpr auto test_nontrivial_assign = []() {
-      pf::optional<NonTrivial> opt1(pf::in_place_holder::value, 42);
+      pf::optional<NonTrivial> opt1(pf::in_place, 42);
       pf::optional<NonTrivial> opt2;
       opt2 = opt1;
       return opt2.has_value() && opt2->value == 42;
@@ -214,7 +214,7 @@ TEST_CASE("optional constexpr C++20")
 
     // Reset with non-trivial type
     constexpr auto test_nontrivial_reset = []() {
-      pf::optional<NonTrivial> opt(pf::in_place_holder::value, 42);
+      pf::optional<NonTrivial> opt(pf::in_place, 42);
       opt.reset();
       return !opt.has_value();
     };
@@ -222,7 +222,7 @@ TEST_CASE("optional constexpr C++20")
 
     // Emplace with non-trivial type
     constexpr auto test_nontrivial_emplace = []() {
-      pf::optional<NonTrivial> opt(pf::in_place_holder::value, 10);
+      pf::optional<NonTrivial> opt(pf::in_place, 10);
       opt.emplace(42);
       return opt.has_value() && opt->value == 42;
     };
@@ -232,9 +232,9 @@ TEST_CASE("optional constexpr C++20")
   // C++20: Three-way comparison in constexpr context
   {
     constexpr auto test_spaceship = []() {
-      pf::optional<int> a(pf::in_place_holder::value, 42);
-      pf::optional<int> b(pf::in_place_holder::value, 42);
-      pf::optional<int> c(pf::in_place_holder::value, 99);
+      pf::optional<int> a(pf::in_place, 42);
+      pf::optional<int> b(pf::in_place, 42);
+      pf::optional<int> c(pf::in_place, 99);
       pf::optional<int> empty;
 
       return (a <=> b) == std::strong_ordering::equal &&
@@ -248,19 +248,19 @@ TEST_CASE("optional constexpr C++20")
 
     // Three-way comparison with nullopt
     constexpr auto test_spaceship_nullopt = []() {
-      pf::optional<int> a(pf::in_place_holder::value, 42);
+      pf::optional<int> a(pf::in_place, 42);
       pf::optional<int> empty;
 
-      return (a <=> pf::nullopt_holder::value) == std::strong_ordering::greater &&
-             (empty <=> pf::nullopt_holder::value) == std::strong_ordering::equal &&
-             (pf::nullopt_holder::value <=> a) == std::strong_ordering::less &&
-             (pf::nullopt_holder::value <=> empty) == std::strong_ordering::equal;
+      return (a <=> pf::nullopt) == std::strong_ordering::greater &&
+             (empty <=> pf::nullopt) == std::strong_ordering::equal &&
+             (pf::nullopt <=> a) == std::strong_ordering::less &&
+             (pf::nullopt <=> empty) == std::strong_ordering::equal;
     };
     STATIC_REQUIRE(test_spaceship_nullopt());
 
     // Three-way comparison with values
     constexpr auto test_spaceship_value = []() {
-      pf::optional<int> a(pf::in_place_holder::value, 42);
+      pf::optional<int> a(pf::in_place, 42);
       pf::optional<int> empty;
 
       return (a <=> 42) == std::strong_ordering::equal &&
@@ -274,7 +274,7 @@ TEST_CASE("optional constexpr C++20")
   // C++20: Iterator three-way comparison
   {
     constexpr auto test_iterator_spaceship = []() {
-      pf::optional<int> opt(pf::in_place_holder::value, 42);
+      pf::optional<int> opt(pf::in_place, 42);
       auto it1 = opt.begin();
       auto it2 = opt.end();
       auto it3 = opt.begin();
@@ -296,7 +296,7 @@ TEST_CASE("optional constexpr C++20")
         constexpr ~Data() {}
       };
 
-      pf::optional<Data> opt1(pf::in_place_holder::value, 10, 20);
+      pf::optional<Data> opt1(pf::in_place, 10, 20);
       pf::optional<Data> opt2;
 
       // Copy assign

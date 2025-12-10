@@ -13,15 +13,7 @@ struct in_place_t {
   explicit in_place_t() = default;
 };
 
-struct in_place_holder {
-  static constexpr in_place_t value{};
-};
-
-#if __cpp_inline_variables >= 201606L
-
-inline constexpr in_place_t in_place{};
-
-#endif
+YK_POLYFILL_INLINE constexpr in_place_t in_place{};
 
 template<class T, T... Is>
 struct integer_sequence {

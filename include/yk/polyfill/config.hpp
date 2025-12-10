@@ -25,4 +25,10 @@
 #define YK_POLYFILL_CXX23_CONSTEXPR
 #endif
 
+#if __cpp_inline_variables >= 201606L
+#define YK_POLYFILL_INLINE inline
+#else
+#define YK_POLYFILL_INLINE static
+#endif
+
 #endif  // YK_POLYFILL_CONFIG_HPP

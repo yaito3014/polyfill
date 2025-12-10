@@ -41,13 +41,13 @@ TEST_CASE("optional")
 
   // nullopt construction
   {
-    pf::optional<int> opt(pf::nullopt_holder::value);
+    pf::optional<int> opt(pf::nullopt);
     CHECK(!opt.has_value());
   }
 
   // in-place construction
   {
-    pf::optional<int> opt(pf::in_place_holder::value, 42);
+    pf::optional<int> opt(pf::in_place, 42);
     CHECK(opt.has_value());
     CHECK(*opt == 42);
   }
@@ -109,7 +109,7 @@ TEST_CASE("optional")
   // nullopt assignment
   {
     pf::optional<int> a = 42;
-    a = pf::nullopt_holder::value;
+    a = pf::nullopt;
     CHECK(!a.has_value());
   }
 
@@ -190,7 +190,7 @@ TEST_CASE("optional")
       explicit S(int arg) : x(arg) {}
     };
 
-    pf::optional<S> s(pf::in_place_holder::value, 42);
+    pf::optional<S> s(pf::in_place, 42);
     CHECK(s.has_value());
     CHECK(s->x == 42);
     CHECK(pf::as_const(s)->x == 42);
@@ -229,11 +229,11 @@ TEST_CASE("optional")
 
     {
       auto const identity = [](int x) -> OI { return x; };
-      auto const ret_null = [](int) -> OI { return pf::nullopt_holder::value; };
+      auto const ret_null = [](int) -> OI { return pf::nullopt; };
       CHECK(OI{42}.and_then(identity).value() == 42);
       CHECK(!OI{42}.and_then(ret_null).has_value());
-      CHECK(!OI{pf::nullopt_holder::value}.and_then(identity).has_value());
-      CHECK(!OI{pf::nullopt_holder::value}.and_then(ret_null).has_value());
+      CHECK(!OI{pf::nullopt}.and_then(identity).has_value());
+      CHECK(!OI{pf::nullopt}.and_then(ret_null).has_value());
     }
 
     STATIC_REQUIRE(std::is_same<decltype(std::declval<OI&>().and_then(std::declval<OD (&)(int)>())), OD>::value);
@@ -243,11 +243,11 @@ TEST_CASE("optional")
 
     {
       auto const convert = [](int x) -> OD { return static_cast<double>(x); };
-      auto const ret_null = [](int) -> OD { return pf::nullopt_holder::value; };
+      auto const ret_null = [](int) -> OD { return pf::nullopt; };
       CHECK(OI{42}.and_then(convert).value() == 42.);
       CHECK(!OI{42}.and_then(ret_null).has_value());
-      CHECK(!OI{pf::nullopt_holder::value}.and_then(convert).has_value());
-      CHECK(!OI{pf::nullopt_holder::value}.and_then(ret_null).has_value());
+      CHECK(!OI{pf::nullopt}.and_then(convert).has_value());
+      CHECK(!OI{pf::nullopt}.and_then(ret_null).has_value());
     }
   }
 
@@ -264,7 +264,7 @@ TEST_CASE("optional")
     {
       auto const identity = [](int x) -> int { return x; };
       CHECK(OI{42}.transform(identity).value() == 42);
-      CHECK(!OI{pf::nullopt_holder::value}.transform(identity).has_value());
+      CHECK(!OI{pf::nullopt}.transform(identity).has_value());
     }
 
     STATIC_REQUIRE(std::is_same<decltype(std::declval<OI&>().transform(std::declval<double (&)(int)>())), OD>::value);
@@ -275,19 +275,19 @@ TEST_CASE("optional")
     {
       auto const convert = [](int x) -> double { return static_cast<double>(x); };
       CHECK(OI{42}.transform(convert).value() == 42.);
-      CHECK(!OI{pf::nullopt_holder::value}.transform(convert).has_value());
+      CHECK(!OI{pf::nullopt}.transform(convert).has_value());
     }
   }
 
   // or_else
   {
     auto const producer = []() -> pf::optional<int> { return 12; };
-    auto const ret_null = []() -> pf::optional<int> { return pf::nullopt_holder::value; };
+    auto const ret_null = []() -> pf::optional<int> { return pf::nullopt; };
 
     CHECK(pf::optional<int>{34}.or_else(producer).value() == 34);
     CHECK(pf::optional<int>{34}.or_else(ret_null).value() == 34);
-    CHECK(pf::optional<int>{pf::nullopt_holder::value}.or_else(producer).value() == 12);
-    CHECK(!pf::optional<int>{pf::nullopt_holder::value}.or_else(ret_null).has_value());
+    CHECK(pf::optional<int>{pf::nullopt}.or_else(producer).value() == 12);
+    CHECK(!pf::optional<int>{pf::nullopt}.or_else(ret_null).has_value());
   }
 
   // iterator
@@ -332,7 +332,7 @@ TEST_CASE("ref optional")
   // in-place construction
   {
     int x = 42;
-    pf::optional<int&> opt(pf::in_place_holder::value, x);
+    pf::optional<int&> opt(pf::in_place, x);
     CHECK(opt.has_value());
     CHECK(std::addressof(*opt) == std::addressof(x));
   }
@@ -367,7 +367,7 @@ TEST_CASE("ref optional")
   {
     int x = 42;
     pf::optional<int&> opt = x;
-    opt = pf::nullopt_holder::value;
+    opt = pf::nullopt;
     CHECK(!opt.has_value());
   }
 
@@ -496,12 +496,12 @@ TEST_CASE("ref optional")
 
     {
       auto const identity = [](Derived& d) -> OD { return d; };
-      auto const ret_null = [](Derived&) -> OD { return pf::nullopt_holder::value; };
+      auto const ret_null = [](Derived&) -> OD { return pf::nullopt; };
       Derived x;
       CHECK(std::addressof(OD{x}.and_then(identity).value()) == std::addressof(x));
       CHECK(!OD{x}.and_then(ret_null).has_value());
-      CHECK(!OD{pf::nullopt_holder::value}.and_then(identity).has_value());
-      CHECK(!OD{pf::nullopt_holder::value}.and_then(ret_null).has_value());
+      CHECK(!OD{pf::nullopt}.and_then(identity).has_value());
+      CHECK(!OD{pf::nullopt}.and_then(ret_null).has_value());
     }
 
     STATIC_REQUIRE(std::is_same<decltype(std::declval<OD&>().and_then(std::declval<OB (&)(Derived&)>())), OB>::value);
@@ -511,12 +511,12 @@ TEST_CASE("ref optional")
 
     {
       auto const convert = [](Derived& d) -> OB { return d; };
-      auto const ret_null = [](Derived&) -> OB { return pf::nullopt_holder::value; };
+      auto const ret_null = [](Derived&) -> OB { return pf::nullopt; };
       Derived x;
       CHECK(std::addressof(OD{x}.and_then(convert).value()) == std::addressof(x));
       CHECK(!OD{x}.and_then(ret_null).has_value());
-      CHECK(!OD{pf::nullopt_holder::value}.and_then(convert).has_value());
-      CHECK(!OD{pf::nullopt_holder::value}.and_then(ret_null).has_value());
+      CHECK(!OD{pf::nullopt}.and_then(convert).has_value());
+      CHECK(!OD{pf::nullopt}.and_then(ret_null).has_value());
     }
   }
 
@@ -534,7 +534,7 @@ TEST_CASE("ref optional")
       auto const identity = [](Derived& d) -> Derived& { return d; };
       Derived x;
       CHECK(std::addressof(OD{x}.transform(identity).value()) == std::addressof(x));
-      CHECK(!OD{pf::nullopt_holder::value}.transform(identity).has_value());
+      CHECK(!OD{pf::nullopt}.transform(identity).has_value());
     }
 
     STATIC_REQUIRE(std::is_same<decltype(std::declval<OD&>().transform(std::declval<Base& (&)(Derived&)>())), OB>::value);
@@ -546,7 +546,7 @@ TEST_CASE("ref optional")
       auto const convert = [](Derived& d) -> Base& { return d; };
       Derived x;
       CHECK(std::addressof(OD{x}.transform(convert).value()) == std::addressof(x));
-      CHECK(!OD{pf::nullopt_holder::value}.transform(convert).has_value());
+      CHECK(!OD{pf::nullopt}.transform(convert).has_value());
     }
   }
 
@@ -556,12 +556,12 @@ TEST_CASE("ref optional")
     int y = 34;
 
     auto const producer = [&]() -> pf::optional<int&> { return x; };
-    auto const ret_null = []() -> pf::optional<int&> { return pf::nullopt_holder::value; };
+    auto const ret_null = []() -> pf::optional<int&> { return pf::nullopt; };
 
     CHECK(std::addressof(pf::optional<int&>{y}.or_else(producer).value()) == std::addressof(y));
     CHECK(std::addressof(pf::optional<int&>{y}.or_else(ret_null).value()) == std::addressof(y));
-    CHECK(std::addressof(pf::optional<int&>{pf::nullopt_holder::value}.or_else(producer).value()) == std::addressof(x));
-    CHECK(!pf::optional<int&>{pf::nullopt_holder::value}.or_else(ret_null).has_value());
+    CHECK(std::addressof(pf::optional<int&>{pf::nullopt}.or_else(producer).value()) == std::addressof(x));
+    CHECK(!pf::optional<int&>{pf::nullopt}.or_else(ret_null).has_value());
   }
 
   // iterator
@@ -627,12 +627,12 @@ TEST_CASE("optional noexcept propagation")
   // Construction
   {
     STATIC_REQUIRE(noexcept(pf::optional<NoexceptOps>()));
-    STATIC_REQUIRE(noexcept(pf::optional<NoexceptOps>(pf::nullopt_holder::value)));
-    STATIC_REQUIRE(noexcept(pf::optional<NoexceptOps>(pf::in_place_holder::value, 42)));
+    STATIC_REQUIRE(noexcept(pf::optional<NoexceptOps>(pf::nullopt)));
+    STATIC_REQUIRE(noexcept(pf::optional<NoexceptOps>(pf::in_place, 42)));
 
     STATIC_REQUIRE(noexcept(pf::optional<ThrowingOps>()));
-    STATIC_REQUIRE(noexcept(pf::optional<ThrowingOps>(pf::nullopt_holder::value)));
-    STATIC_REQUIRE(!noexcept(pf::optional<ThrowingOps>(pf::in_place_holder::value, 42)));
+    STATIC_REQUIRE(noexcept(pf::optional<ThrowingOps>(pf::nullopt)));
+    STATIC_REQUIRE(!noexcept(pf::optional<ThrowingOps>(pf::in_place, 42)));
   }
 
   // Copy/Move construction
@@ -664,8 +664,8 @@ TEST_CASE("optional noexcept propagation")
     pf::optional<NoexceptOps> a;
     pf::optional<ThrowingOps> b;
 
-    STATIC_REQUIRE(noexcept(a = pf::nullopt_holder::value));
-    STATIC_REQUIRE(noexcept(b = pf::nullopt_holder::value));
+    STATIC_REQUIRE(noexcept(a = pf::nullopt));
+    STATIC_REQUIRE(noexcept(b = pf::nullopt));
   }
 
   // emplace
@@ -708,8 +708,8 @@ TEST_CASE("optional noexcept propagation")
 
   // operator*, operator->
   {
-    pf::optional<NoexceptOps> a{pf::in_place_holder::value};
-    pf::optional<ThrowingOps> b{pf::in_place_holder::value};
+    pf::optional<NoexceptOps> a{pf::in_place};
+    pf::optional<ThrowingOps> b{pf::in_place};
 
     STATIC_REQUIRE(noexcept(*a));
     STATIC_REQUIRE(noexcept(a.operator->()));
@@ -743,8 +743,8 @@ TEST_CASE("optional noexcept propagation")
       pf::optional<int> operator()(ThrowingOps const&) const { return 42; }
     };
 
-    pf::optional<NoexceptOps> a{pf::in_place_holder::value};
-    pf::optional<ThrowingOps> b{pf::in_place_holder::value};
+    pf::optional<NoexceptOps> a{pf::in_place};
+    pf::optional<ThrowingOps> b{pf::in_place};
     NoexceptCallable nc;
     ThrowingCallable tc;
 
@@ -762,8 +762,8 @@ TEST_CASE("optional noexcept propagation")
       int operator()(ThrowingOps const&) const { return 42; }
     };
 
-    pf::optional<NoexceptOps> a{pf::in_place_holder::value};
-    pf::optional<ThrowingOps> b{pf::in_place_holder::value};
+    pf::optional<NoexceptOps> a{pf::in_place};
+    pf::optional<ThrowingOps> b{pf::in_place};
     NoexceptTransform nt;
     ThrowingTransform tt;
 
@@ -793,8 +793,8 @@ TEST_CASE("optional noexcept propagation")
 
   // Iterator operations
   {
-    pf::optional<NoexceptOps> a{pf::in_place_holder::value};
-    pf::optional<ThrowingOps> b{pf::in_place_holder::value};
+    pf::optional<NoexceptOps> a{pf::in_place};
+    pf::optional<ThrowingOps> b{pf::in_place};
 
     STATIC_REQUIRE(noexcept(a.begin()));
     STATIC_REQUIRE(noexcept(a.end()));
@@ -804,8 +804,8 @@ TEST_CASE("optional noexcept propagation")
 
   // value() is not noexcept (can throw bad_optional_access)
   {
-    pf::optional<NoexceptOps> a{pf::in_place_holder::value};
-    pf::optional<ThrowingOps> b{pf::in_place_holder::value};
+    pf::optional<NoexceptOps> a{pf::in_place};
+    pf::optional<ThrowingOps> b{pf::in_place};
 
     STATIC_REQUIRE(!noexcept(a.value()));
     STATIC_REQUIRE(!noexcept(b.value()));
@@ -813,7 +813,7 @@ TEST_CASE("optional noexcept propagation")
 
   // Cross-type construction and assignment
   {
-    pf::optional<NoexceptOps> a{pf::in_place_holder::value};
+    pf::optional<NoexceptOps> a{pf::in_place};
     NoexceptOps nv;
 
     // Construction from value
@@ -826,7 +826,7 @@ TEST_CASE("optional noexcept propagation")
   }
 
   {
-    pf::optional<ThrowingOps> b{pf::in_place_holder::value};
+    pf::optional<ThrowingOps> b{pf::in_place};
     ThrowingOps tv;
 
     // Construction from value
@@ -909,40 +909,40 @@ TEST_CASE("optional relational operators")
     pf::optional<int> b;
 
     // operator==
-    CHECK(!(a == pf::nullopt_holder::value));
-    CHECK((pf::nullopt_holder::value == b));
-    CHECK((b == pf::nullopt_holder::value));
-    CHECK(!(pf::nullopt_holder::value == a));
+    CHECK(!(a == pf::nullopt));
+    CHECK((pf::nullopt == b));
+    CHECK((b == pf::nullopt));
+    CHECK(!(pf::nullopt == a));
 
     // operator!=
-    CHECK((a != pf::nullopt_holder::value));
-    CHECK(!(pf::nullopt_holder::value != b));
-    CHECK(!(b != pf::nullopt_holder::value));
-    CHECK((pf::nullopt_holder::value != a));
+    CHECK((a != pf::nullopt));
+    CHECK(!(pf::nullopt != b));
+    CHECK(!(b != pf::nullopt));
+    CHECK((pf::nullopt != a));
 
     // operator<
-    CHECK(!(a < pf::nullopt_holder::value));
-    CHECK(!(pf::nullopt_holder::value < b));
-    CHECK((pf::nullopt_holder::value < a));
-    CHECK(!(b < pf::nullopt_holder::value));
+    CHECK(!(a < pf::nullopt));
+    CHECK(!(pf::nullopt < b));
+    CHECK((pf::nullopt < a));
+    CHECK(!(b < pf::nullopt));
 
     // operator<=
-    CHECK(!(a <= pf::nullopt_holder::value));
-    CHECK((pf::nullopt_holder::value <= b));
-    CHECK((pf::nullopt_holder::value <= a));
-    CHECK((b <= pf::nullopt_holder::value));
+    CHECK(!(a <= pf::nullopt));
+    CHECK((pf::nullopt <= b));
+    CHECK((pf::nullopt <= a));
+    CHECK((b <= pf::nullopt));
 
     // operator>
-    CHECK((a > pf::nullopt_holder::value));
-    CHECK(!(pf::nullopt_holder::value > b));
-    CHECK(!(pf::nullopt_holder::value > a));
-    CHECK(!(b > pf::nullopt_holder::value));
+    CHECK((a > pf::nullopt));
+    CHECK(!(pf::nullopt > b));
+    CHECK(!(pf::nullopt > a));
+    CHECK(!(b > pf::nullopt));
 
     // operator>=
-    CHECK((a >= pf::nullopt_holder::value));
-    CHECK((pf::nullopt_holder::value >= b));
-    CHECK(!(pf::nullopt_holder::value >= a));
-    CHECK((b >= pf::nullopt_holder::value));
+    CHECK((a >= pf::nullopt));
+    CHECK((pf::nullopt >= b));
+    CHECK(!(pf::nullopt >= a));
+    CHECK((b >= pf::nullopt));
   }
 
   // Comparisons with values
@@ -1036,10 +1036,10 @@ TEST_CASE("optional relational operators")
       bool operator>=(ThrowingComparable const& other) const { return value >= other.value; }
     };
 
-    pf::optional<NoexceptComparable> a(pf::in_place_holder::value, NoexceptComparable{42});
-    pf::optional<NoexceptComparable> b(pf::in_place_holder::value, NoexceptComparable{42});
-    pf::optional<ThrowingComparable> c(pf::in_place_holder::value, ThrowingComparable{42});
-    pf::optional<ThrowingComparable> d(pf::in_place_holder::value, ThrowingComparable{42});
+    pf::optional<NoexceptComparable> a(pf::in_place, NoexceptComparable{42});
+    pf::optional<NoexceptComparable> b(pf::in_place, NoexceptComparable{42});
+    pf::optional<ThrowingComparable> c(pf::in_place, ThrowingComparable{42});
+    pf::optional<ThrowingComparable> d(pf::in_place, ThrowingComparable{42});
 
     // Verify noexcept propagation for optional vs optional
     STATIC_REQUIRE(noexcept(a == b));
@@ -1057,10 +1057,10 @@ TEST_CASE("optional relational operators")
     STATIC_REQUIRE(!noexcept(c >= d));
 
     // Verify noexcept for nullopt comparisons (always noexcept)
-    STATIC_REQUIRE(noexcept(a == pf::nullopt_holder::value));
-    STATIC_REQUIRE(noexcept(pf::nullopt_holder::value == a));
-    STATIC_REQUIRE(noexcept(c == pf::nullopt_holder::value));
-    STATIC_REQUIRE(noexcept(pf::nullopt_holder::value == c));
+    STATIC_REQUIRE(noexcept(a == pf::nullopt));
+    STATIC_REQUIRE(noexcept(pf::nullopt == a));
+    STATIC_REQUIRE(noexcept(c == pf::nullopt));
+    STATIC_REQUIRE(noexcept(pf::nullopt == c));
 
     // Verify noexcept propagation for optional vs value
     NoexceptComparable nv{42};
@@ -1108,13 +1108,13 @@ TEST_CASE("optional<T&> noexcept propagation")
   // Construction
   {
     STATIC_REQUIRE(noexcept(pf::optional<NoexceptOps&>()));
-    STATIC_REQUIRE(noexcept(pf::optional<NoexceptOps&>(pf::nullopt_holder::value)));
-    STATIC_REQUIRE(noexcept(pf::optional<NoexceptOps&>(pf::in_place_holder::value, nv)));
+    STATIC_REQUIRE(noexcept(pf::optional<NoexceptOps&>(pf::nullopt)));
+    STATIC_REQUIRE(noexcept(pf::optional<NoexceptOps&>(pf::in_place, nv)));
     STATIC_REQUIRE(noexcept(pf::optional<NoexceptOps&>(nv)));
 
     STATIC_REQUIRE(noexcept(pf::optional<ThrowingOps&>()));
-    STATIC_REQUIRE(noexcept(pf::optional<ThrowingOps&>(pf::nullopt_holder::value)));
-    STATIC_REQUIRE(noexcept(pf::optional<ThrowingOps&>(pf::in_place_holder::value, tv)));
+    STATIC_REQUIRE(noexcept(pf::optional<ThrowingOps&>(pf::nullopt)));
+    STATIC_REQUIRE(noexcept(pf::optional<ThrowingOps&>(pf::in_place, tv)));
     STATIC_REQUIRE(noexcept(pf::optional<ThrowingOps&>(tv)));
   }
 
@@ -1141,8 +1141,8 @@ TEST_CASE("optional<T&> noexcept propagation")
     pf::optional<NoexceptOps&> a{nv};
     pf::optional<ThrowingOps&> b{tv};
 
-    STATIC_REQUIRE(noexcept(a = pf::nullopt_holder::value));
-    STATIC_REQUIRE(noexcept(b = pf::nullopt_holder::value));
+    STATIC_REQUIRE(noexcept(a = pf::nullopt));
+    STATIC_REQUIRE(noexcept(b = pf::nullopt));
   }
 
   // emplace (always noexcept for references)
@@ -1396,11 +1396,11 @@ TEST_CASE("optional constexpr C++11")
     STATIC_REQUIRE(!empty.has_value());
 
     // Nullopt construction
-    constexpr pf::optional<int> null_opt(pf::nullopt_holder::value);
+    constexpr pf::optional<int> null_opt(pf::nullopt);
     STATIC_REQUIRE(!null_opt.has_value());
 
     // In-place value construction
-    constexpr pf::optional<int> opt_value(pf::in_place_holder::value, 42);
+    constexpr pf::optional<int> opt_value(pf::in_place, 42);
     STATIC_REQUIRE(opt_value.has_value());
     STATIC_REQUIRE(*opt_value == 42);
 
@@ -1425,15 +1425,15 @@ TEST_CASE("optional constexpr C++11")
 
   // C++11: constexpr comparison operators
   {
-    constexpr pf::optional<int> opt(pf::in_place_holder::value, 42);
+    constexpr pf::optional<int> opt(pf::in_place, 42);
     constexpr pf::optional<int> empty;
 
     // optional vs nullopt
-    STATIC_REQUIRE(opt != pf::nullopt_holder::value);
-    STATIC_REQUIRE(empty == pf::nullopt_holder::value);
-    STATIC_REQUIRE(pf::nullopt_holder::value < opt);
-    STATIC_REQUIRE(pf::nullopt_holder::value <= empty);
-    STATIC_REQUIRE(opt > pf::nullopt_holder::value);
+    STATIC_REQUIRE(opt != pf::nullopt);
+    STATIC_REQUIRE(empty == pf::nullopt);
+    STATIC_REQUIRE(pf::nullopt < opt);
+    STATIC_REQUIRE(pf::nullopt <= empty);
+    STATIC_REQUIRE(opt > pf::nullopt);
 
     // optional vs value
     STATIC_REQUIRE(opt == 42);
@@ -1454,7 +1454,7 @@ TEST_CASE("optional<T&> constexpr C++11")
     constexpr pf::optional<int&> empty;
     STATIC_REQUIRE(!empty.has_value());
 
-    constexpr pf::optional<int&> null_opt(pf::nullopt_holder::value);
+    constexpr pf::optional<int&> null_opt(pf::nullopt);
     STATIC_REQUIRE(!null_opt.has_value());
   }
 }
