@@ -544,13 +544,6 @@ private:
   }
 
   template<class... Args>
-  YK_POLYFILL_CXX20_CONSTEXPR void unchecked_emplace(Args&&... args) noexcept(std::is_nothrow_constructible<T, Args...>::value)
-  {
-    reset();
-    construct_from(std::forward<Args>(args)...);
-  }
-
-  template<class... Args>
   YK_POLYFILL_CXX20_CONSTEXPR void construct_from(Args&&... args) noexcept(std::is_nothrow_constructible<T, Args...>::value)
   {
 #if __cpp_lib_constexpr_dynamic_alloc >= 201907L
