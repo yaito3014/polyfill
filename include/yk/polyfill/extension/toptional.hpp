@@ -194,21 +194,17 @@ public:
       typename std::enable_if<
           std::is_constructible<T, U const&>::value && !optional_detail::converts_from_any_cvref<T, toptional<U, UTraits>>::value, std::nullptr_t>::type =
           nullptr>
-  YK_POLYFILL_CXX20_CONSTEXPR toptional(toptional<U, UTraits> const& other) : toptional(nullopt)
+  YK_POLYFILL_CXX14_CONSTEXPR toptional(toptional<U, UTraits> const& other) : data(other.has_value() ? checked_construct(*other) : Traits::tombstone_value())
   {
-    if (other.has_value()) {
-      emplace(*other);
-    }
   }
+
   template<
       class U, class UTraits,
       typename std::enable_if<
           std::is_constructible<T, U>::value && !optional_detail::converts_from_any_cvref<T, toptional<U, UTraits>>::value, std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX20_CONSTEXPR toptional(toptional<U, UTraits>&& other) : toptional(nullopt)
+  YK_POLYFILL_CXX14_CONSTEXPR toptional(toptional<U, UTraits>&& other)
+      : data(other.has_value() ? checked_construct(*std::move(other)) : Traits::tombstone_value())
   {
-    if (other.has_value()) {
-      emplace(*std::move(other));
-    }
   }
 
   toptional(toptional const&) = default;
