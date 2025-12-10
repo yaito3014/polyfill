@@ -162,14 +162,15 @@ public:
   constexpr toptional(nullopt_t) noexcept(noexcept(Traits::tombstone_value())) : data(Traits::tombstone_value()) {}
 
   template<class... Args, typename std::enable_if<std::is_constructible<T, Args...>::value, std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX14_CONSTEXPR explicit toptional(in_place_t, Args&&... args) : data(checked_construct(std::forward<Args>(args)...))
+  YK_POLYFILL_CXX14_CONSTEXPR explicit toptional(in_place_t, Args&&... args) : data(std::forward<Args>(args)...)
   {
+    if (!has_value()) throw bad_toptional_initialization{};
   }
 
   template<class U, class... Args, typename std::enable_if<std::is_constructible<T, std::initializer_list<U>&, Args...>::value, std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX14_CONSTEXPR explicit toptional(in_place_t, std::initializer_list<U> il, Args&&... args)
-      : data(checked_construct(il, std::forward<Args>(args)...))
+  YK_POLYFILL_CXX14_CONSTEXPR explicit toptional(in_place_t, std::initializer_list<U> il, Args&&... args) : data(il, std::forward<Args>(args)...)
   {
+    if (!has_value()) throw bad_toptional_initialization{};
   }
 
   template<
@@ -178,8 +179,9 @@ public:
           std::is_constructible<T, U>::value && !std::is_same<typename remove_cvref<T>::type, toptional>::value
               && !std::is_same<typename remove_cvref<T>::type, in_place_t>::value && std::is_convertible<U, T>::value,
           std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX14_CONSTEXPR toptional(U&& u) : data(checked_construct(std::forward<U>(u)))
+  YK_POLYFILL_CXX14_CONSTEXPR toptional(U&& u) : data(std::forward<U>(u))
   {
+    if (!has_value()) throw bad_toptional_initialization{};
   }
 
   template<
@@ -188,8 +190,9 @@ public:
           std::is_constructible<T, U>::value && !std::is_same<typename remove_cvref<T>::type, toptional>::value
               && !std::is_same<typename remove_cvref<T>::type, in_place_t>::value && !std::is_convertible<U, T>::value,
           std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX14_CONSTEXPR explicit toptional(U&& u) : data(checked_construct(std::forward<U>(u)))
+  YK_POLYFILL_CXX14_CONSTEXPR explicit toptional(U&& u) : data(std::forward<U>(u))
   {
+    if (!has_value()) throw bad_toptional_initialization{};
   }
 
   template<
@@ -197,17 +200,18 @@ public:
       typename std::enable_if<
           std::is_constructible<T, U const&>::value && !optional_detail::converts_from_any_cvref<T, toptional<U, UTraits>>::value, std::nullptr_t>::type =
           nullptr>
-  YK_POLYFILL_CXX14_CONSTEXPR toptional(toptional<U, UTraits> const& other) : data(other.has_value() ? checked_construct(*other) : Traits::tombstone_value())
+  YK_POLYFILL_CXX14_CONSTEXPR toptional(toptional<U, UTraits> const& other) : data(other.has_value() ? *other : Traits::tombstone_value())
   {
+    if (other.has_value() && !has_value()) throw bad_toptional_initialization{};
   }
 
   template<
       class U, class UTraits,
       typename std::enable_if<
           std::is_constructible<T, U>::value && !optional_detail::converts_from_any_cvref<T, toptional<U, UTraits>>::value, std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX14_CONSTEXPR toptional(toptional<U, UTraits>&& other)
-      : data(other.has_value() ? checked_construct(*std::move(other)) : Traits::tombstone_value())
+  YK_POLYFILL_CXX14_CONSTEXPR toptional(toptional<U, UTraits>&& other) : data(other.has_value() ? *std::move(other) : Traits::tombstone_value())
   {
+    if (other.has_value() && !has_value()) throw bad_toptional_initialization{};
   }
 
   toptional(toptional const&) = default;
@@ -548,14 +552,6 @@ public:
   YK_POLYFILL_CXX17_CONSTEXPR const_iterator end() const noexcept { return begin() + has_value(); }
 
 private:
-  template<class... Args>
-  static YK_POLYFILL_CXX14_CONSTEXPR T checked_construct(Args&&... args)
-  {
-    T value(std::forward<Args>(args)...);
-    if (!Traits::is_engaged(value)) throw bad_toptional_initialization{};
-    return value;
-  }
-
   template<class... Args>
   YK_POLYFILL_CXX20_CONSTEXPR void construct_from(Args&&... args) noexcept(std::is_nothrow_constructible<T, Args...>::value)
   {
