@@ -95,7 +95,7 @@ jobs:
           sudo ./llvm.sh ${{ matrix.compiler.version }} all
       - name: Restore deps from cache
         id: cache-restore
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: build/_deps
           key: ${{ matrix.cxx-version }}-${{ matrix.build-type }}-${{ matrix.compiler.name }}-${{ matrix.compiler.version }}-${{ matrix.os.name }}-${{ matrix.os.version }}
@@ -107,7 +107,7 @@ jobs:
           cmake --build build --config ${{ matrix.build-type }}
       - name: Save deps to cache
         if: steps.cache-restore.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: build/_deps
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}
