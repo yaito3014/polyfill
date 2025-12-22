@@ -21,6 +21,7 @@ target_sources(
         exchange.cpp
         optional.cpp
         toptional.cpp
+        variant.cpp
 )
 
 set_target_properties(yk_polyfill_cxx11_test PROPERTIES CXX_EXTENSIONS OFF)
