@@ -15,6 +15,22 @@ struct in_place_t {
 
 YK_POLYFILL_INLINE constexpr in_place_t in_place{};
 
+template<std::size_t I>
+struct in_place_index_t {
+  explicit in_place_index_t() = default;
+};
+
+template<std::size_t I>
+YK_POLYFILL_INLINE constexpr in_place_index_t<I> in_place_index{};
+
+template<class T>
+struct in_place_type_t {
+  explicit in_place_type_t() = default;
+};
+
+template<class T>
+YK_POLYFILL_INLINE constexpr in_place_type_t<T> in_place_type{};
+
 template<class T, T... Is>
 struct integer_sequence {
   using value_type = T;
