@@ -119,7 +119,7 @@ public:
   template<
       class Head = typename extension::pack_indexing<0, Ts...>::type,
       typename std::enable_if<std::is_default_constructible<Head>::value, std::nullptr_t>::type = nullptr>
-  constexpr variant() noexcept(std::is_nothrow_default_constructible<Head>::value) : storage(in_place_index<0>)
+  constexpr variant() noexcept(std::is_nothrow_default_constructible<Head>::value) : storage_(in_place_index<0>)
   {
   }
 
