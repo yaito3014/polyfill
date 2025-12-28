@@ -53,13 +53,14 @@ using index_sequence_for = make_index_sequence<sizeof...(Ts)>;
 
 namespace integer_sequence_detail {
 
-template<class IntSeq>
-struct intseq_table;
+template<std::size_t I, class T, T... Is>
+struct get_impl {};
 
-template<class T, T... Is>
-struct intseq_table<integer_sequence<T, Is...>> {
-  static constexpr T value[]{Is...};
-};
+template<class T, T Head, T... Rest>
+struct get_impl<0, T, Head, Rest...> : integral_constant<T, Head> {};
+
+template<std::size_t I, class T, T Head, T... Rest>
+struct get_impl<I, T, Head, Rest...> : get_impl<I - 1, T, Rest...> {};
 
 }  // namespace integer_sequence_detail
 
@@ -67,7 +68,7 @@ template<std::size_t I, class T, T... Is>
 constexpr T get(integer_sequence<T, Is...>) noexcept
 {
   static_assert(I < sizeof...(Is), "I must be less than sizeof...(Is)");
-  return integer_sequence_detail::intseq_table<integer_sequence<T, Is...>>::value[I];
+  return integer_sequence_detail::get_impl<I, T, Is...>::value;
 }
 
 template<class T, class U = T>
