@@ -1,7 +1,10 @@
 #ifndef YK_POLYFILL_UTILITY_HPP
 #define YK_POLYFILL_UTILITY_HPP
 
+#include <yk/polyfill/bits/core_traits.hpp>
 #include <yk/polyfill/config.hpp>
+
+#include <tuple>
 
 #include <cstddef>
 
@@ -48,6 +51,25 @@ using make_index_sequence = make_integer_sequence<std::size_t, N>;
 template<class... Ts>
 using index_sequence_for = make_index_sequence<sizeof...(Ts)>;
 
+namespace integer_sequence_detail {
+
+template<class IntSeq>
+struct intseq_table;
+
+template<class T, T... Is>
+struct intseq_table<integer_sequence<T, Is...>> {
+  static constexpr T value[]{Is...};
+};
+
+}  // namespace integer_sequence_detail
+
+template<std::size_t I, class T, T... Is>
+constexpr T get(integer_sequence<T, Is...>) noexcept
+{
+  static_assert(I < sizeof...(Is), "I must be less than sizeof...(Is)");
+  return integer_sequence_detail::intseq_table<integer_sequence<T, Is...>>::value[I];
+}
+
 template<class T, class U = T>
 [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR T
 exchange(T& obj, U&& new_value) noexcept(std::is_nothrow_move_constructible<T>::value && std::is_nothrow_assignable<T, U>::value)
@@ -69,5 +91,20 @@ void as_const(T const&&) = delete;
 }  // namespace polyfill
 
 }  // namespace yk
+
+template<class T, T... Is>
+struct std::tuple_size<yk::polyfill::integer_sequence<T, Is...>> : yk::polyfill::integral_constant<std::size_t, sizeof...(Is)> {};
+
+template<std::size_t I, class T, T... Is>
+struct std::tuple_element<I, yk::polyfill::integer_sequence<T, Is...>> {
+  static_assert(I < sizeof...(Is), "I must be less than sizeof...(Is)");
+  using type = T;
+};
+
+template<std::size_t I, class T, T... Is>
+struct std::tuple_element<I, yk::polyfill::integer_sequence<T, Is...> const> {
+  static_assert(I < sizeof...(Is), "I must be less than sizeof...(Is)");
+  using type = T;
+};
 
 #endif  // YK_POLYFILL_UTILITY_HPP
