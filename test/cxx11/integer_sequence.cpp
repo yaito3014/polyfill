@@ -38,4 +38,14 @@ TEST_CASE("integer_sequence")
   STATIC_REQUIRE(std::is_same<pf::index_sequence_for<int, int, int, int, int>, pf::index_sequence<0, 1, 2, 3, 4>>::value);
   STATIC_REQUIRE(std::is_same<pf::index_sequence_for<int, int, int, int, int, int>, pf::index_sequence<0, 1, 2, 3, 4, 5>>::value);
   STATIC_REQUIRE(std::is_same<pf::index_sequence_for<int, int, int, int, int, int, int>, pf::index_sequence<0, 1, 2, 3, 4, 5, 6>>::value);
+
+  STATIC_REQUIRE(std::tuple_size<pf::make_index_sequence<5>>::value == 5);
+  STATIC_REQUIRE(std::is_same<std::tuple_element<0, pf::make_index_sequence<5>>::type, std::size_t>::value);
+
+  STATIC_REQUIRE(std::tuple_size<pf::make_index_sequence<5> const>::value == 5);
+  STATIC_REQUIRE(std::is_same<std::tuple_element<0, pf::make_index_sequence<5> const>::type, std::size_t>::value);
+
+  STATIC_REQUIRE(pf::get<0>(pf::integer_sequence<int, 3, 1, 4>{}) == 3);
+  STATIC_REQUIRE(pf::get<1>(pf::integer_sequence<int, 3, 1, 4>{}) == 1);
+  STATIC_REQUIRE(pf::get<2>(pf::integer_sequence<int, 3, 1, 4>{}) == 4);
 }
