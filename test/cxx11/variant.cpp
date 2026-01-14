@@ -38,17 +38,17 @@ TEST_CASE("variant in-place index construction")
   STATIC_REQUIRE(std::is_constructible<pf::variant<int, double>, pf::in_place_index_t<1>, double>::value);
 
   {
-    pf::variant<int> vi(pf::in_place_index<0>, 42);
+    pf::variant<int> vi(pf::in_place_index_t<0>{}, 42);
     CHECK(vi.index() == 0);
   }
 
   {
-    pf::variant<int, double> vid(pf::in_place_index<0>, 42);
+    pf::variant<int, double> vid(pf::in_place_index_t<0>{}, 42);
     CHECK(vid.index() == 0);
   }
 
   {
-    pf::variant<int, double> vid(pf::in_place_index<1>, 3.14);
+    pf::variant<int, double> vid(pf::in_place_index_t<1>{}, 3.14);
     CHECK(vid.index() == 1);
   }
 }
