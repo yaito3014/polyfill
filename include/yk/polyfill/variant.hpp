@@ -71,7 +71,7 @@ struct variadic_union<true, Head, Rest...> {
   }
 
   template<std::size_t I, class... Args>
-  constexpr variadic_union(in_place_index_t<I>, Args&&... args) : rest(in_place_index<I - 1>, std::forward<Args>(args)...)
+  constexpr variadic_union(in_place_index_t<I>, Args&&... args) : rest(in_place_index_t<I - 1>{}, std::forward<Args>(args)...)
   {
   }
 
@@ -98,7 +98,7 @@ struct variadic_union<false, Head, Rest...> {
   }
 
   template<std::size_t I, class... Args>
-  constexpr variadic_union(in_place_index_t<I>, Args&&... args) : rest(in_place_index<I - 1>, std::forward<Args>(args)...)
+  constexpr variadic_union(in_place_index_t<I>, Args&&... args) : rest(in_place_index_t<I - 1>{}, std::forward<Args>(args)...)
   {
   }
 
