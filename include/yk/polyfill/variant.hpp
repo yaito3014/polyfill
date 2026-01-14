@@ -238,7 +238,7 @@ struct variant_storage {
   }
 
   constexpr variant_storage() noexcept(std::is_nothrow_default_constructible<typename extension::pack_indexing<0, Ts...>::type>::value)
-      : storage(in_place_index<0>), index(0)
+      : storage(in_place_index_t<0>{}), index(0)
   {
   }
 
