@@ -271,6 +271,40 @@ struct make_variant_base {
   using type = variant_base<conjunction<std::is_trivially_destructible<Ts>...>::value, Ts...>;
 };
 
+template<class T>
+struct one_element_array {
+  T data[1];
+};
+
+template<std::size_t Index, class Target, class Source, class = void>
+struct imaginary_function {};
+
+template<std::size_t Index, class Target, class Source>
+struct imaginary_function<Index, Target, Source, void_t<decltype(one_element_array<Target>{{std::declval<Source>()}})>> {
+  integral_constant<std::size_t, Index> operator()(Target);
+};
+
+template<class T, class IndexSeq, class... Ts>
+struct imaginary_function_set_impl {};
+
+template<class T, std::size_t... Is, class... Ts>
+struct imaginary_function_set_impl<T, index_sequence<Is...>, Ts...> : imaginary_function<Is, Ts, T>... {};
+
+template<class T, class... Ts>
+struct imaginary_function_set : imaginary_function_set_impl<T, index_sequence_for<Ts...>, Ts...> {};
+
+template<class, class T, class... Ts>
+struct is_invocation_to_imaginary_function_set_valid_impl : false_type {};
+
+template<class T, class... Ts>
+struct is_invocation_to_imaginary_function_set_valid_impl<void_t<typename invoke_result<imaginary_function_set<T, Ts...>, T>::type>, T, Ts...> : true_type {};
+
+template<class T, class... Ts>
+struct is_invocation_to_imaginary_function_set_valid : is_invocation_to_imaginary_function_set_valid_impl<void, T, Ts...> {};
+
+template<class T, class... Ts>
+struct select_alternative : invoke_result<imaginary_function_set<T, Ts...>, T>::type {};
+
 }  // namespace variant_detail
 
 template<class... Ts>
@@ -300,6 +334,8 @@ struct monostate {};
 
 template<class... Ts>
 class variant : private variant_detail::make_variant_base<Ts...>::type {
+  static_assert(sizeof...(Ts) > 0, "variant must be instantiated with at least one type template parameter");
+
 private:
   using base_type = typename variant_detail::make_variant_base<Ts...>::type;
 
@@ -312,11 +348,19 @@ public:
   }
 
   template<
-      std::size_t I, class... Args,
-      typename std::enable_if<std::is_constructible<typename extension::pack_indexing<I, Ts...>::type, Args...>::value, std::nullptr_t>::type = nullptr>
-  constexpr explicit variant(in_place_index_t<I> ipi, Args&&... args) noexcept(
-      std::is_nothrow_constructible<typename extension::pack_indexing<I, Ts...>::type, Args...>::value
-  )
+      class T, typename std::enable_if<!std::is_same<typename remove_cvref<T>::type, variant>::value, std::nullptr_t>::type = nullptr,
+      typename std::enable_if<variant_detail::is_invocation_to_imaginary_function_set_valid<T, Ts...>::value, std::nullptr_t>::type = nullptr,
+      std::size_t SelectedIndex = variant_detail::select_alternative<T, Ts...>::value,
+      class SelectedType = typename extension::pack_indexing<SelectedIndex, Ts...>::type,
+      typename std::enable_if<std::is_constructible<SelectedType, T>::value, std::nullptr_t>::type = nullptr>
+  constexpr variant(T&& t) noexcept(std::is_nothrow_constructible<SelectedType, T>::value) : base_type(in_place_index_t<SelectedIndex>{}, std::forward<T>(t))
+  {
+  }
+
+  template<
+      std::size_t I, class... Args, class SelectedType = typename extension::pack_indexing<I, Ts...>::type,
+      typename std::enable_if<std::is_constructible<SelectedType, Args...>::value, std::nullptr_t>::type = nullptr>
+  constexpr explicit variant(in_place_index_t<I> ipi, Args&&... args) noexcept(std::is_nothrow_constructible<SelectedType, Args...>::value)
       : base_type(ipi, std::forward<Args>(args)...)
   {
   }

@@ -53,8 +53,22 @@ TEST_CASE("variant in-place index construction")
   }
 }
 
-TEST_CASE("dummy")
+TEST_CASE("generic construction")
 {
-  pf::variant<int> vi;
-  pf::variant<NotTriviallyDestructible> vntd;
+  {
+    STATIC_REQUIRE(std::is_constructible<pf::variant<int, double>, int>::value);
+    pf::variant<int, double> vid = 42;
+    CHECK(vid.index() == 0);
+  }
+  {
+    STATIC_REQUIRE(std::is_constructible<pf::variant<int, double>, double>::value);
+    pf::variant<int, double> vid = 3.14;
+    CHECK(vid.index() == 1);
+  }
+
+  // ambiguous
+  STATIC_REQUIRE(!std::is_constructible<pf::variant<long, long long>, int>::value);
+
+  // narrowing
+  STATIC_REQUIRE(!std::is_constructible<pf::variant<int>, double>::value);
 }
