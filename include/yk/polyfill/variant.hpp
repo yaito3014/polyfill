@@ -174,6 +174,9 @@ struct raw_visit_table<Visitor, Storage, index_sequence<Is...>> {
   static constexpr raw_visit_function_type<Visitor, Storage>* value[sizeof...(Is)]{&do_raw_visit<Is, Visitor, Storage>...};
 };
 
+template<class Visitor, class Storage, std::size_t... Is>
+YK_POLYFILL_INLINE constexpr raw_visit_function_type<Visitor, Storage>* raw_visit_table<Visitor, Storage, index_sequence<Is...>>::value[sizeof...(Is)];
+
 struct raw_visit_dispatch {
   template<class Visitor, class Storage>
   static constexpr typename raw_visit_result<Visitor, Storage&&>::type apply(Visitor&& vis, Storage&& storage, std::size_t index) noexcept(
@@ -347,6 +350,7 @@ public:
   {
   }
 
+  // TODO: add constraints for specializations of in_place_*_t
   template<
       class T, typename std::enable_if<!std::is_same<typename remove_cvref<T>::type, variant>::value, std::nullptr_t>::type = nullptr,
       typename std::enable_if<variant_detail::is_invocation_to_imaginary_function_set_valid<T, Ts...>::value, std::nullptr_t>::type = nullptr,

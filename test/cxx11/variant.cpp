@@ -10,22 +10,35 @@
 
 namespace pf = yk::polyfill;
 
+struct NotDefaultConstructible {
+  NotDefaultConstructible(int) {}
+};
+
 struct NotTriviallyDestructible {
   ~NotTriviallyDestructible() {}
 };
 
-TEST_CASE("variant destruction")
+TEST_CASE("variant default construction and destruction")
 {
+  // default construction
+  STATIC_REQUIRE(std::is_default_constructible<pf::variant<int>>::value);
+  STATIC_REQUIRE(!std::is_default_constructible<pf::variant<NotDefaultConstructible>>::value);
+
+  // trivial destruction
   STATIC_REQUIRE(std::is_trivially_destructible<pf::variant<int>>::value);
   STATIC_REQUIRE(!std::is_trivially_destructible<pf::variant<NotTriviallyDestructible>>::value);
 
+  // destruction
   STATIC_REQUIRE(std::is_destructible<pf::variant<int>>::value);
   STATIC_REQUIRE(std::is_destructible<pf::variant<NotTriviallyDestructible>>::value);
-}
 
-struct NotDefaultConstructible {
-  NotDefaultConstructible(int) {}
-};
+  {
+    pf::variant<int> vi;
+  }
+  {
+    pf::variant<NotTriviallyDestructible> vntd;
+  }
+}
 
 TEST_CASE("variant in-place index construction")
 {
@@ -53,7 +66,7 @@ TEST_CASE("variant in-place index construction")
   }
 }
 
-TEST_CASE("generic construction")
+TEST_CASE("variant generic construction")
 {
   {
     STATIC_REQUIRE(std::is_constructible<pf::variant<int, double>, int>::value);
