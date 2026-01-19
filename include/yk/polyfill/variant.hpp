@@ -175,7 +175,7 @@ struct raw_visit_table<Visitor, Storage, index_sequence<Is...>> {
 };
 
 template<class Visitor, class Storage, std::size_t... Is>
-YK_POLYFILL_INLINE constexpr raw_visit_function_type<Visitor, Storage>* raw_visit_table<Visitor, Storage, index_sequence<Is...>>::value[sizeof...(Is)];
+constexpr raw_visit_function_type<Visitor, Storage>* raw_visit_table<Visitor, Storage, index_sequence<Is...>>::value[sizeof...(Is)];
 
 struct raw_visit_dispatch {
   template<class Visitor, class Storage>
