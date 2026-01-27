@@ -308,6 +308,18 @@ struct is_invocation_to_imaginary_function_set_valid : is_invocation_to_imaginar
 template<class T, class... Ts>
 struct select_alternative : invoke_result<imaginary_function_set<T, Ts...>, T>::type {};
 
+template<class T>
+struct is_in_place_type : false_type {};
+
+template<class T>
+struct is_in_place_type<in_place_type_t<T>> : true_type {};
+
+template<class T>
+struct is_in_place_index : false_type {};
+
+template<std::size_t I>
+struct is_in_place_index<in_place_index_t<I>> : true_type {};
+
 }  // namespace variant_detail
 
 template<class... Ts>
@@ -350,10 +362,11 @@ public:
   {
   }
 
-  // TODO: add constraints for specializations of in_place_*_t
   template<
       class T, typename std::enable_if<!std::is_same<typename remove_cvref<T>::type, variant>::value, std::nullptr_t>::type = nullptr,
       typename std::enable_if<variant_detail::is_invocation_to_imaginary_function_set_valid<T, Ts...>::value, std::nullptr_t>::type = nullptr,
+      typename std::enable_if<!variant_detail::is_in_place_type<T>::value, std::nullptr_t>::type = nullptr,
+      typename std::enable_if<!variant_detail::is_in_place_index<T>::value, std::nullptr_t>::type = nullptr,
       std::size_t SelectedIndex = variant_detail::select_alternative<T, Ts...>::value,
       class SelectedType = typename extension::pack_indexing<SelectedIndex, Ts...>::type,
       typename std::enable_if<std::is_constructible<SelectedType, T>::value, std::nullptr_t>::type = nullptr>
