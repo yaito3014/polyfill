@@ -4,6 +4,7 @@
 #include <yk/polyfill/config.hpp>
 
 #include <yk/polyfill/bits/core_traits.hpp>
+#include <yk/polyfill/bits/trivial_base.hpp>
 #include <yk/polyfill/extension/pack_indexing.hpp>
 #include <yk/polyfill/functional.hpp>
 #include <yk/polyfill/utility.hpp>
@@ -348,11 +349,11 @@ YK_POLYFILL_INLINE constexpr std::size_t variant_npos = -1;
 struct monostate {};
 
 template<class... Ts>
-class variant : private variant_detail::make_variant_base<Ts...>::type {
+class variant : private trivial_base_detail::select_base_for_special_member_functions<typename variant_detail::make_variant_base<Ts...>::type> {
   static_assert(sizeof...(Ts) > 0, "variant must be instantiated with at least one type template parameter");
 
 private:
-  using base_type = typename variant_detail::make_variant_base<Ts...>::type;
+  using base_type = trivial_base_detail::select_base_for_special_member_functions<typename variant_detail::make_variant_base<Ts...>::type>;
 
 public:
   template<
