@@ -120,6 +120,7 @@ TEST_CASE("variant get")
 
 TEST_CASE("variant copy construction")
 {
+  SECTION("trivial")
   {
     using V = pf::variant<int, double>;
     STATIC_REQUIRE(std::is_trivially_copy_constructible<V>::value);
@@ -127,11 +128,10 @@ TEST_CASE("variant copy construction")
     V b = a;
     CHECK(pf::get<0>(b) == 42);
   }
+  SECTION("non-trivial")
   {
     struct NonTriviallyCopyConstructible {
-      NonTriviallyCopyConstructible() = default;
       NonTriviallyCopyConstructible(NonTriviallyCopyConstructible const&) {}
-      NonTriviallyCopyConstructible(NonTriviallyCopyConstructible&&) = default;
     };
     using V = pf::variant<int, NonTriviallyCopyConstructible>;
     STATIC_REQUIRE(!std::is_trivially_copy_constructible<V>::value);
@@ -159,8 +159,6 @@ TEST_CASE("variant move construction")
   }
   {
     struct NonTriviallyMoveConstructible {
-      NonTriviallyMoveConstructible() = default;
-      NonTriviallyMoveConstructible(NonTriviallyMoveConstructible const&) = default;
       NonTriviallyMoveConstructible(NonTriviallyMoveConstructible&&) {}
     };
     using V = pf::variant<int, NonTriviallyMoveConstructible>;
@@ -175,5 +173,55 @@ TEST_CASE("variant move construction")
     make_valueless(a);
     pf::variant<int, ThrowsOnConstruction> b = std::move(a);
     CHECK(b.valueless_by_exception());
+  }
+}
+
+TEST_CASE("variant copy assignment")
+{
+  SECTION("trivial case")
+  {
+    using V = pf::variant<int, double>;
+    STATIC_REQUIRE(std::is_trivially_copy_assignable<V>::value);
+    SECTION("same alternative")
+    {
+      V a = 12;
+      V b = 34;
+      a = b;
+      CHECK(pf::get<0>(a) == 34);
+      CHECK(pf::get<0>(b) == 34);
+    }
+    SECTION("different alternative")
+    {
+      V a = 12;
+      V b = 3.14;
+      a = b;
+      CHECK(pf::get<1>(a) == 3.14);
+      CHECK(pf::get<1>(b) == 3.14);
+    }
+  }
+  SECTION("non-trivial case")
+  {
+    struct NonTriviallyCopyAssignable {
+      NonTriviallyCopyAssignable& operator=(NonTriviallyCopyAssignable const&) { return *this; }
+    };
+    using V = pf::variant<int, NonTriviallyCopyAssignable>;
+    STATIC_REQUIRE(!std::is_trivially_copy_assignable<V>::value);
+    STATIC_REQUIRE(std::is_copy_assignable<V>::value);
+    SECTION("same alternative")
+    {
+      V a = 12;
+      V b = 34;
+      a = b;
+      CHECK(pf::get<0>(a) == 34);
+      CHECK(pf::get<0>(b) == 34);
+    }
+    SECTION("different alternative")
+    {
+      V a = NonTriviallyCopyAssignable{};
+      V b = 42;
+      a = b;
+      CHECK(pf::get<0>(a) == 42);
+      CHECK(pf::get<0>(b) == 42);
+    }
   }
 }
