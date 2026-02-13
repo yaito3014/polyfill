@@ -159,6 +159,9 @@ struct variadic_union<false, Head, Rest...> {
     rest_type rest;
   };
 
+  // When at least one type is non-trivially destrictible, union cannot be
+  // non-trivially destructible. So the destructor is manually defined here
+  // and destruction of contained value is handled by `variant_base`.
   YK_POLYFILL_CXX20_CONSTEXPR ~variadic_union() noexcept {}
 
   constexpr variadic_union(valueless_t vl) : rest(vl) {}
