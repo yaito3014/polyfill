@@ -340,7 +340,7 @@ struct variant_storage {
     other.raw_visit(valueless_constructor<Ts...>{this});
   }
 
-  YK_POLYFILL_CXX20_CONSTEXPR void _move_construct(variant_storage&& other) noexcept(conjunction<std::is_nothrow_copy_constructible<Ts>...>::value)
+  YK_POLYFILL_CXX20_CONSTEXPR void _move_construct(variant_storage&& other) noexcept(conjunction<std::is_nothrow_move_constructible<Ts>...>::value)
   {
     std::move(other).raw_visit(valueless_constructor<Ts...>{this});
   }
