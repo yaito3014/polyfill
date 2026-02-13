@@ -345,7 +345,7 @@ template<std::size_t I, class T>
 struct variant_destroyer_impl<I, T, false> {
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(T&& x)
   {
-    using U = remove_cvref<T>::type;
+    using U = typename remove_cvref<T>::type;
     x.~U();
   }
 };
