@@ -29,12 +29,12 @@ struct select_index {
 };
 
 template<std::size_t Size>
-struct select_index<Size, typename std::enable_if<(0 <= Size && Size <= 256)>::type> {
+struct select_index<Size, typename std::enable_if<(Size < 255)>::type> {
   using type = std::uint8_t;
 };
 
 template<std::size_t Size>
-struct select_index<Size, typename std::enable_if<(256 < Size && Size <= 65536)>::type> {
+struct select_index<Size, typename std::enable_if<(255 <= Size && Size < 65535)>::type> {
   using type = std::uint16_t;
 };
 
