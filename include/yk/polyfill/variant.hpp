@@ -324,7 +324,7 @@ struct variant_storage {
   {
   }
 
-  constexpr bool valueless_by_exception() const noexcept { return index != variant_npos; }
+  constexpr bool valueless_by_exception() const noexcept { return index == variant_npos; }
 
   template<std::size_t I, class... Args>
   YK_POLYFILL_CXX20_CONSTEXPR void construct_on_valueless(Args&&... args) noexcept(
