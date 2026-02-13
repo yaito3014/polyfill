@@ -95,12 +95,6 @@ TEST_CASE("variant get")
   CHECK(pf::get<1>(vid) == 3.14);
 }
 
-struct NonTriviallyCopyConstructible {
-  NonTriviallyCopyConstructible() = default;
-  NonTriviallyCopyConstructible(NonTriviallyCopyConstructible const&) {}
-  NonTriviallyCopyConstructible(NonTriviallyCopyConstructible&&) = default;
-};
-
 TEST_CASE("variant copy construction")
 {
   {
@@ -111,11 +105,36 @@ TEST_CASE("variant copy construction")
     CHECK(pf::get<0>(b) == 42);
   }
   {
+    struct NonTriviallyCopyConstructible {
+      NonTriviallyCopyConstructible() = default;
+      NonTriviallyCopyConstructible(NonTriviallyCopyConstructible const&) {}
+      NonTriviallyCopyConstructible(NonTriviallyCopyConstructible&&) = default;
+    };
     using V = pf::variant<int, NonTriviallyCopyConstructible>;
-    STATIC_REQUIRE(!std::is_trivially_copy_constructible<NonTriviallyCopyConstructible>::value);
-    STATIC_REQUIRE(std::is_copy_constructible<NonTriviallyCopyConstructible>::value);
     V a = 42;
     V b = a;
+    CHECK(pf::get<0>(b) == 42);
+  }
+}
+
+TEST_CASE("variant move construction")
+{
+  {
+    using V = pf::variant<int, double>;
+    STATIC_REQUIRE(std::is_trivially_copy_constructible<V>::value);
+    V a = 42;
+    V b = a;
+    CHECK(pf::get<0>(b) == 42);
+  }
+  {
+    struct NonTriviallyMoveConstructible {
+      NonTriviallyMoveConstructible() = default;
+      NonTriviallyMoveConstructible(NonTriviallyMoveConstructible const&) = default;
+      NonTriviallyMoveConstructible(NonTriviallyMoveConstructible&&) {}
+    };
+    using V = pf::variant<int, NonTriviallyMoveConstructible>;
+    V a = 42;
+    V b = std::move(a);
     CHECK(pf::get<0>(b) == 42);
   }
 }
