@@ -77,7 +77,7 @@ struct find_index_impl {};
 
 template<std::size_t I, class T, class U, class... Us>
 struct find_index_impl<I, T, U, Us...>
-    : std::conditional<std::is_same<T, U>::value, std::integral_constant<std::size_t, I>, find_index_impl<I + 1, U, Us...>>::type {};
+    : std::conditional<std::is_same<T, U>::value, std::integral_constant<std::size_t, I>, find_index_impl<I + 1, T, Us...>>::type {};
 
 template<class T, class... Us>
 struct find_index : find_index_impl<0, T, Us...> {};
@@ -86,7 +86,7 @@ template<bool Found, class T, class... Us>
 struct exactly_once_impl : bool_constant<Found> {};
 
 template<class T, class U, class... Us>
-struct exactly_once_impl<false, T, U, Us...> : exactly_once_impl<std::is_same<T, U>::value, Us...> {};
+struct exactly_once_impl<false, T, U, Us...> : exactly_once_impl<std::is_same<T, U>::value, T, Us...> {};
 
 template<class T, class U, class... Us>
 struct exactly_once_impl<true, T, U, Us...> : std::conditional<std::is_same<T, U>::value, false_type, exactly_once_impl<true, T, Us...>>::type {};
