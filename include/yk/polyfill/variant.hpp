@@ -217,7 +217,7 @@ struct raw_visit_result {
 template<std::size_t I, class Visitor, class Storage>
 constexpr typename raw_visit_result<Visitor, Storage&&>::type do_raw_visit(Visitor&& vis, Storage&& storage)
 {
-  return invoke(std::forward<Visitor>(vis), in_place_index<I>, raw_get<I>(std::forward<Storage>(storage)));
+  return invoke(std::forward<Visitor>(vis), in_place_index_t<I>{}, raw_get<I>(std::forward<Storage>(storage)));
 }
 
 template<class Visitor, class Storage>
@@ -331,7 +331,7 @@ struct variant_storage {
       std::is_nothrow_constructible<typename extension::pack_indexing<I, Ts...>::type, Args...>::value
   )
   {
-    construct_at(&storage, in_place_index<I>, std::forward<Args>(args)...);
+    construct_at(&storage, in_place_index_t<I>{}, std::forward<Args>(args)...);
   }
 
   YK_POLYFILL_CXX20_CONSTEXPR void _copy_construct(variant_storage const& other) noexcept(conjunction<std::is_nothrow_copy_constructible<Ts>...>::value)
