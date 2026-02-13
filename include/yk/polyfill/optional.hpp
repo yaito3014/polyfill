@@ -199,7 +199,7 @@ struct optional_storage_base : public optional_destruct_base<T> {  // T is NOT a
   template<class... Args>
   YK_POLYFILL_CXX17_CONSTEXPR void construct(Args&&... args) noexcept(std::is_nothrow_constructible<T, Args...>::value)
   {
-    construct_at(std::addressof(base::value), std::forward<Args>(args)...);
+    polyfill::construct_at(std::addressof(base::value), std::forward<Args>(args)...);
     base::engaged = true;
   }
 

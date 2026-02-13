@@ -331,7 +331,7 @@ struct variant_storage {
       std::is_nothrow_constructible<typename extension::pack_indexing<I, Ts...>::type, Args...>::value
   )
   {
-    construct_at(&storage, in_place_index_t<I>{}, std::forward<Args>(args)...);
+    polyfill::construct_at(&storage, in_place_index_t<I>{}, std::forward<Args>(args)...);
   }
 
   YK_POLYFILL_CXX20_CONSTEXPR void _copy_construct(variant_storage const& other) noexcept(conjunction<std::is_nothrow_copy_constructible<Ts>...>::value)
