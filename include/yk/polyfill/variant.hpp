@@ -249,17 +249,17 @@ struct variant_destroyer_impl;
 
 template<class T>
 struct variant_destroyer_impl<T, true> {
-  static YK_POLYFILL_CXX14_CONSTEXPR void apply(T&) {}
+  static YK_POLYFILL_CXX14_CONSTEXPR void apply(T&&) {}
 };
 
 template<class T>
 struct variant_destroyer_impl<T, false> {
-  static YK_POLYFILL_CXX20_CONSTEXPR void apply(T& x) { x.~T(); }
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(T&& x) { x.~T(); }
 };
 
 struct variant_destroyer {
   template<std::size_t I, class T>
-  YK_POLYFILL_CXX20_CONSTEXPR void operator()(in_place_index_t<I>, T& x) noexcept
+  YK_POLYFILL_CXX20_CONSTEXPR void operator()(in_place_index_t<I>, T&& x) noexcept
   {
     variant_destroyer_impl<T>::apply(x);
   }
