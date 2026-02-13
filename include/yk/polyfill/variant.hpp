@@ -323,7 +323,7 @@ constexpr raw_visit_function_type<VisitorFWD, StorageFWD>*
 struct raw_visit_dispatch {
   template<class VisitorFWD, class StorageFWD>
   static constexpr typename raw_visit_result<VisitorFWD, StorageFWD&&>::type apply(VisitorFWD&& vis, StorageFWD&& storage, std::size_t biased_i) noexcept(
-      is_nothrow_invocable<raw_visit_function_type<VisitorFWD, StorageFWD>*, VisitorFWD, StorageFWD, std::size_t>::value
+      raw_visit_noexcept<VisitorFWD, StorageFWD>::value
   )
   {
     return invoke(raw_visit_table<VisitorFWD, StorageFWD>::value[biased_i], std::forward<VisitorFWD>(vis), std::forward<StorageFWD>(storage));
