@@ -72,6 +72,11 @@ struct select_index<Size, typename std::enable_if<(255 <= Size && Size < 65535)>
   using type = std::uint16_t;
 };
 
+template<std::size_t Size>
+struct variant_npos_for {
+  static constexpr typename select_index<Size>::type value = -1;
+};
+
 template<std::size_t I, class T, class... Us>
 struct find_index_impl {};
 
@@ -98,8 +103,13 @@ struct valueless_t {};
 
 YK_POLYFILL_INLINE constexpr valueless_t valueless{};
 
+template<class... Ts>
+struct is_never_valueless : conjunction<std::is_trivially_copyable<Ts>...> {};
+
 template<bool TriviallyDestructible, class... Ts>
 struct variadic_union {
+  static constexpr bool never_valueless = false;
+
   constexpr variadic_union(valueless_t) {}
 
   static constexpr std::size_t size() noexcept { return sizeof...(Ts); }
@@ -112,6 +122,8 @@ struct make_variadic_union {
 
 template<class Head, class... Rest>
 struct variadic_union<true, Head, Rest...> {
+  static constexpr bool never_valueless = false;  // FIXME
+
   using head_type = Head;
   using rest_type = typename make_variadic_union<Rest...>::type;
 
@@ -137,6 +149,8 @@ struct variadic_union<true, Head, Rest...> {
 
 template<class Head, class... Rest>
 struct variadic_union<false, Head, Rest...> {
+  static constexpr bool never_valueless = false;  // FIXME
+
   using head_type = Head;
   using rest_type = typename make_variadic_union<Rest...>::type;
 
@@ -162,35 +176,65 @@ struct variadic_union<false, Head, Rest...> {
   static constexpr std::size_t size() noexcept { return 1 + sizeof...(Rest); }
 };
 
-template<std::size_t I, class Storage>
+template<bool NeverValueless>
+constexpr std::size_t bias(std::size_t) noexcept;
+
+template<>
+constexpr std::size_t bias<true>(std::size_t x) noexcept
+{
+  return x;
+}
+
+template<>
+constexpr std::size_t bias<false>(std::size_t x) noexcept
+{
+  return x + 1;
+}
+
+template<bool NeverValueless>
+constexpr std::size_t unbias(std::size_t) noexcept;
+
+template<>
+constexpr std::size_t unbias<true>(std::size_t x) noexcept
+{
+  return x;
+}
+
+template<>
+constexpr std::size_t unbias<false>(std::size_t x) noexcept
+{
+  return x - 1;
+}
+
+template<std::size_t UnbiasedI, class Storage>
 struct raw_get_result {};
 
-template<std::size_t I, bool TriviallyDestructible, class... Ts>
-struct raw_get_result<I, variadic_union<TriviallyDestructible, Ts...>&> {
-  using type = typename extension::pack_indexing<I, Ts...>::type&;
+template<std::size_t UnbiasedI, bool TriviallyDestructible, class... Ts>
+struct raw_get_result<UnbiasedI, variadic_union<TriviallyDestructible, Ts...>&> {
+  using type = typename extension::pack_indexing<UnbiasedI, Ts...>::type&;
 };
 
-template<std::size_t I, bool TriviallyDestructible, class... Ts>
-struct raw_get_result<I, variadic_union<TriviallyDestructible, Ts...> const&> {
-  using type = typename extension::pack_indexing<I, Ts...>::type const&;
+template<std::size_t UnbiasedI, bool TriviallyDestructible, class... Ts>
+struct raw_get_result<UnbiasedI, variadic_union<TriviallyDestructible, Ts...> const&> {
+  using type = typename extension::pack_indexing<UnbiasedI, Ts...>::type const&;
 };
 
-template<std::size_t I, bool TriviallyDestructible, class... Ts>
-struct raw_get_result<I, variadic_union<TriviallyDestructible, Ts...>&&> {
-  using type = typename extension::pack_indexing<I, Ts...>::type&&;
+template<std::size_t UnbiasedI, bool TriviallyDestructible, class... Ts>
+struct raw_get_result<UnbiasedI, variadic_union<TriviallyDestructible, Ts...>&&> {
+  using type = typename extension::pack_indexing<UnbiasedI, Ts...>::type&&;
 };
 
-template<std::size_t I, bool TriviallyDestructible, class... Ts>
-struct raw_get_result<I, variadic_union<TriviallyDestructible, Ts...> const&&> {
-  using type = typename extension::pack_indexing<I, Ts...>::type const&&;
+template<std::size_t UnbiasedI, bool TriviallyDestructible, class... Ts>
+struct raw_get_result<UnbiasedI, variadic_union<TriviallyDestructible, Ts...> const&&> {
+  using type = typename extension::pack_indexing<UnbiasedI, Ts...>::type const&&;
 };
 
-template<std::size_t I>
+template<std::size_t UnbiasedI>
 struct raw_get_impl {
   template<class Storage>
-  static constexpr typename raw_get_result<I, Storage&&>::type apply(Storage&& storage) noexcept
+  static constexpr typename raw_get_result<UnbiasedI, Storage&&>::type apply(Storage&& storage) noexcept
   {
-    return raw_get_impl<I - 1>::apply(std::forward<Storage>(storage).rest);
+    return raw_get_impl<UnbiasedI - 1>::apply(std::forward<Storage>(storage).rest);
   }
 };
 
@@ -203,10 +247,10 @@ struct raw_get_impl<0> {
   }
 };
 
-template<std::size_t I, class Storage>
-constexpr typename raw_get_result<I, Storage&&>::type raw_get(Storage&& storage) noexcept
+template<std::size_t UnbiasedI, class Storage>
+constexpr typename raw_get_result<UnbiasedI, Storage&&>::type raw_get(Storage&& storage) noexcept
 {
-  return raw_get_impl<I>::apply(std::forward<Storage>(storage));
+  return raw_get_impl<UnbiasedI>::apply(std::forward<Storage>(storage));
 }
 
 template<class Visitor, class Storage>
@@ -214,59 +258,112 @@ struct raw_visit_result {
   using type = typename invoke_result<Visitor, in_place_index_t<0>, typename raw_get_result<0, Storage&&>::type>::type;
 };
 
-template<std::size_t I, class Visitor, class Storage>
+template<bool NeverValueless, std::size_t BiasedI>
+struct do_raw_visit_impl {
+  template<class Visitor, class Storage>
+  static constexpr typename raw_visit_result<Visitor, Storage&&>::type apply(Visitor&& vis, Storage&& storage)
+  {
+    constexpr std::size_t UnbiasedI = unbias<NeverValueless>(BiasedI);
+    return invoke(std::forward<Visitor>(vis), in_place_index_t<UnbiasedI>{}, raw_get<UnbiasedI>(std::forward<Storage>(storage)));
+  }
+};
+
+// When `NeverValueless` is false and BiasedI is 0, it means `raw_visit` is attempting to access valueless variant.
+// Instead of calling `raw_get`, `do_raw_visit` passes `storage` itself.
+template<>
+struct do_raw_visit_impl<false, 0> {
+  template<class Visitor, class Storage>
+  static constexpr typename raw_visit_result<Visitor, Storage&&>::type apply(Visitor&& vis, Storage&& storage)
+  {
+    return invoke(std::forward<Visitor>(vis), in_place_index_t<variant_npos>{}, std::forward<Storage>(storage));
+  }
+};
+
+template<std::size_t BiasedI, class Visitor, class Storage>
 constexpr typename raw_visit_result<Visitor, Storage&&>::type do_raw_visit(Visitor&& vis, Storage&& storage)
 {
-  return invoke(std::forward<Visitor>(vis), in_place_index_t<I>{}, raw_get<I>(std::forward<Storage>(storage)));
+  return do_raw_visit_impl<remove_cvref<Storage>::type::never_valueless, BiasedI>::apply(std::forward<Visitor>(vis), std::forward<Storage>(storage));
 }
 
 template<class Visitor, class Storage>
 using raw_visit_function_type = typename raw_visit_result<Visitor, Storage&&>::type(Visitor&&, Storage&&);
 
-template<class Visitor, class Storage, class IndexSeq = make_index_sequence<remove_cvref<Storage>::type::size()>>
+template<
+    class Visitor, class Storage,
+    class BiasedIndexSeq = make_index_sequence<bias<remove_cvref<Storage>::type::never_valueless>(remove_cvref<Storage>::type::size())>>
 struct raw_visit_table {};
 
-template<class Visitor, class Storage, std::size_t... Is>
-struct raw_visit_table<Visitor, Storage, index_sequence<Is...>> {
-  static constexpr raw_visit_function_type<Visitor, Storage>* value[sizeof...(Is)]{&do_raw_visit<Is, Visitor, Storage>...};
+template<class Visitor, class Storage, std::size_t... BiasedIs>
+struct raw_visit_table<Visitor, Storage, index_sequence<BiasedIs...>> {
+  static constexpr raw_visit_function_type<Visitor, Storage>* value[sizeof...(BiasedIs)]{&do_raw_visit<BiasedIs, Visitor, Storage>...};
 };
 
-template<class Visitor, class Storage, std::size_t... Is>
-constexpr raw_visit_function_type<Visitor, Storage>* raw_visit_table<Visitor, Storage, index_sequence<Is...>>::value[sizeof...(Is)];
+template<class Visitor, class Storage, std::size_t... BiasedIs>
+constexpr raw_visit_function_type<Visitor, Storage>* raw_visit_table<Visitor, Storage, index_sequence<BiasedIs...>>::value[sizeof...(BiasedIs)];
 
 struct raw_visit_dispatch {
   template<class Visitor, class Storage>
-  static constexpr typename raw_visit_result<Visitor, Storage&&>::type apply(Visitor&& vis, Storage&& storage, std::size_t index) noexcept(
+  static constexpr typename raw_visit_result<Visitor, Storage&&>::type apply(Visitor&& vis, Storage&& storage, std::size_t biased_i) noexcept(
       is_nothrow_invocable<raw_visit_function_type<Visitor, Storage>*, Visitor, Storage, std::size_t>::value
   )
   {
-    return invoke(raw_visit_table<Visitor, Storage>::value[index], std::forward<Visitor>(vis), std::forward<Storage>(storage));
+    return invoke(raw_visit_table<Visitor, Storage>::value[biased_i], std::forward<Visitor>(vis), std::forward<Storage>(storage));
   }
 };
 
-template<class T, bool TriviallyDestructible = std::is_trivially_destructible<T>::value>
+template<std::size_t I, class T, bool TriviallyDestructible = std::is_trivially_destructible<T>::value>
 struct variant_destroyer_impl;
 
+template<std::size_t I, class T>
+struct variant_destroyer_impl<I, T, true> {
+  static YK_POLYFILL_CXX14_CONSTEXPR void apply(T&&) {}
+};
+
+template<std::size_t I, class T>
+struct variant_destroyer_impl<I, T, false> {
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(T&& x) { x.~T(); }
+};
+
 template<class T>
-struct variant_destroyer_impl<T, true> {
+struct variant_destroyer_impl<variant_npos, T, true> {
   static YK_POLYFILL_CXX14_CONSTEXPR void apply(T&&) {}
 };
 
 template<class T>
-struct variant_destroyer_impl<T, false> {
-  static YK_POLYFILL_CXX20_CONSTEXPR void apply(T&& x) { x.~T(); }
+struct variant_destroyer_impl<variant_npos, T, false> {
+  static YK_POLYFILL_CXX14_CONSTEXPR void apply(T&&) {}
 };
 
 struct variant_destroyer {
   template<std::size_t I, class T>
-  YK_POLYFILL_CXX20_CONSTEXPR void operator()(in_place_index_t<I>, T&& x) noexcept
+  YK_POLYFILL_CXX20_CONSTEXPR void operator()(in_place_index_t<I>, T&& x) noexcept  // FIXME
   {
-    variant_destroyer_impl<T>::apply(x);
+    variant_destroyer_impl<I, T>::apply(x);
   }
 };
 
 template<class... Ts>
 struct variant_storage;
+
+template<std::size_t I, class... Ts>
+struct valueless_constructor_impl {
+  template<class U>
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(variant_storage<Ts...>* self, U&& u) noexcept(
+      std::is_nothrow_constructible<typename extension::pack_indexing<I, Ts...>::type, U>::value
+  )
+  {
+    self->template construct_on_valueless<I>(std::forward<U>(u));
+  }
+};
+
+template<class... Ts>
+struct valueless_constructor_impl<variant_npos, Ts...> {
+  template<class U>
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(variant_storage<Ts...>*, U&&) noexcept
+  {
+    // no-op
+  }
+};
 
 template<class... Ts>
 struct valueless_constructor {
@@ -275,7 +372,7 @@ struct valueless_constructor {
   template<std::size_t I, class U>
   YK_POLYFILL_CXX20_CONSTEXPR void operator()(in_place_index_t<I>, U&& u) noexcept
   {
-    self->template construct_on_valueless<I>(std::forward<U>(u));
+    valueless_constructor_impl<I, Ts...>::apply(self, std::forward<U>(u));
   }
 };
 
@@ -290,25 +387,25 @@ struct variant_storage {
   template<class Visitor>
   YK_POLYFILL_CXX14_CONSTEXPR typename raw_visit_result<Visitor, storage_type&>::type raw_visit(Visitor&& vis) &
   {
-    return raw_visit_dispatch::apply(std::forward<Visitor>(vis), storage, index);
+    return raw_visit_dispatch::apply(std::forward<Visitor>(vis), storage, bias<storage_type::never_valueless>(index));
   }
 
   template<class Visitor>
   constexpr typename raw_visit_result<Visitor, storage_type const&>::type raw_visit(Visitor&& vis) const&
   {
-    return raw_visit_dispatch::apply(std::forward<Visitor>(vis), storage, index);
+    return raw_visit_dispatch::apply(std::forward<Visitor>(vis), storage, bias<storage_type::never_valueless>(index));
   }
 
   template<class Visitor>
   YK_POLYFILL_CXX14_CONSTEXPR typename raw_visit_result<Visitor, storage_type&&>::type raw_visit(Visitor&& vis) &&
   {
-    return raw_visit_dispatch::apply(std::forward<Visitor>(vis), std::move(storage), index);
+    return raw_visit_dispatch::apply(std::forward<Visitor>(vis), std::move(storage), bias<storage_type::never_valueless>(index));
   }
 
   template<class Visitor>
   constexpr typename raw_visit_result<Visitor, storage_type const&&>::type raw_visit(Visitor&& vis) const&&
   {
-    return raw_visit_dispatch::apply(std::forward<Visitor>(vis), std::move(storage), index);
+    return raw_visit_dispatch::apply(std::forward<Visitor>(vis), std::move(storage), bias<storage_type::never_valueless>(index));
   }
 
   constexpr variant_storage() noexcept(std::is_nothrow_default_constructible<typename extension::pack_indexing<0, Ts...>::type>::value)
@@ -324,7 +421,7 @@ struct variant_storage {
   {
   }
 
-  constexpr bool valueless_by_exception() const noexcept { return index == variant_npos; }
+  constexpr bool valueless_by_exception() const noexcept { return index == variant_npos_for<sizeof...(Ts)>::value; }
 
   template<std::size_t I, class... Args>
   YK_POLYFILL_CXX20_CONSTEXPR void construct_on_valueless(Args&&... args) noexcept(
@@ -333,6 +430,19 @@ struct variant_storage {
   {
     polyfill::construct_at(&storage, in_place_index_t<I>{}, std::forward<Args>(args)...);
     index = I;
+  }
+
+  YK_POLYFILL_CXX17_CONSTEXPR void reset() noexcept(conjunction<std::is_nothrow_destructible<Ts>...>::value)
+  {
+    raw_visit(variant_destroyer{});
+    index = variant_npos_for<sizeof...(Ts)>::value;
+  }
+
+  template<std::size_t I, class... Args>
+  YK_POLYFILL_CXX20_CONSTEXPR void emplace(Args&&... args) // TODO: add noexcept
+  {
+    if (!valueless_by_exception()) reset();
+    construct_on_valueless<I>(std::forward<Args>(args)...);
   }
 
   YK_POLYFILL_CXX20_CONSTEXPR void _copy_construct(variant_storage const& other) noexcept(conjunction<std::is_nothrow_copy_constructible<Ts>...>::value)
@@ -422,6 +532,7 @@ private:
   using base_type = cond_trivial_smf<typename variant_detail::make_variant_base<Ts...>::type, Ts...>;
 
 public:
+  using base_type::emplace;
   using base_type::valueless_by_exception;
 
   template<
