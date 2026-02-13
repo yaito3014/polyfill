@@ -9,6 +9,7 @@
 #include <yk/polyfill/functional.hpp>
 #include <yk/polyfill/utility.hpp>
 
+#include <exception>
 #include <utility>
 
 #include <cstddef>
@@ -37,6 +38,28 @@ template<std::size_t Size>
 struct select_index<Size, typename std::enable_if<(255 <= Size && Size < 65535)>::type> {
   using type = std::uint16_t;
 };
+
+template<std::size_t I, class T, class... Us>
+struct find_index_impl {};
+
+template<std::size_t I, class T, class U, class... Us>
+struct find_index_impl<I, T, U, Us...>
+    : std::conditional<std::is_same<T, U>::value, std::integral_constant<std::size_t, I>, find_index_impl<I + 1, U, Us...>>::type {};
+
+template<class T, class... Us>
+struct find_index : find_index_impl<0, T, Us...> {};
+
+template<bool Found, class T, class... Us>
+struct exactly_once_impl : bool_constant<Found> {};
+
+template<class T, class U, class... Us>
+struct exactly_once_impl<false, T, U, Us...> : exactly_once_impl<std::is_same<T, U>::value, Us...> {};
+
+template<class T, class U, class... Us>
+struct exactly_once_impl<true, T, U, Us...> : std::conditional<std::is_same<T, U>::value, false_type, exactly_once_impl<true, T, Us...>>::type {};
+
+template<class T, class... Us>
+struct exactly_once : exactly_once_impl<false, T, Us...> {};
 
 struct valueless_t {};
 
@@ -155,13 +178,13 @@ constexpr typename raw_get_result<I, Storage&&>::type raw_get(Storage&& storage)
 
 template<class Visitor, class Storage>
 struct raw_visit_result {
-  using type = typename invoke_result<Visitor, typename raw_get_result<0, Storage&&>::type>::type;
+  using type = typename invoke_result<Visitor, in_place_index_t<0>, typename raw_get_result<0, Storage&&>::type>::type;
 };
 
 template<std::size_t I, class Visitor, class Storage>
 constexpr typename raw_visit_result<Visitor, Storage&&>::type do_raw_visit(Visitor&& vis, Storage&& storage)
 {
-  return invoke(std::forward<Visitor>(vis), raw_get<I>(std::forward<Storage>(storage)));
+  return invoke(std::forward<Visitor>(vis), in_place_index<I>, raw_get<I>(std::forward<Storage>(storage)));
 }
 
 template<class Visitor, class Storage>
@@ -202,8 +225,8 @@ struct variant_destroyer_impl<T, false> {
 };
 
 struct variant_destroyer {
-  template<class T>
-  YK_POLYFILL_CXX20_CONSTEXPR void operator()(T& x) noexcept
+  template<std::size_t I, class T>
+  YK_POLYFILL_CXX20_CONSTEXPR void operator()(in_place_index_t<I>, T& x) noexcept
   {
     variant_destroyer_impl<T>::apply(x);
   }
@@ -253,6 +276,23 @@ struct variant_storage {
       : storage(ipi, std::forward<Args>(args)...), index(I)
   {
   }
+
+  struct constructor {
+    variant_storage* self;
+
+    template<std::size_t I, class Arg>
+    YK_POLYFILL_CXX14_CONSTEXPR void operator()(in_place_index_t<I> ipi, Arg&& arg) /* noexcept */
+    {
+#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
+      std::construct_at(&self->storage, ipi, std::forward<Arg>(arg));
+#else
+      new (&self->storage) storage_type(ipi, std::forward<Arg>(arg));
+#endif
+    }
+  };
+
+  YK_POLYFILL_CXX14_CONSTEXPR void construct_from(variant_storage const& other) { other.raw_visit(constructor{this}); }
+  YK_POLYFILL_CXX14_CONSTEXPR void construct_from(variant_storage&& other) { other.raw_visit(constructor{this}); }
 };
 
 template<bool TriviallyDestructible, class... Ts>
@@ -348,6 +388,11 @@ YK_POLYFILL_INLINE constexpr std::size_t variant_npos = -1;
 
 struct monostate {};
 
+class bad_variant_access : public std::exception {
+public:
+  char const* what() const noexcept override { return "bad variant access"; }
+};
+
 template<class... Ts>
 class variant : private trivial_base_detail::select_base_for_special_member_functions<typename variant_detail::make_variant_base<Ts...>::type> {
   static_assert(sizeof...(Ts) > 0, "variant must be instantiated with at least one type template parameter");
@@ -384,7 +429,59 @@ public:
   }
 
   constexpr std::size_t index() const noexcept { return base_type::index; }
+
+  template<std::size_t I, class... Us>
+  friend constexpr typename variant_alternative<I, variant<Us...>>::type& get(variant<Us...>& v);
+
+  template<std::size_t I, class... Us>
+  friend constexpr typename variant_alternative<I, variant<Us...>>::type const& get(variant<Us...> const& v);
+
+  template<std::size_t I, class... Us>
+  friend constexpr typename variant_alternative<I, variant<Us...>>::type&& get(variant<Us...>&& v);
+
+  template<std::size_t I, class... Us>
+  friend constexpr typename variant_alternative<I, variant<Us...>>::type const&& get(variant<Us...> const&& v);
 };
+
+template<std::size_t I, class... Ts>
+constexpr typename variant_alternative<I, variant<Ts...>>::type& get(variant<Ts...>& v)
+{
+  static_assert(I < sizeof...(Ts), "I must be in sizeof...(Ts)");
+  if (v.index() == I) {
+    return variant_detail::raw_get<I>(v.storage);
+  }
+  throw bad_variant_access{};
+}
+
+template<std::size_t I, class... Ts>
+constexpr typename variant_alternative<I, variant<Ts...>>::type const& get(variant<Ts...> const& v)
+{
+  static_assert(I < sizeof...(Ts), "I must be in sizeof...(Ts)");
+  if (v.index() == I) {
+    return variant_detail::raw_get<I>(v.storage);
+  }
+  throw bad_variant_access{};
+}
+
+template<std::size_t I, class... Ts>
+constexpr typename variant_alternative<I, variant<Ts...>>::type&& get(variant<Ts...>&& v)
+{
+  static_assert(I < sizeof...(Ts), "I must be in sizeof...(Ts)");
+  if (v.index() == I) {
+    return variant_detail::raw_get<I>(std::move(v.storage));
+  }
+  throw bad_variant_access{};
+}
+
+template<std::size_t I, class... Ts>
+constexpr typename variant_alternative<I, variant<Ts...>>::type const&& get(variant<Ts...> const&& v)
+{
+  static_assert(I < sizeof...(Ts), "I must be in sizeof...(Ts)");
+  if (v.index() == I) {
+    return variant_detail::raw_get<I>(std::move(v.storage));
+  }
+  throw bad_variant_access{};
+}
 
 }  // namespace polyfill
 
