@@ -154,7 +154,7 @@ TEST_CASE("variant move construction")
     using V = pf::variant<int, double>;
     STATIC_REQUIRE(std::is_trivially_move_constructible<V>::value);
     V a = 42;
-    V b = a;
+    V b = std::move(a);
     CHECK(pf::get<0>(b) == 42);
   }
   {
