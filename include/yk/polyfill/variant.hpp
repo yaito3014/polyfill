@@ -3,10 +3,13 @@
 
 #include <yk/polyfill/config.hpp>
 
+#include <yk/polyfill/bits/cond_trivial_smf.hpp>
 #include <yk/polyfill/bits/core_traits.hpp>
-#include <yk/polyfill/bits/trivial_base.hpp>
+
 #include <yk/polyfill/extension/pack_indexing.hpp>
+
 #include <yk/polyfill/functional.hpp>
+#include <yk/polyfill/memory.hpp>
 #include <yk/polyfill/utility.hpp>
 
 #include <exception>
@@ -21,6 +24,36 @@
 namespace yk {
 
 namespace polyfill {
+
+template<class... Ts>
+class variant;
+
+template<class T>
+struct variant_size;
+
+template<class T>
+struct variant_size<T const> : variant_size<T> {};
+
+template<class... Ts>
+struct variant_size<variant<Ts...>> : integral_constant<std::size_t, sizeof...(Ts)> {};
+
+template<std::size_t I, class T>
+struct variant_alternative;
+
+template<std::size_t I, class T>
+struct variant_alternative<I, T const> : variant_alternative<I, T> {};
+
+template<std::size_t I, class... Ts>
+struct variant_alternative<I, variant<Ts...>> : extension::pack_indexing<I, Ts...> {};
+
+YK_POLYFILL_INLINE constexpr std::size_t variant_npos = -1;
+
+struct monostate {};
+
+class bad_variant_access : public std::exception {
+public:
+  char const* what() const noexcept override { return "bad variant access"; }
+};
 
 namespace variant_detail {
 
@@ -233,6 +266,20 @@ struct variant_destroyer {
 };
 
 template<class... Ts>
+struct variant_storage;
+
+template<class... Ts>
+struct valueless_constructor {
+  variant_storage<Ts...>* self;
+
+  template<std::size_t I, class U>
+  YK_POLYFILL_CXX20_CONSTEXPR void operator()(in_place_index_t<I>, U&& u) noexcept
+  {
+    self->template construct_on_valueless<I>(std::forward<U>(u));
+  }
+};
+
+template<class... Ts>
 struct variant_storage {
   using storage_type = typename variant_detail::make_variadic_union<Ts...>::type;
   using index_type = typename variant_detail::select_index<sizeof...(Ts)>::type;
@@ -277,22 +324,25 @@ struct variant_storage {
   {
   }
 
-  struct constructor {
-    variant_storage* self;
+  constexpr bool valueless_by_exception() const noexcept { return index != variant_npos; }
 
-    template<std::size_t I, class Arg>
-    YK_POLYFILL_CXX14_CONSTEXPR void operator()(in_place_index_t<I> ipi, Arg&& arg) /* noexcept */
-    {
-#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
-      std::construct_at(&self->storage, ipi, std::forward<Arg>(arg));
-#else
-      new (&self->storage) storage_type(ipi, std::forward<Arg>(arg));
-#endif
-    }
-  };
+  template<std::size_t I, class... Args>
+  YK_POLYFILL_CXX20_CONSTEXPR void construct_on_valueless(Args&&... args) noexcept(
+      std::is_nothrow_constructible<typename extension::pack_indexing<I, Ts...>::type, Args...>::value
+  )
+  {
+    construct_at(&storage, in_place_index<I>, std::forward<Args>(args)...);
+  }
 
-  YK_POLYFILL_CXX14_CONSTEXPR void construct_from(variant_storage const& other) { other.raw_visit(constructor{this}); }
-  YK_POLYFILL_CXX14_CONSTEXPR void construct_from(variant_storage&& other) { other.raw_visit(constructor{this}); }
+  YK_POLYFILL_CXX20_CONSTEXPR void _copy_construct(variant_storage const& other) noexcept(conjunction<std::is_nothrow_copy_constructible<Ts>...>::value)
+  {
+    other.raw_visit(valueless_constructor<Ts...>{this});
+  }
+
+  YK_POLYFILL_CXX20_CONSTEXPR void _move_construct(variant_storage&& other) noexcept(conjunction<std::is_nothrow_copy_constructible<Ts>...>::value)
+  {
+    std::move(other).raw_visit(valueless_constructor<Ts...>{this});
+  }
 };
 
 template<bool TriviallyDestructible, class... Ts>
@@ -364,43 +414,15 @@ struct is_in_place_index<in_place_index_t<I>> : true_type {};
 }  // namespace variant_detail
 
 template<class... Ts>
-class variant;
-
-template<class T>
-struct variant_size;
-
-template<class T>
-struct variant_size<T const> : variant_size<T> {};
-
-template<class... Ts>
-struct variant_size<variant<Ts...>> : integral_constant<std::size_t, sizeof...(Ts)> {};
-
-template<std::size_t I, class T>
-struct variant_alternative;
-
-template<std::size_t I, class T>
-struct variant_alternative<I, T const> : variant_alternative<I, T> {};
-
-template<std::size_t I, class... Ts>
-struct variant_alternative<I, variant<Ts...>> : extension::pack_indexing<I, Ts...> {};
-
-YK_POLYFILL_INLINE constexpr std::size_t variant_npos = -1;
-
-struct monostate {};
-
-class bad_variant_access : public std::exception {
-public:
-  char const* what() const noexcept override { return "bad variant access"; }
-};
-
-template<class... Ts>
-class variant : private trivial_base_detail::select_base_for_special_member_functions<typename variant_detail::make_variant_base<Ts...>::type> {
+class variant : private cond_trivial_smf<typename variant_detail::make_variant_base<Ts...>::type, Ts...> {
   static_assert(sizeof...(Ts) > 0, "variant must be instantiated with at least one type template parameter");
 
 private:
-  using base_type = trivial_base_detail::select_base_for_special_member_functions<typename variant_detail::make_variant_base<Ts...>::type>;
+  using base_type = cond_trivial_smf<typename variant_detail::make_variant_base<Ts...>::type, Ts...>;
 
 public:
+  using base_type::valueless_by_exception;
+
   template<
       class Head = typename extension::pack_indexing<0, Ts...>::type,
       typename std::enable_if<std::is_default_constructible<Head>::value, std::nullptr_t>::type = nullptr>

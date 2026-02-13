@@ -95,34 +95,27 @@ TEST_CASE("variant get")
   CHECK(pf::get<1>(vid) == 3.14);
 }
 
-// struct NonTriviallyCopyConstructible {
-//   NonTriviallyCopyConstructible() = default;
-//   NonTriviallyCopyConstructible(NonTriviallyCopyConstructible const&) {}
-//   NonTriviallyCopyConstructible(NonTriviallyCopyConstructible&&) = default;
-// };
+struct NonTriviallyCopyConstructible {
+  NonTriviallyCopyConstructible() = default;
+  NonTriviallyCopyConstructible(NonTriviallyCopyConstructible const&) {}
+  NonTriviallyCopyConstructible(NonTriviallyCopyConstructible&&) = default;
+};
 
-// TEST_CASE("variant copy construction")
-// {
-//   {
-//     using V = pf::variant<int, double>;
-//     STATIC_REQUIRE(std::is_trivially_copy_constructible<V>::value);
-//     V a = 42;
-//     V b = a;
-//     CHECK(pf::get<0>(b) == 42);
-//   }
-//   {
-//     using V = pf::variant<int, NonTriviallyCopyConstructible>;
-
-//     STATIC_REQUIRE(!std::is_trivially_copy_constructible<NonTriviallyCopyConstructible>::value);
-//     STATIC_REQUIRE(std::is_copy_constructible<NonTriviallyCopyConstructible>::value);
-    
-//     STATIC_REQUIRE(!std::is_trivially_copy_constructible<pf::variant_detail::make_variadic_union<NonTriviallyCopyConstructible>::type>::value);
-//     STATIC_REQUIRE(std::is_copy_constructible<pf::variant_detail::make_variadic_union<NonTriviallyCopyConstructible>::type>::value);
-
-//     STATIC_REQUIRE(!std::is_trivially_copy_constructible<V>::value);
-//     // STATIC_REQUIRE(std::is_copy_constructible<V>::value);
-//     V a = 42;
-//     V b = a;
-//     CHECK(pf::get<0>(b) == 42);
-//   }
-// }
+TEST_CASE("variant copy construction")
+{
+  {
+    using V = pf::variant<int, double>;
+    STATIC_REQUIRE(std::is_trivially_copy_constructible<V>::value);
+    V a = 42;
+    V b = a;
+    CHECK(pf::get<0>(b) == 42);
+  }
+  {
+    using V = pf::variant<int, NonTriviallyCopyConstructible>;
+    STATIC_REQUIRE(!std::is_trivially_copy_constructible<NonTriviallyCopyConstructible>::value);
+    STATIC_REQUIRE(std::is_copy_constructible<NonTriviallyCopyConstructible>::value);
+    V a = 42;
+    V b = a;
+    CHECK(pf::get<0>(b) == 42);
+  }
+}

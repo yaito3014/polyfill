@@ -8,6 +8,7 @@
 #include <yk/polyfill/extension/specialization_of.hpp>
 
 #include <yk/polyfill/functional.hpp>
+#include <yk/polyfill/memory.hpp>
 #include <yk/polyfill/type_traits.hpp>
 #include <yk/polyfill/utility.hpp>
 
@@ -555,11 +556,7 @@ private:
   template<class... Args>
   YK_POLYFILL_CXX20_CONSTEXPR void construct_from(Args&&... args) noexcept(std::is_nothrow_constructible<T, Args...>::value)
   {
-#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
-    std::construct_at(std::addressof(data), std::forward<Args>(args)...);
-#else
-    new (std::addressof(data)) T(std::forward<Args>(args)...);
-#endif
+    construct_at(std::addressof(data), std::forward<Args>(args)...);
   }
 
   T data;
