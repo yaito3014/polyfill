@@ -231,40 +231,52 @@ struct raw_get_result<UnbiasedI, variadic_union<TriviallyDestructible, Ts...> co
 
 template<std::size_t UnbiasedI>
 struct raw_get_impl {
-  template<class Storage>
-  static constexpr typename raw_get_result<UnbiasedI, Storage&&>::type apply(Storage&& storage) noexcept
+  template<class StorageFWD>
+  static constexpr typename raw_get_result<UnbiasedI, StorageFWD&&>::type apply(StorageFWD&& storage) noexcept
   {
-    return raw_get_impl<UnbiasedI - 1>::apply(std::forward<Storage>(storage).rest);
+    return raw_get_impl<UnbiasedI - 1>::apply(std::forward<StorageFWD>(storage).rest);
   }
 };
 
 template<>
 struct raw_get_impl<0> {
-  template<class Storage>
-  static constexpr typename raw_get_result<0, Storage&&>::type apply(Storage&& storage) noexcept
+  template<class StorageFWD>
+  static constexpr typename raw_get_result<0, StorageFWD&&>::type apply(StorageFWD&& storage) noexcept
   {
-    return std::forward<Storage>(storage).head;
+    return std::forward<StorageFWD>(storage).head;
   }
 };
 
-template<std::size_t UnbiasedI, class Storage>
-constexpr typename raw_get_result<UnbiasedI, Storage&&>::type raw_get(Storage&& storage) noexcept
+template<std::size_t UnbiasedI, class StorageFWD>
+constexpr typename raw_get_result<UnbiasedI, StorageFWD&&>::type raw_get(StorageFWD&& storage) noexcept
 {
-  return raw_get_impl<UnbiasedI>::apply(std::forward<Storage>(storage));
+  return raw_get_impl<UnbiasedI>::apply(std::forward<StorageFWD>(storage));
 }
 
-template<class Visitor, class Storage>
+template<
+    class VisitorFWD, class StorageFWD, class Storage = typename remove_cvref<StorageFWD>::type,
+    class BiasedIndexSeq = make_index_sequence<bias<Storage::never_valueless>(Storage::size())>>
+struct raw_visit_noexcept {};
+
+template<class VisitorFWD, class StorageFWD, class Storage, std::size_t... BiasedIs>
+struct raw_visit_noexcept<VisitorFWD, StorageFWD, Storage, index_sequence<BiasedIs...>>
+    : conjunction<is_nothrow_invocable<VisitorFWD, in_place_index_t<BiasedIs>, StorageFWD>...> {};
+
+template<class VisitorFWD, class StorageFWD>
 struct raw_visit_result {
-  using type = typename invoke_result<Visitor, in_place_index_t<0>, typename raw_get_result<0, Storage&&>::type>::type;
+  using type = typename invoke_result<VisitorFWD, in_place_index_t<0>, typename raw_get_result<0, StorageFWD&&>::type>::type;
 };
 
 template<bool NeverValueless, std::size_t BiasedI>
 struct do_raw_visit_impl {
-  template<class Visitor, class Storage>
-  static constexpr typename raw_visit_result<Visitor, Storage&&>::type apply(Visitor&& vis, Storage&& storage)
+  static constexpr std::size_t UnbiasedI = unbias<NeverValueless>(BiasedI);
+
+  template<class VisitorFWD, class StorageFWD>
+  static constexpr typename raw_visit_result<VisitorFWD, StorageFWD&&>::type apply(VisitorFWD&& vis, StorageFWD&& storage) noexcept(
+      raw_visit_noexcept<VisitorFWD, StorageFWD>::value
+  )
   {
-    constexpr std::size_t UnbiasedI = unbias<NeverValueless>(BiasedI);
-    return invoke(std::forward<Visitor>(vis), in_place_index_t<UnbiasedI>{}, raw_get<UnbiasedI>(std::forward<Storage>(storage)));
+    return invoke(std::forward<VisitorFWD>(vis), in_place_index_t<UnbiasedI>{}, raw_get<UnbiasedI>(std::forward<StorageFWD>(storage)));
   }
 };
 
@@ -272,42 +284,49 @@ struct do_raw_visit_impl {
 // Instead of calling `raw_get`, `do_raw_visit` passes `storage` itself.
 template<>
 struct do_raw_visit_impl<false, 0> {
-  template<class Visitor, class Storage>
-  static constexpr typename raw_visit_result<Visitor, Storage&&>::type apply(Visitor&& vis, Storage&& storage)
+  template<class VisitorFWD, class StorageFWD>
+  static constexpr typename raw_visit_result<VisitorFWD, StorageFWD&&>::type apply(VisitorFWD&& vis, StorageFWD&& storage) noexcept(
+      raw_visit_noexcept<VisitorFWD, StorageFWD>::value
+  )
   {
-    return invoke(std::forward<Visitor>(vis), in_place_index_t<variant_npos>{}, std::forward<Storage>(storage));
+    return invoke(std::forward<VisitorFWD>(vis), in_place_index_t<variant_npos>{}, std::forward<StorageFWD>(storage));
   }
 };
 
-template<std::size_t BiasedI, class Visitor, class Storage>
-constexpr typename raw_visit_result<Visitor, Storage&&>::type do_raw_visit(Visitor&& vis, Storage&& storage)
+template<std::size_t BiasedI, class VisitorFWD, class StorageFWD>
+constexpr typename raw_visit_result<VisitorFWD, StorageFWD&&>::type do_raw_visit(VisitorFWD&& vis, StorageFWD&& storage) noexcept(
+    raw_visit_noexcept<VisitorFWD, StorageFWD>::value
+)
 {
-  return do_raw_visit_impl<remove_cvref<Storage>::type::never_valueless, BiasedI>::apply(std::forward<Visitor>(vis), std::forward<Storage>(storage));
+  using Storage = typename remove_cvref<StorageFWD>::type;
+  return do_raw_visit_impl<Storage::never_valueless, BiasedI>::apply(std::forward<VisitorFWD>(vis), std::forward<StorageFWD>(storage));
 }
 
-template<class Visitor, class Storage>
-using raw_visit_function_type = typename raw_visit_result<Visitor, Storage&&>::type(Visitor&&, Storage&&);
+template<class VisitorFWD, class StorageFWD>
+using raw_visit_function_type =
+    typename raw_visit_result<VisitorFWD, StorageFWD&&>::type(VisitorFWD&&, StorageFWD&&) noexcept(raw_visit_noexcept<VisitorFWD, StorageFWD>::value);
 
 template<
-    class Visitor, class Storage,
-    class BiasedIndexSeq = make_index_sequence<bias<remove_cvref<Storage>::type::never_valueless>(remove_cvref<Storage>::type::size())>>
+    class VisitorFWD, class StorageFWD, class Storage = typename remove_cvref<StorageFWD>::type,
+    class BiasedIndexSeq = make_index_sequence<bias<Storage::never_valueless>(Storage::size())>>
 struct raw_visit_table {};
 
-template<class Visitor, class Storage, std::size_t... BiasedIs>
-struct raw_visit_table<Visitor, Storage, index_sequence<BiasedIs...>> {
-  static constexpr raw_visit_function_type<Visitor, Storage>* value[sizeof...(BiasedIs)]{&do_raw_visit<BiasedIs, Visitor, Storage>...};
+template<class VisitorFWD, class StorageFWD, class Storage, std::size_t... BiasedIs>
+struct raw_visit_table<VisitorFWD, StorageFWD, Storage, index_sequence<BiasedIs...>> {
+  static constexpr raw_visit_function_type<VisitorFWD, StorageFWD>* value[sizeof...(BiasedIs)]{&do_raw_visit<BiasedIs, VisitorFWD, StorageFWD>...};
 };
 
-template<class Visitor, class Storage, std::size_t... BiasedIs>
-constexpr raw_visit_function_type<Visitor, Storage>* raw_visit_table<Visitor, Storage, index_sequence<BiasedIs...>>::value[sizeof...(BiasedIs)];
+template<class VisitorFWD, class StorageFWD, class Storage, std::size_t... BiasedIs>
+constexpr raw_visit_function_type<VisitorFWD, StorageFWD>*
+    raw_visit_table<VisitorFWD, StorageFWD, Storage, index_sequence<BiasedIs...>>::value[sizeof...(BiasedIs)];
 
 struct raw_visit_dispatch {
-  template<class Visitor, class Storage>
-  static constexpr typename raw_visit_result<Visitor, Storage&&>::type apply(Visitor&& vis, Storage&& storage, std::size_t biased_i) noexcept(
-      is_nothrow_invocable<raw_visit_function_type<Visitor, Storage>*, Visitor, Storage, std::size_t>::value
+  template<class VisitorFWD, class StorageFWD>
+  static constexpr typename raw_visit_result<VisitorFWD, StorageFWD&&>::type apply(VisitorFWD&& vis, StorageFWD&& storage, std::size_t biased_i) noexcept(
+      is_nothrow_invocable<raw_visit_function_type<VisitorFWD, StorageFWD>*, VisitorFWD, StorageFWD, std::size_t>::value
   )
   {
-    return invoke(raw_visit_table<Visitor, Storage>::value[biased_i], std::forward<Visitor>(vis), std::forward<Storage>(storage));
+    return invoke(raw_visit_table<VisitorFWD, StorageFWD>::value[biased_i], std::forward<VisitorFWD>(vis), std::forward<StorageFWD>(storage));
   }
 };
 
@@ -439,7 +458,7 @@ struct variant_storage {
   }
 
   template<std::size_t I, class... Args>
-  YK_POLYFILL_CXX20_CONSTEXPR void emplace(Args&&... args) // TODO: add noexcept
+  YK_POLYFILL_CXX20_CONSTEXPR void emplace(Args&&... args)  // TODO: add noexcept
   {
     if (!valueless_by_exception()) reset();
     construct_on_valueless<I>(std::forward<Args>(args)...);
@@ -562,7 +581,7 @@ public:
   {
   }
 
-  constexpr std::size_t index() const noexcept { return base_type::index; }
+  constexpr std::size_t index() const noexcept { return valueless_by_exception() ? variant_npos : base_type::index; }
 
   template<std::size_t I, class... Us>
   friend constexpr typename variant_alternative<I, variant<Us...>>::type& get(variant<Us...>& v);
