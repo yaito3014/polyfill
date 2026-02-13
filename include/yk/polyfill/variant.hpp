@@ -332,6 +332,7 @@ struct variant_storage {
   )
   {
     polyfill::construct_at(&storage, in_place_index_t<I>{}, std::forward<Args>(args)...);
+    index = I;
   }
 
   YK_POLYFILL_CXX20_CONSTEXPR void _copy_construct(variant_storage const& other) noexcept(conjunction<std::is_nothrow_copy_constructible<Ts>...>::value)
