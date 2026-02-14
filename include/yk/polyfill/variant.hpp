@@ -440,10 +440,10 @@ struct construct_on_valueless_visitor {
 };
 
 template<bool IsCopySaferThanMove>
-struct emplace_or_move_assign_temporary_operation;
+struct emplace_by_copy_or_by_move_copied_temporary;
 
 template<>
-struct emplace_or_move_assign_temporary_operation</*IsCopySaferThanMove = */ true> {
+struct emplace_by_copy_or_by_move_copied_temporary</*IsCopySaferThanMove = */ true> {
   template<std::size_t ValidJ, class RhsContained, class... Ts>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(variant_storage<Ts...>& lhs, RhsContained const& rhs_value)  // TODO: add noexcept
   {
@@ -452,7 +452,7 @@ struct emplace_or_move_assign_temporary_operation</*IsCopySaferThanMove = */ tru
 };
 
 template<>
-struct emplace_or_move_assign_temporary_operation</*IsCopySaferThanMove = */ false> {
+struct emplace_by_copy_or_by_move_copied_temporary</*IsCopySaferThanMove = */ false> {
   template<std::size_t ValidJ, class RhsContained, class... Ts>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(variant_storage<Ts...>& lhs, RhsContained const& rhs_value)  // TODO: add noexcept
   {
@@ -470,7 +470,7 @@ struct copy_assign_operation {
     } else {
       using T_j = typename extension::pack_indexing<ValidJ, Ts...>::type;
       constexpr bool IsCopySaferThanMove = disjunction<std::is_nothrow_copy_constructible<T_j>, negation<std::is_nothrow_move_constructible<T_j>>>::value;
-      emplace_or_move_assign_temporary_operation<IsCopySaferThanMove>::template apply<ValidJ>(lhs, rhs_value);
+      emplace_by_copy_or_by_move_copied_temporary<IsCopySaferThanMove>::template apply<ValidJ>(lhs, rhs_value);
     }
   }
 };
@@ -698,6 +698,18 @@ public:
       typename std::enable_if<std::is_constructible<SelectedType, Args...>::value, std::nullptr_t>::type = nullptr>
   constexpr explicit variant(in_place_index_t<I> ipi, Args&&... args) noexcept(std::is_nothrow_constructible<SelectedType, Args...>::value)
       : base_type(ipi, std::forward<Args>(args)...)
+  {
+  }
+
+  template<
+      class T, typename std::enable_if<!std::is_same<typename remove_cvref<T>::type, variant>::value, std::nullptr_t>::type = nullptr,
+      typename std::enable_if<variant_detail::is_invocation_to_imaginary_function_set_valid<T, Ts...>::value, std::nullptr_t>::type = nullptr,
+      std::size_t SelectedIndex = variant_detail::select_alternative<T, Ts...>::value,
+      class SelectedType = typename extension::pack_indexing<SelectedIndex, Ts...>::type,
+      typename std::enable_if<conjunction<std::is_assignable<SelectedType&, T>, std::is_constructible<SelectedType, T>>::value, std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX20_CONSTEXPR variant& operator=(T&& t) noexcept(
+      conjunction<std::is_nothrow_assignable<SelectedType&, T>, std::is_nothrow_constructible<SelectedType, T>>::value
+  )
   {
   }
 
