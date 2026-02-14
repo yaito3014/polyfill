@@ -606,7 +606,7 @@ template<class... Ts>
 struct variant_base<false, Ts...> : variant_storage<Ts...> {
   using variant_storage<Ts...>::variant_storage;
 
-  YK_POLYFILL_CXX20_CONSTEXPR ~variant_base() { this->raw_visit(destroy_visitor{}); }
+  YK_POLYFILL_CXX20_CONSTEXPR ~variant_base() { this->dynamic_destroy(); }
 };
 
 template<class... Ts>
