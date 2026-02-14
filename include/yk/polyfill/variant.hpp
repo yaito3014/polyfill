@@ -392,7 +392,7 @@ struct reset_operation</*TriviallyDestructible = */ true> {
   template<std::size_t /* ValidI */, class ContainedT, class... Ts>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(variant_storage<Ts...>& storage, ContainedT&&) noexcept
   {
-    storage.index = variant_npos_for<sizeof...(Ts)>::value;
+    storage.vindex = variant_npos_for<sizeof...(Ts)>::value;
   }
 };
 
@@ -403,7 +403,7 @@ struct reset_operation</*TriviallyDestructible = */ false> {
   {
     using T = typename remove_cvref<ContainedT>::type;
     value.~T();
-    storage.index = variant_npos_for<sizeof...(Ts)>::value;
+    storage.vindex = variant_npos_for<sizeof...(Ts)>::value;
   }
 };
 
@@ -424,7 +424,7 @@ struct construct_on_valueless_operation {
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(variant_storage<Ts...>& storage, Args&&... args)  // TODO: add noexcept
   {
     polyfill::construct_at(&storage.vunion, in_place_index_t<ValidI>{}, std::forward<Args>(args)...);
-    storage.index = ValidI;
+    storage.vindex = ValidI;
   }
 };
 
@@ -465,7 +465,7 @@ struct copy_assign_operation {
   template<std::size_t ValidJ, class RhsContained, class... Ts>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(variant_storage<Ts...>& lhs, RhsContained const& rhs_value)  // TODO: add noexcept
   {
-    if (lhs.index == ValidJ) {
+    if (lhs.vindex == ValidJ) {
       raw_get<ValidJ>(lhs.vunion) = rhs_value;
     } else {
       using T_j = typename extension::pack_indexing<ValidJ, Ts...>::type;
@@ -490,7 +490,7 @@ struct move_assign_operation {
   template<std::size_t ValidJ, class RhsContained, class... Ts>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(variant_storage<Ts...>& lhs, RhsContained&& rhs_value)  // TODO: add noexcept
   {
-    if (lhs.index == ValidJ) {
+    if (lhs.vindex == ValidJ) {
       raw_get<ValidJ>(lhs.vunion) = std::move(rhs_value);
     } else {
       lhs.template emplace<ValidJ>(std::move(rhs_value));
@@ -515,34 +515,10 @@ struct variant_storage {
   using index_type = typename variant_detail::select_index<sizeof...(Ts)>::type;
 
   union_type vunion;
-  index_type index;
-
-  template<class Visitor>
-  YK_POLYFILL_CXX14_CONSTEXPR typename raw_visit_result<Visitor, union_type&>::type raw_visit(Visitor&& vis) &
-  {
-    return raw_visit_dispatch::apply(std::forward<Visitor>(vis), vunion, bias<union_type::never_valueless>(index));
-  }
-
-  template<class Visitor>
-  constexpr typename raw_visit_result<Visitor, union_type const&>::type raw_visit(Visitor&& vis) const&
-  {
-    return raw_visit_dispatch::apply(std::forward<Visitor>(vis), vunion, bias<union_type::never_valueless>(index));
-  }
-
-  template<class Visitor>
-  YK_POLYFILL_CXX14_CONSTEXPR typename raw_visit_result<Visitor, union_type&&>::type raw_visit(Visitor&& vis) &&
-  {
-    return raw_visit_dispatch::apply(std::forward<Visitor>(vis), std::move(vunion), bias<union_type::never_valueless>(index));
-  }
-
-  template<class Visitor>
-  constexpr typename raw_visit_result<Visitor, union_type const&&>::type raw_visit(Visitor&& vis) const&&
-  {
-    return raw_visit_dispatch::apply(std::forward<Visitor>(vis), std::move(vunion), bias<union_type::never_valueless>(index));
-  }
+  index_type vindex;
 
   constexpr variant_storage() noexcept(std::is_nothrow_default_constructible<typename extension::pack_indexing<0, Ts...>::type>::value)
-      : vunion(in_place_index_t<0>{}), index(0)
+      : vunion(in_place_index_t<0>{}), vindex(0)
   {
   }
 
@@ -550,11 +526,36 @@ struct variant_storage {
   constexpr explicit variant_storage(in_place_index_t<I> ipi, Args&&... args) noexcept(
       std::is_nothrow_constructible<typename extension::pack_indexing<I, Ts...>::type, Args...>::value
   )
-      : vunion(ipi, std::forward<Args>(args)...), index(I)
+      : vunion(ipi, std::forward<Args>(args)...), vindex(I)
   {
   }
 
-  constexpr bool valueless_by_exception() const noexcept { return index == variant_npos_for<sizeof...(Ts)>::value; }
+  constexpr bool valueless_by_exception() const noexcept { return vindex == variant_npos_for<sizeof...(Ts)>::value; }
+  constexpr std::size_t index() const noexcept { return valueless_by_exception() ? variant_npos : vindex; }
+
+  template<class Visitor>
+  YK_POLYFILL_CXX14_CONSTEXPR typename raw_visit_result<Visitor, union_type&>::type raw_visit(Visitor&& vis) &
+  {
+    return raw_visit_dispatch::apply(std::forward<Visitor>(vis), vunion, bias<union_type::never_valueless>(index()));
+  }
+
+  template<class Visitor>
+  constexpr typename raw_visit_result<Visitor, union_type const&>::type raw_visit(Visitor&& vis) const&
+  {
+    return raw_visit_dispatch::apply(std::forward<Visitor>(vis), vunion, bias<union_type::never_valueless>(index()));
+  }
+
+  template<class Visitor>
+  YK_POLYFILL_CXX14_CONSTEXPR typename raw_visit_result<Visitor, union_type&&>::type raw_visit(Visitor&& vis) &&
+  {
+    return raw_visit_dispatch::apply(std::forward<Visitor>(vis), std::move(vunion), bias<union_type::never_valueless>(index()));
+  }
+
+  template<class Visitor>
+  constexpr typename raw_visit_result<Visitor, union_type const&&>::type raw_visit(Visitor&& vis) const&&
+  {
+    return raw_visit_dispatch::apply(std::forward<Visitor>(vis), std::move(vunion), bias<union_type::never_valueless>(index()));
+  }
 
   // calls `visit` to destroy contained value and *DO NOT* set index
   YK_POLYFILL_CXX20_CONSTEXPR void dynamic_destroy() noexcept { raw_visit(destroy_visitor{}); }
@@ -670,6 +671,7 @@ private:
 
 public:
   using base_type::emplace;
+  using base_type::index;
   using base_type::valueless_by_exception;
 
   template<
@@ -698,8 +700,6 @@ public:
       : base_type(ipi, std::forward<Args>(args)...)
   {
   }
-
-  constexpr std::size_t index() const noexcept { return valueless_by_exception() ? variant_npos : base_type::index; }
 
   template<std::size_t I, class... Us>
   friend YK_POLYFILL_CXX14_CONSTEXPR typename variant_alternative<I, variant<Us...>>::type& get(variant<Us...>& v);
