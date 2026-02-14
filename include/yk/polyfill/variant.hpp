@@ -702,16 +702,16 @@ public:
   constexpr std::size_t index() const noexcept { return valueless_by_exception() ? variant_npos : base_type::index; }
 
   template<std::size_t I, class... Us>
-  friend constexpr typename variant_alternative<I, variant<Us...>>::type& get(variant<Us...>& v);
+  friend YK_POLYFILL_CXX14_CONSTEXPR typename variant_alternative<I, variant<Us...>>::type& get(variant<Us...>& v);
 
   template<std::size_t I, class... Us>
-  friend constexpr typename variant_alternative<I, variant<Us...>>::type const& get(variant<Us...> const& v);
+  friend YK_POLYFILL_CXX14_CONSTEXPR typename variant_alternative<I, variant<Us...>>::type const& get(variant<Us...> const& v);
 
   template<std::size_t I, class... Us>
-  friend constexpr typename variant_alternative<I, variant<Us...>>::type&& get(variant<Us...>&& v);
+  friend YK_POLYFILL_CXX14_CONSTEXPR typename variant_alternative<I, variant<Us...>>::type&& get(variant<Us...>&& v);
 
   template<std::size_t I, class... Us>
-  friend constexpr typename variant_alternative<I, variant<Us...>>::type const&& get(variant<Us...> const&& v);
+  friend YK_POLYFILL_CXX14_CONSTEXPR typename variant_alternative<I, variant<Us...>>::type const&& get(variant<Us...> const&& v);
 };
 
 template<std::size_t I, class... Ts>
