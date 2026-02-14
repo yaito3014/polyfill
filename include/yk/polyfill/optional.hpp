@@ -197,7 +197,7 @@ struct optional_storage_base : public optional_destruct_base<T> {  // T is NOT a
   [[nodiscard]] constexpr bool has_value() const noexcept { return base::engaged; }
 
   template<class... Args>
-  YK_POLYFILL_CXX17_CONSTEXPR void construct(Args&&... args) noexcept(std::is_nothrow_constructible<T, Args...>::value)
+  YK_POLYFILL_CXX20_CONSTEXPR void construct(Args&&... args) noexcept(std::is_nothrow_constructible<T, Args...>::value)
   {
     polyfill::construct_at(std::addressof(base::value), std::forward<Args>(args)...);
     base::engaged = true;
