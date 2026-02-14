@@ -306,7 +306,8 @@ constexpr typename raw_visit_result<VisitorT, UnionT&&>::type do_raw_visit(Visit
 }
 
 template<class VisitorT, class UnionT>
-using raw_visit_function_type = typename raw_visit_result<VisitorT, UnionT&&>::type(VisitorT&&, UnionT&&) noexcept(raw_visit_noexcept<VisitorT, UnionT>::value);
+using raw_visit_function_type =
+    typename raw_visit_result<VisitorT, UnionT&&>::type(VisitorT&&, UnionT&&) YK_POLYFILL_CXX17_NOEXCEPT(raw_visit_noexcept<VisitorT, UnionT>::value);
 
 template<
     class VisitorT, class UnionT, class Union = typename remove_cvref<UnionT>::type,
@@ -559,7 +560,7 @@ struct variant_storage {
   YK_POLYFILL_CXX20_CONSTEXPR void dynamic_destroy() noexcept { raw_visit(destroy_visitor{}); }
 
   // calls `visit` to destroy contained value and *DO* set index
-  YK_POLYFILL_CXX20_CONSTEXPR void dynamic_reset() noexcept { raw_visit(reset_visitor{*this}); }
+  YK_POLYFILL_CXX20_CONSTEXPR void dynamic_reset() noexcept { raw_visit(reset_visitor<Ts...>{*this}); }
 
   template<std::size_t ValidI, class... Args>
   YK_POLYFILL_CXX20_CONSTEXPR void emplace(Args&&... args)  // TODO: add noexcept
