@@ -338,7 +338,7 @@ struct variant_storage;
 template<std::size_t I, class Operation>
 struct no_op_wrapper {
   template<class... Args>
-  static constexpr void apply(Args&&... args)  // TODO: add noexcept
+  static YK_POLYFILL_CXX14_CONSTEXPR void apply(Args&&... args)  // TODO: add noexcept
   {
     Operation::template apply</* Valid */ I>(std::forward<Args>(args)...);
   }
@@ -347,7 +347,7 @@ struct no_op_wrapper {
 template<class Operation>
 struct no_op_wrapper<variant_npos, Operation> {
   template<class... Args>
-  static constexpr void apply(Args&&...) noexcept
+  static YK_POLYFILL_CXX14_CONSTEXPR void apply(Args&&...) noexcept
   {
     // no-op
   }
@@ -714,7 +714,7 @@ public:
 };
 
 template<std::size_t I, class... Ts>
-constexpr typename variant_alternative<I, variant<Ts...>>::type& get(variant<Ts...>& v)
+YK_POLYFILL_CXX14_CONSTEXPR typename variant_alternative<I, variant<Ts...>>::type& get(variant<Ts...>& v)
 {
   static_assert(I < sizeof...(Ts), "I must be in sizeof...(Ts)");
   if (v.index() == I) {
@@ -724,7 +724,7 @@ constexpr typename variant_alternative<I, variant<Ts...>>::type& get(variant<Ts.
 }
 
 template<std::size_t I, class... Ts>
-constexpr typename variant_alternative<I, variant<Ts...>>::type const& get(variant<Ts...> const& v)
+YK_POLYFILL_CXX14_CONSTEXPR typename variant_alternative<I, variant<Ts...>>::type const& get(variant<Ts...> const& v)
 {
   static_assert(I < sizeof...(Ts), "I must be in sizeof...(Ts)");
   if (v.index() == I) {
@@ -734,7 +734,7 @@ constexpr typename variant_alternative<I, variant<Ts...>>::type const& get(varia
 }
 
 template<std::size_t I, class... Ts>
-constexpr typename variant_alternative<I, variant<Ts...>>::type&& get(variant<Ts...>&& v)
+YK_POLYFILL_CXX14_CONSTEXPR typename variant_alternative<I, variant<Ts...>>::type&& get(variant<Ts...>&& v)
 {
   static_assert(I < sizeof...(Ts), "I must be in sizeof...(Ts)");
   if (v.index() == I) {
@@ -744,7 +744,7 @@ constexpr typename variant_alternative<I, variant<Ts...>>::type&& get(variant<Ts
 }
 
 template<std::size_t I, class... Ts>
-constexpr typename variant_alternative<I, variant<Ts...>>::type const&& get(variant<Ts...> const&& v)
+YK_POLYFILL_CXX14_CONSTEXPR typename variant_alternative<I, variant<Ts...>>::type const&& get(variant<Ts...> const&& v)
 {
   static_assert(I < sizeof...(Ts), "I must be in sizeof...(Ts)");
   if (v.index() == I) {
