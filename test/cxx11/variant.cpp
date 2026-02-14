@@ -289,7 +289,7 @@ TEST_CASE("variant move assignment")
   }
 }
 
-TEST_CASE("special case for copy assignment")
+TEST_CASE("variant special case for copy assignment")
 {
   struct NeedExplicitCopyConstruction {
     NeedExplicitCopyConstruction() noexcept = default;
@@ -301,4 +301,27 @@ TEST_CASE("special case for copy assignment")
   pf::variant<int, NeedExplicitCopyConstruction> a = 42;
   pf::variant<int, NeedExplicitCopyConstruction> b = NeedExplicitCopyConstruction{};
   a = b;
+}
+
+TEST_CASE("variant generic assignment")
+{
+  SECTION("trivial case")
+  {
+    SECTION("same alternative")
+    {
+      pf::variant<int, double> a;
+      a = 42;
+      CHECK(pf::get<0>(a) == 42);
+    }
+    SECTION("different alternative")
+    {
+      pf::variant<int, double> a;
+      a = 3.14;
+      CHECK(pf::get<1>(a) == 3.14);
+    }
+  }
+  SECTION("non-trivial case")
+  {
+    // TODO
+  }
 }
