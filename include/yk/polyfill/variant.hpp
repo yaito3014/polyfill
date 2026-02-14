@@ -679,9 +679,9 @@ public:
 
   template<
       class T, typename std::enable_if<!std::is_same<typename remove_cvref<T>::type, variant>::value, std::nullptr_t>::type = nullptr,
-      typename std::enable_if<variant_detail::is_invocation_to_imaginary_function_set_valid<T, Ts...>::value, std::nullptr_t>::type = nullptr,
       typename std::enable_if<!variant_detail::is_in_place_type<typename remove_cvref<T>::type>::value, std::nullptr_t>::type = nullptr,
       typename std::enable_if<!variant_detail::is_in_place_index<typename remove_cvref<T>::type>::value, std::nullptr_t>::type = nullptr,
+      typename std::enable_if<variant_detail::is_invocation_to_imaginary_function_set_valid<T, Ts...>::value, std::nullptr_t>::type = nullptr,
       std::size_t SelectedIndex = variant_detail::select_alternative<T, Ts...>::value,
       class SelectedType = typename extension::pack_indexing<SelectedIndex, Ts...>::type,
       typename std::enable_if<std::is_constructible<SelectedType, T>::value, std::nullptr_t>::type = nullptr>
