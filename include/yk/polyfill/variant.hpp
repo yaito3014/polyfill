@@ -563,10 +563,11 @@ struct variant_storage {
   YK_POLYFILL_CXX20_CONSTEXPR void dynamic_reset() noexcept { raw_visit(reset_visitor<Ts...>{*this}); }
 
   template<std::size_t ValidI, class... Args>
-  YK_POLYFILL_CXX20_CONSTEXPR void emplace(Args&&... args)  // TODO: add noexcept
+  YK_POLYFILL_CXX20_CONSTEXPR typename extension::pack_indexing<ValidI, Ts...>::type& emplace(Args&&... args)  // TODO: add noexcept
   {
     dynamic_reset();
     construct_on_valueless_operation::apply<ValidI>(*this, std::forward<Args>(args)...);
+    return raw_get<ValidI>(vunion);
   }
 
   YK_POLYFILL_CXX20_CONSTEXPR void _copy_construct(variant_storage const& other) noexcept(conjunction<std::is_nothrow_copy_constructible<Ts>...>::value)
