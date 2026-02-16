@@ -250,14 +250,14 @@ TEST_CASE("variant move assignment")
       V a = 12;
       V b = 34;
       a = std::move(b);
-      CHECK(pf::get<0>(b) == 34);
+      CHECK(pf::get<0>(a) == 34);
     }
     SECTION("different alternative")
     {
       V a = 12;
       V b = 3.14;
       a = std::move(b);
-      CHECK(pf::get<1>(b) == 3.14);
+      CHECK(pf::get<1>(a) == 3.14);
     }
   }
   SECTION("non-trivial case")
@@ -277,14 +277,14 @@ TEST_CASE("variant move assignment")
       V a = 12;
       V b = 34;
       a = std::move(b);
-      CHECK(pf::get<0>(b) == 34);
+      CHECK(pf::get<0>(a) == 34);
     }
     SECTION("different alternative")
     {
       V a = NonTriviallyMoveAssignable{};
       V b = 42;
       a = std::move(b);
-      CHECK(pf::get<0>(b) == 42);
+      CHECK(pf::get<0>(a) == 42);
     }
   }
 }
