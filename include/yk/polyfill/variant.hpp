@@ -540,10 +540,7 @@ struct variant_storage {
   union_type vunion;
   index_type vindex;
 
-  constexpr variant_storage() noexcept(std::is_nothrow_default_constructible<typename extension::pack_indexing<0, Ts...>::type>::value)
-      : vunion(in_place_index_t<0>{}), vindex(0)
-  {
-  }
+  constexpr variant_storage() : vunion(valueless), vindex(variant_npos_for<sizeof...(Ts)>::value) {}
 
   template<std::size_t I, class... Args>
   constexpr explicit variant_storage(in_place_index_t<I> ipi, Args&&... args) noexcept(
