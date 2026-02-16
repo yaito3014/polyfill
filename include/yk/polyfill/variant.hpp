@@ -538,7 +538,8 @@ struct variant_storage {
   union_type vunion;
   index_type vindex;
 
-  constexpr variant_storage() : vunion(valueless), vindex(variant_npos_for<sizeof...(Ts)>::value) {}
+  // Creates valueless state in order to being ready for copy/move construction 
+  explicit constexpr variant_storage() : vunion(valueless), vindex(variant_npos_for<sizeof...(Ts)>::value) {}
 
   template<std::size_t I, class... Args>
   constexpr explicit variant_storage(in_place_index_t<I> ipi, Args&&... args) noexcept(
