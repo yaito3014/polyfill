@@ -479,8 +479,6 @@ struct copy_assign_operation {
     if (lhs.index() == ValidJ) {
       raw_get<ValidJ>(lhs.vunion) = rhs_value;
     } else {
-      constexpr bool IsCopySaferThanMove =
-          disjunction<std::is_nothrow_copy_constructible<RhsContained>, negation<std::is_nothrow_move_constructible<RhsContained>>>::value;
       emplace_by_copy_or_by_move_copied_temporary::apply<ValidJ>(lhs, rhs_value);
     }
   }
