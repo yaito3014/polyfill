@@ -26,8 +26,8 @@ struct NotDefaultConstructible {
   NotDefaultConstructible(int) {}
 };
 
-struct NotTriviallyDestructible {
-  ~NotTriviallyDestructible() {}
+struct NonTriviallyDestructible {
+  ~NonTriviallyDestructible() {}
 };
 
 TEST_CASE("variant default construction and destruction")
@@ -40,17 +40,17 @@ TEST_CASE("variant default construction and destruction")
 
   // trivial destruction
   STATIC_REQUIRE(std::is_trivially_destructible<pf::variant<int>>::value);
-  STATIC_REQUIRE(!std::is_trivially_destructible<pf::variant<NotTriviallyDestructible>>::value);
+  STATIC_REQUIRE(!std::is_trivially_destructible<pf::variant<NonTriviallyDestructible>>::value);
 
   // destruction
   STATIC_REQUIRE(std::is_destructible<pf::variant<int>>::value);
-  STATIC_REQUIRE(std::is_destructible<pf::variant<NotTriviallyDestructible>>::value);
+  STATIC_REQUIRE(std::is_destructible<pf::variant<NonTriviallyDestructible>>::value);
 
   {
     pf::variant<int> vi;
   }
   {
-    pf::variant<NotTriviallyDestructible> vntd;
+    pf::variant<NonTriviallyDestructible> vntd;
   }
   {
     pf::variant<int, ThrowsOnConstruction> vit = 42;
@@ -102,6 +102,47 @@ TEST_CASE("variant generic construction")
 
   // narrowing
   STATIC_REQUIRE(!std::is_constructible<pf::variant<int>, double>::value);
+}
+
+TEST_CASE("variant emplace")
+{
+  SECTION("same alternative")
+  {
+    pf::variant<int, double> v = 42;
+    CHECK(v.index() == 0);
+    auto& ref = v.emplace<0>(99);
+    CHECK(v.index() == 0);
+    CHECK(pf::get<0>(v) == 99);
+    CHECK(ref == 99);
+  }
+  SECTION("different alternative")
+  {
+    pf::variant<int, double> v = 42;
+    CHECK(v.index() == 0);
+    auto& ref = v.emplace<1>(3.14);
+    CHECK(v.index() == 1);
+    CHECK(pf::get<1>(v) == 3.14);
+    CHECK(ref == 3.14);
+  }
+  SECTION("non-trivially destructible")
+  {
+    pf::variant<int, NonTriviallyDestructible> v = 42;
+    v.emplace<1>();
+    CHECK(v.index() == 1);
+    v.emplace<0>(10);
+    CHECK(v.index() == 0);
+    CHECK(pf::get<0>(v) == 10);
+  }
+  SECTION("from valueless")
+  {
+    pf::variant<int, ThrowsOnConstruction> v = 42;
+    make_valueless(v);
+    CHECK(v.valueless_by_exception());
+    v.emplace<0>(7);
+    CHECK(!v.valueless_by_exception());
+    CHECK(v.index() == 0);
+    CHECK(pf::get<0>(v) == 7);
+  }
 }
 
 TEST_CASE("variant get")
@@ -322,6 +363,129 @@ TEST_CASE("variant generic assignment")
   }
   SECTION("non-trivial case")
   {
-    // TODO
+    using V = pf::variant<int, double, NonTriviallyDestructible>;
+    SECTION("same alternative")
+    {
+      V a = 10;
+      a = 42;
+      CHECK(a.index() == 0);
+      CHECK(pf::get<0>(a) == 42);
+    }
+    SECTION("different alternative")
+    {
+      V a = 10;
+      a = 3.14;
+      CHECK(a.index() == 1);
+      CHECK(pf::get<1>(a) == 3.14);
+    }
+  }
+}
+
+TEST_CASE("variant noexcept")
+{
+  struct NothrowAll {
+    NothrowAll() noexcept = default;
+    NothrowAll(NothrowAll const&) noexcept = default;
+    NothrowAll(NothrowAll&&) noexcept = default;
+    NothrowAll& operator=(NothrowAll const&) noexcept = default;
+    NothrowAll& operator=(NothrowAll&&) noexcept = default;
+  };
+
+  struct ThrowingCopy {
+    ThrowingCopy() noexcept = default;
+    ThrowingCopy(ThrowingCopy const&) noexcept(false) {}
+    ThrowingCopy(ThrowingCopy&&) noexcept = default;
+    ThrowingCopy& operator=(ThrowingCopy const&) noexcept(false) { return *this; }
+    ThrowingCopy& operator=(ThrowingCopy&&) noexcept = default;
+  };
+
+  struct ThrowingMove {
+    ThrowingMove() noexcept = default;
+    ThrowingMove(ThrowingMove const&) noexcept = default;
+    ThrowingMove(ThrowingMove&&) noexcept(false) {}
+    ThrowingMove& operator=(ThrowingMove const&) noexcept = default;
+    ThrowingMove& operator=(ThrowingMove&&) noexcept(false) { return *this; }
+  };
+
+  SECTION("default construction")
+  {
+    STATIC_REQUIRE(std::is_nothrow_default_constructible<pf::variant<int>>::value);
+    STATIC_REQUIRE(std::is_nothrow_default_constructible<pf::variant<int, double>>::value);
+    STATIC_REQUIRE(std::is_nothrow_default_constructible<pf::variant<NothrowAll>>::value);
+  }
+
+  SECTION("copy construction")
+  {
+    STATIC_REQUIRE(std::is_nothrow_copy_constructible<pf::variant<int, double>>::value);
+    STATIC_REQUIRE(std::is_nothrow_copy_constructible<pf::variant<int, NothrowAll>>::value);
+    STATIC_REQUIRE(!std::is_nothrow_copy_constructible<pf::variant<int, ThrowingCopy>>::value);
+    STATIC_REQUIRE(std::is_nothrow_copy_constructible<pf::variant<int, ThrowingMove>>::value);
+  }
+
+  SECTION("move construction")
+  {
+    STATIC_REQUIRE(std::is_nothrow_move_constructible<pf::variant<int, double>>::value);
+    STATIC_REQUIRE(std::is_nothrow_move_constructible<pf::variant<int, NothrowAll>>::value);
+    STATIC_REQUIRE(std::is_nothrow_move_constructible<pf::variant<int, ThrowingCopy>>::value);
+    STATIC_REQUIRE(!std::is_nothrow_move_constructible<pf::variant<int, ThrowingMove>>::value);
+  }
+
+  SECTION("copy assignment")
+  {
+    STATIC_REQUIRE(std::is_nothrow_copy_assignable<pf::variant<int, double>>::value);
+    STATIC_REQUIRE(std::is_nothrow_copy_assignable<pf::variant<int, NothrowAll>>::value);
+    STATIC_REQUIRE(!std::is_nothrow_copy_assignable<pf::variant<int, ThrowingCopy>>::value);
+    STATIC_REQUIRE(std::is_nothrow_copy_assignable<pf::variant<int, ThrowingMove>>::value);
+  }
+
+  SECTION("move assignment")
+  {
+    STATIC_REQUIRE(std::is_nothrow_move_assignable<pf::variant<int, double>>::value);
+    STATIC_REQUIRE(std::is_nothrow_move_assignable<pf::variant<int, NothrowAll>>::value);
+    STATIC_REQUIRE(std::is_nothrow_move_assignable<pf::variant<int, ThrowingCopy>>::value);
+    STATIC_REQUIRE(!std::is_nothrow_move_assignable<pf::variant<int, ThrowingMove>>::value);
+  }
+
+  SECTION("in-place construction")
+  {
+    STATIC_REQUIRE(std::is_nothrow_constructible<pf::variant<int, double>, pf::in_place_index_t<0>, int>::value);
+    STATIC_REQUIRE(std::is_nothrow_constructible<pf::variant<int, double>, pf::in_place_index_t<1>, double>::value);
+    STATIC_REQUIRE(std::is_nothrow_constructible<pf::variant<int, ThrowingCopy>, pf::in_place_index_t<0>, int>::value);
+    // ThrowingCopy's default constructor is nothrow
+    STATIC_REQUIRE(std::is_nothrow_constructible<pf::variant<int, ThrowingCopy>, pf::in_place_index_t<1>>::value);
+  }
+
+  SECTION("generic construction")
+  {
+    STATIC_REQUIRE(std::is_nothrow_constructible<pf::variant<int, double>, int>::value);
+    STATIC_REQUIRE(std::is_nothrow_constructible<pf::variant<int, double>, double>::value);
+
+    struct ThrowingFromInt {
+      ThrowingFromInt() noexcept = default;
+      ThrowingFromInt(int) noexcept(false) {}
+    };
+    STATIC_REQUIRE(!std::is_nothrow_constructible<pf::variant<ThrowingFromInt>, int>::value);
+  }
+
+  SECTION("generic assignment")
+  {
+    STATIC_REQUIRE(std::is_nothrow_assignable<pf::variant<int, double>&, int>::value);
+    STATIC_REQUIRE(std::is_nothrow_assignable<pf::variant<int, double>&, double>::value);
+
+    // not nothrow when construction from the source type throws
+    struct ThrowingFromInt {
+      ThrowingFromInt() noexcept = default;
+      ThrowingFromInt(int) noexcept(false) {}
+      ThrowingFromInt& operator=(int) noexcept { return *this; }
+    };
+    STATIC_REQUIRE(!std::is_nothrow_assignable<pf::variant<ThrowingFromInt>&, int>::value);
+
+    // not nothrow when assignment from the source type throws
+    struct ThrowingAssignFromInt {
+      ThrowingAssignFromInt() noexcept = default;
+      ThrowingAssignFromInt(int) noexcept {}
+      ThrowingAssignFromInt& operator=(int) noexcept(false) { return *this; }
+    };
+    STATIC_REQUIRE(!std::is_nothrow_assignable<pf::variant<ThrowingAssignFromInt>&, int>::value);
   }
 }

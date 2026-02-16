@@ -16,6 +16,7 @@
 #include <utility>
 
 #include <cstddef>
+#include <cstdint>
 
 #if __cplusplus >= 202002L
 #include <compare>
@@ -328,7 +329,7 @@ struct raw_visit_dispatch {
       raw_visit_noexcept<VisitorT, UnionT>::value
   )
   {
-    return invoke(raw_visit_table<VisitorT, UnionT>::value[biased_i], std::forward<VisitorT>(vis), std::forward<UnionT>(vunion));
+    return raw_visit_table<VisitorT, UnionT>::value[biased_i](std::forward<VisitorT>(vis), std::forward<UnionT>(vunion));
   }
 };
 
@@ -338,7 +339,7 @@ struct variant_storage;
 template<std::size_t I, class Operation>
 struct no_op_wrapper {
   template<class... Args>
-  static YK_POLYFILL_CXX14_CONSTEXPR void apply(Args&&... args)  // TODO: add noexcept
+  static YK_POLYFILL_CXX14_CONSTEXPR void apply(Args&&... args) noexcept(noexcept(Operation::template apply<I>(std::declval<Args>()...)))
   {
     Operation::template apply</* Valid */ I>(std::forward<Args>(args)...);
   }
@@ -421,7 +422,9 @@ struct reset_visitor {
 
 struct construct_on_valueless_operation {
   template<std::size_t ValidI, class... Ts, class... Args>
-  static YK_POLYFILL_CXX20_CONSTEXPR void apply(variant_storage<Ts...>& storage, Args&&... args)  // TODO: add noexcept
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(variant_storage<Ts...>& storage, Args&&... args) noexcept(
+      std::is_nothrow_constructible<typename extension::pack_indexing<ValidI, Ts...>::type, Args...>::value
+  )
   {
     polyfill::construct_at(&storage.vunion, in_place_index_t<ValidI>{}, std::forward<Args>(args)...);
     storage.vindex = ValidI;
@@ -433,53 +436,56 @@ struct construct_on_valueless_visitor {
   variant_storage<Ts...>& storage;
 
   template<std::size_t J, class OtherContainedT>
-  YK_POLYFILL_CXX20_CONSTEXPR void operator()(in_place_index_t<J>, OtherContainedT&& other_value)  // TODO: add noexcept
+  YK_POLYFILL_CXX20_CONSTEXPR void operator()(in_place_index_t<J>, OtherContainedT&& other_value) noexcept(
+      std::is_nothrow_constructible<typename remove_cvref<OtherContainedT>::type, OtherContainedT>::value
+  )
   {
     no_op_wrapper<J, construct_on_valueless_operation>::apply(storage, std::forward<OtherContainedT>(other_value));
   }
 };
 
-template<bool IsCopySaferThanMove>
-struct emplace_by_copy_or_by_move_copied_temporary_impl;
+template<bool IsDirectConstructionSaferThanMovingTemporary>
+struct emplace_directly_or_move_temporary_impl;
 
 template<>
-struct emplace_by_copy_or_by_move_copied_temporary_impl</*IsCopySaferThanMove = */ true> {
-  template<std::size_t ValidJ, class Rhs, class... Ts>
-  static YK_POLYFILL_CXX20_CONSTEXPR void apply(variant_storage<Ts...>& lhs, Rhs&& rhs)  // TODO: add noexcept
+struct emplace_directly_or_move_temporary_impl</*IsDirectConstructionSaferThanMovingTemporary = */ true> {
+  template<std::size_t ValidJ, class... Ts, class Rhs, class T_j = typename extension::pack_indexing<ValidJ, Ts...>::type>
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(variant_storage<Ts...>& lhs, Rhs&& rhs) noexcept(std::is_nothrow_constructible<T_j, Rhs>::value)
   {
     lhs.template emplace<ValidJ>(std::forward<Rhs>(rhs));
   }
 };
 
 template<>
-struct emplace_by_copy_or_by_move_copied_temporary_impl</*IsCopySaferThanMove = */ false> {
-  template<std::size_t ValidJ, class Rhs, class... Ts>
-  static YK_POLYFILL_CXX20_CONSTEXPR void apply(variant_storage<Ts...>& lhs, Rhs&& rhs)  // TODO: add noexcept
+struct emplace_directly_or_move_temporary_impl</*IsDirectConstructionSaferThanMovingTemporary = */ false> {
+  template<std::size_t ValidJ, class... Ts, class Rhs, class T_j = typename extension::pack_indexing<ValidJ, Ts...>::type>
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(variant_storage<Ts...>& lhs, Rhs&& rhs)
   {
-    using T_j = typename extension::pack_indexing<ValidJ, Ts...>::type;
     T_j temporary(std::forward<Rhs>(rhs));
     lhs.template emplace<ValidJ>(std::move(temporary));
   }
 };
 
-struct emplace_by_copy_or_by_move_copied_temporary {
-  template<std::size_t ValidJ, class Rhs, class... Ts>
-  static YK_POLYFILL_CXX20_CONSTEXPR void apply(variant_storage<Ts...>& lhs_storage, Rhs&& rhs)  // TODO: add noexcept
+struct emplace_directly_or_move_temporary {
+  template<std::size_t ValidJ, class... Ts, class Rhs, class T_j = typename extension::pack_indexing<ValidJ, Ts...>::type>
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(variant_storage<Ts...>& lhs_storage, Rhs&& rhs) noexcept(std::is_nothrow_constructible<T_j, Rhs>::value)
   {
-    using T_j = typename extension::pack_indexing<ValidJ, Ts...>::type;
-    constexpr bool IsCopySaferThanMove = disjunction<std::is_nothrow_copy_constructible<T_j>, negation<std::is_nothrow_move_constructible<T_j>>>::value;
-    emplace_by_copy_or_by_move_copied_temporary_impl<IsCopySaferThanMove>::template apply<ValidJ>(lhs_storage, std::forward<Rhs>(rhs));
+    constexpr bool IsDirectConstructionSaferThanMovingTemporary =
+        disjunction<std::is_nothrow_constructible<T_j, Rhs>, negation<std::is_nothrow_move_constructible<T_j>>>::value;
+    emplace_directly_or_move_temporary_impl<IsDirectConstructionSaferThanMovingTemporary>::template apply<ValidJ>(lhs_storage, std::forward<Rhs>(rhs));
   }
 };
 
 struct copy_assign_operation {
   template<std::size_t ValidJ, class RhsContained, class... Ts>
-  static YK_POLYFILL_CXX20_CONSTEXPR void apply(variant_storage<Ts...>& lhs, RhsContained const& rhs_value)  // TODO: add noexcept
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(variant_storage<Ts...>& lhs, RhsContained const& rhs_value) noexcept(
+      std::is_nothrow_copy_assignable<RhsContained>::value && std::is_nothrow_copy_constructible<RhsContained>::value
+  )
   {
     if (lhs.index() == ValidJ) {
       raw_get<ValidJ>(lhs.vunion) = rhs_value;
     } else {
-      emplace_by_copy_or_by_move_copied_temporary::apply<ValidJ>(lhs, rhs_value);
+      emplace_directly_or_move_temporary::apply<ValidJ>(lhs, rhs_value);
     }
   }
 };
@@ -489,15 +495,19 @@ struct copy_assign_visitor {
   variant_storage<Ts...>& lhs;
 
   template<std::size_t J, class RhsContained>
-  YK_POLYFILL_CXX20_CONSTEXPR void operator()(in_place_index_t<J>, RhsContained const& rhs_value)  // TODO: add noexcept
+  YK_POLYFILL_CXX20_CONSTEXPR void operator()(in_place_index_t<J>, RhsContained const& rhs_value) noexcept(
+      std::is_nothrow_copy_assignable<RhsContained>::value && std::is_nothrow_copy_constructible<RhsContained>::value
+  )
   {
     no_op_wrapper<J, copy_assign_operation>::apply(lhs, rhs_value);
   }
 };
 
 struct move_assign_operation {
-  template<std::size_t ValidJ, class RhsContained, class... Ts>
-  static YK_POLYFILL_CXX20_CONSTEXPR void apply(variant_storage<Ts...>& lhs, RhsContained&& rhs_value)  // TODO: add noexcept
+  template<std::size_t ValidJ, class... Ts, class RhsContained, class T_j = typename extension::pack_indexing<ValidJ, Ts...>::type>
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(variant_storage<Ts...>& lhs, RhsContained&& rhs_value) noexcept(
+      std::is_nothrow_move_assignable<T_j>::value && std::is_nothrow_move_constructible<T_j>::value
+  )
   {
     if (lhs.index() == ValidJ) {
       raw_get<ValidJ>(lhs.vunion) = std::move(rhs_value);
@@ -512,20 +522,25 @@ struct move_assign_visitor {
   variant_storage<Ts...>& lhs;
 
   template<std::size_t J, class RhsContained>
-  YK_POLYFILL_CXX20_CONSTEXPR void operator()(in_place_index_t<J>, RhsContained&& rhs_value)  // TODO: add noexcept
+  YK_POLYFILL_CXX20_CONSTEXPR void operator()(in_place_index_t<J>, RhsContained&& rhs_value) noexcept(
+      std::is_nothrow_move_assignable<typename remove_cvref<RhsContained>::type>::value
+      && std::is_nothrow_move_constructible<typename remove_cvref<RhsContained>::type>::value
+  )
   {
     no_op_wrapper<J, move_assign_operation>::apply(lhs, rhs_value);
   }
 };
 
 struct generic_assign_operation {
-  template<std::size_t ValidJ, class RhsT, class... Ts>
-  static YK_POLYFILL_CXX20_CONSTEXPR void apply(variant_storage<Ts...>& lhs_storage, RhsT&& rhs)  // TODO: add noexcept
+  template<std::size_t ValidJ, class... Ts, class RhsT, class T_j = typename extension::pack_indexing<ValidJ, Ts...>::type>
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(variant_storage<Ts...>& lhs_storage, RhsT&& rhs) noexcept(
+      std::is_nothrow_assignable<T_j&, RhsT>::value && std::is_nothrow_constructible<T_j, RhsT>::value
+  )
   {
     if (lhs_storage.index() == ValidJ) {
       raw_get<ValidJ>(lhs_storage.vunion) = std::forward<RhsT>(rhs);
     } else {
-      emplace_by_copy_or_by_move_copied_temporary::apply<ValidJ>(lhs_storage, std::forward<RhsT>(rhs));
+      emplace_directly_or_move_temporary::apply<ValidJ>(lhs_storage, std::forward<RhsT>(rhs));
     }
   }
 };
@@ -538,7 +553,7 @@ struct variant_storage {
   union_type vunion;
   index_type vindex;
 
-  // Creates valueless state in order to being ready for copy/move construction 
+  // Creates valueless state in order to being ready for copy/move construction
   explicit constexpr variant_storage() : vunion(valueless), vindex(variant_npos_for<sizeof...(Ts)>::value) {}
 
   template<std::size_t I, class... Args>
@@ -582,8 +597,8 @@ struct variant_storage {
   // calls `visit` to destroy contained value and *DO* set index
   YK_POLYFILL_CXX20_CONSTEXPR void dynamic_reset() noexcept { raw_visit(reset_visitor<Ts...>{*this}); }
 
-  template<std::size_t ValidI, class... Args>
-  YK_POLYFILL_CXX20_CONSTEXPR typename extension::pack_indexing<ValidI, Ts...>::type& emplace(Args&&... args)  // TODO: add noexcept
+  template<std::size_t ValidI, class... Args, class T_i = typename extension::pack_indexing<ValidI, Ts...>::type>
+  YK_POLYFILL_CXX20_CONSTEXPR T_i& emplace(Args&&... args) noexcept(std::is_nothrow_constructible<T_i, Args...>::value)
   {
     dynamic_reset();
     construct_on_valueless_operation::apply<ValidI>(*this, std::forward<Args>(args)...);
@@ -607,7 +622,9 @@ struct variant_storage {
     other.raw_visit(copy_assign_visitor<Ts...>{*this});
   }
 
-  YK_POLYFILL_CXX20_CONSTEXPR void _move_assign(variant_storage&& other)  // TODO: add noexcept
+  YK_POLYFILL_CXX20_CONSTEXPR void _move_assign(variant_storage&& other) noexcept(
+      conjunction<std::is_nothrow_move_constructible<Ts>..., std::is_nothrow_move_assignable<Ts>...>::value
+  )
   {
     std::move(other).raw_visit(move_assign_visitor<Ts...>{*this});
   }
