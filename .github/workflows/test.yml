@@ -104,6 +104,7 @@ jobs:
           cmake -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_STANDARD=${{ matrix.cxx-version }} -DCMAKE_CXX_COMPILER=${{ matrix.compiler.executable }} -Bbuild .
       - name: Build tests
         run: |
+          echo "CPPWARNINGNOTIFIER_LOG_MARKER"
           cmake --build build --config ${{ matrix.build-type }}
       - name: Save deps to cache
         if: steps.cache-restore.outputs.cache-hit != 'true'
