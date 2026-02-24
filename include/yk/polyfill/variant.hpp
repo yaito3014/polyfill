@@ -711,11 +711,21 @@ public:
   using base_type::valueless_by_exception;
 
   template<
-      std::size_t I, class... Args, class SelectedType = typename extension::pack_indexing<I, Ts...>::type,
+      std::size_t I, class... Args, class SelectedType = typename variant_alternative<I, variant>::type,
       typename std::enable_if<std::is_constructible<SelectedType, Args...>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR SelectedType& emplace(Args&&... args) noexcept(std::is_nothrow_constructible<SelectedType, Args...>::value)
   {
     return base_type::template emplace<I>(std::forward<Args>(args)...);
+  }
+
+  template<
+      std::size_t I, class U, class... Args, class SelectedType = typename variant_alternative<I, variant>::type,
+      typename std::enable_if<std::is_constructible<SelectedType, std::initializer_list<U>&, Args...>::value, std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX20_CONSTEXPR SelectedType& emplace(std::initializer_list<U> il, Args&&... args) noexcept(
+      std::is_nothrow_constructible<SelectedType, std::initializer_list<U>&, Args...>::value
+  )
+  {
+    return base_type::template emplace<I>(il, std::forward<Args>(args)...);
   }
 
   template<
@@ -724,6 +734,16 @@ public:
   YK_POLYFILL_CXX20_CONSTEXPR T& emplace(Args&&... args) noexcept(std::is_nothrow_constructible<T, Args...>::value)
   {
     return base_type::template emplace<variant_detail::find_index<T, Ts...>::value>(std::forward<Args>(args)...);
+  }
+
+  template<
+      class T, class U, class... Args, typename std::enable_if<variant_detail::exactly_once<T, Ts...>::value, std::nullptr_t>::type = nullptr,
+      typename std::enable_if<std::is_constructible<T, std::initializer_list<U>&, Args...>::value, std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX20_CONSTEXPR T& emplace(std::initializer_list<U> il, Args&&... args) noexcept(
+      std::is_nothrow_constructible<T, std::initializer_list<U>&, Args...>::value
+  )
+  {
+    return base_type::template emplace<variant_detail::find_index<T, Ts...>::value>(il, std::forward<Args>(args)...);
   }
 
   template<
