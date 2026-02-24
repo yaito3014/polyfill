@@ -115,3 +115,16 @@ jobs:
         working-directory: build/test
         run: |
           ctest -C ${{ matrix.build-type }}
+  run-notifier:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: iris-cpp/cpp-warning-notifier@v0.7
+        with:
+          RUN_ID: ${{ github.run_id }}
+          JOB_ID: ${{ job.check_run_id }}
+          JOB_REGEX: C\+\+(?<cppVersion>\d+) (?<config>.+) \((?<vendorName>) (?<vendorVersion>.+) on (?<osName>)\)
+          STEP_REGEX: Build.+
+          ROW_HEADERS: '["osName", "vendorName", "vendorVersion", "config"]'
+          COLUMN_HEADER: cppVersion
