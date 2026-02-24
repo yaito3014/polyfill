@@ -13,6 +13,7 @@
 #include <yk/polyfill/utility.hpp>
 
 #include <exception>
+#include <memory>
 #include <utility>
 
 #include <cstddef>
@@ -711,6 +712,15 @@ public:
   using base_type::valueless_by_exception;
 
   template<
+      class T, class... Args,
+      typename std::enable_if<variant_detail::exactly_once<T, Ts...>::value, std::nullptr_t>::type = nullptr,
+      typename std::enable_if<std::is_constructible<T, Args...>::value, std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX20_CONSTEXPR T& emplace(Args&&... args) noexcept(std::is_nothrow_constructible<T, Args...>::value)
+  {
+    return base_type::template emplace<variant_detail::find_index<T, Ts...>::value>(std::forward<Args>(args)...);
+  }
+
+  template<
       class Head = typename extension::pack_indexing<0, Ts...>::type,
       typename std::enable_if<std::is_default_constructible<Head>::value, std::nullptr_t>::type = nullptr>
   constexpr variant() noexcept(std::is_nothrow_default_constructible<Head>::value) : base_type(in_place_index_t<0>{})
@@ -734,6 +744,15 @@ public:
       typename std::enable_if<std::is_constructible<SelectedType, Args...>::value, std::nullptr_t>::type = nullptr>
   constexpr explicit variant(in_place_index_t<I> ipi, Args&&... args) noexcept(std::is_nothrow_constructible<SelectedType, Args...>::value)
       : base_type(ipi, std::forward<Args>(args)...)
+  {
+  }
+
+  template<
+      class T, class... Args,
+      typename std::enable_if<variant_detail::exactly_once<T, Ts...>::value, std::nullptr_t>::type = nullptr,
+      typename std::enable_if<std::is_constructible<T, Args...>::value, std::nullptr_t>::type = nullptr>
+  constexpr explicit variant(in_place_type_t<T>, Args&&... args) noexcept(std::is_nothrow_constructible<T, Args...>::value)
+      : base_type(in_place_index_t<variant_detail::find_index<T, Ts...>::value>{}, std::forward<Args>(args)...)
   {
   }
 
@@ -802,6 +821,87 @@ YK_POLYFILL_CXX14_CONSTEXPR typename variant_alternative<I, variant<Ts...>>::typ
     return variant_detail::raw_get<I>(std::move(v.vunion));
   }
   throw bad_variant_access{};
+}
+
+// holds_alternative
+
+template<class T, class... Ts>
+constexpr bool holds_alternative(variant<Ts...> const& v) noexcept
+{
+  static_assert(variant_detail::exactly_once<T, Ts...>::value, "T must occur exactly once in Ts...");
+  return v.index() == variant_detail::find_index<T, Ts...>::value;
+}
+
+// get<T>
+
+template<class T, class... Ts>
+YK_POLYFILL_CXX14_CONSTEXPR T& get(variant<Ts...>& v)
+{
+  static_assert(variant_detail::exactly_once<T, Ts...>::value, "T must occur exactly once in Ts...");
+  return get<variant_detail::find_index<T, Ts...>::value>(v);
+}
+
+template<class T, class... Ts>
+YK_POLYFILL_CXX14_CONSTEXPR T const& get(variant<Ts...> const& v)
+{
+  static_assert(variant_detail::exactly_once<T, Ts...>::value, "T must occur exactly once in Ts...");
+  return get<variant_detail::find_index<T, Ts...>::value>(v);
+}
+
+template<class T, class... Ts>
+YK_POLYFILL_CXX14_CONSTEXPR T&& get(variant<Ts...>&& v)
+{
+  static_assert(variant_detail::exactly_once<T, Ts...>::value, "T must occur exactly once in Ts...");
+  return get<variant_detail::find_index<T, Ts...>::value>(std::move(v));
+}
+
+template<class T, class... Ts>
+YK_POLYFILL_CXX14_CONSTEXPR T const&& get(variant<Ts...> const&& v)
+{
+  static_assert(variant_detail::exactly_once<T, Ts...>::value, "T must occur exactly once in Ts...");
+  return get<variant_detail::find_index<T, Ts...>::value>(std::move(v));
+}
+
+// get_if<I>
+
+template<std::size_t I, class... Ts>
+YK_POLYFILL_CXX14_CONSTEXPR typename std::add_pointer<typename variant_alternative<I, variant<Ts...>>::type>::type
+get_if(variant<Ts...>* v) noexcept
+{
+  static_assert(I < sizeof...(Ts), "I must be in sizeof...(Ts)");
+  if (v && v->index() == I) {
+    return std::addressof(get<I>(*v));
+  }
+  return nullptr;
+}
+
+template<std::size_t I, class... Ts>
+YK_POLYFILL_CXX14_CONSTEXPR typename std::add_pointer<typename variant_alternative<I, variant<Ts...>>::type const>::type
+get_if(variant<Ts...> const* v) noexcept
+{
+  static_assert(I < sizeof...(Ts), "I must be in sizeof...(Ts)");
+  if (v && v->index() == I) {
+    return std::addressof(get<I>(*v));
+  }
+  return nullptr;
+}
+
+// get_if<T>
+
+template<class T, class... Ts>
+YK_POLYFILL_CXX14_CONSTEXPR typename std::add_pointer<T>::type
+get_if(variant<Ts...>* v) noexcept
+{
+  static_assert(variant_detail::exactly_once<T, Ts...>::value, "T must occur exactly once in Ts...");
+  return get_if<variant_detail::find_index<T, Ts...>::value>(v);
+}
+
+template<class T, class... Ts>
+YK_POLYFILL_CXX14_CONSTEXPR typename std::add_pointer<T const>::type
+get_if(variant<Ts...> const* v) noexcept
+{
+  static_assert(variant_detail::exactly_once<T, Ts...>::value, "T must occur exactly once in Ts...");
+  return get_if<variant_detail::find_index<T, Ts...>::value>(v);
 }
 
 }  // namespace polyfill

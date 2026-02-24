@@ -381,6 +381,247 @@ TEST_CASE("variant generic assignment")
   }
 }
 
+TEST_CASE("variant in-place type construction")
+{
+  STATIC_REQUIRE(std::is_constructible<pf::variant<int, double>, pf::in_place_type_t<int>, int>::value);
+  STATIC_REQUIRE(std::is_constructible<pf::variant<int, double>, pf::in_place_type_t<double>, double>::value);
+
+  STATIC_REQUIRE(!std::is_constructible<pf::variant<NotDefaultConstructible>, pf::in_place_type_t<NotDefaultConstructible>>::value);
+  STATIC_REQUIRE(std::is_constructible<pf::variant<NotDefaultConstructible>, pf::in_place_type_t<NotDefaultConstructible>, int>::value);
+
+  // duplicate type -> should not be constructible
+  STATIC_REQUIRE(!std::is_constructible<pf::variant<int, int>, pf::in_place_type_t<int>, int>::value);
+
+  {
+    pf::variant<int, double> v(pf::in_place_type_t<int>{}, 42);
+    CHECK(v.index() == 0);
+    CHECK(pf::get<int>(v) == 42);
+  }
+  {
+    pf::variant<int, double> v(pf::in_place_type_t<double>{}, 3.14);
+    CHECK(v.index() == 1);
+    CHECK(pf::get<double>(v) == 3.14);
+  }
+}
+
+TEST_CASE("variant emplace by type")
+{
+  SECTION("same alternative")
+  {
+    pf::variant<int, double> v = 42;
+    auto& ref = v.emplace<int>(99);
+    CHECK(v.index() == 0);
+    CHECK(pf::get<int>(v) == 99);
+    CHECK(ref == 99);
+  }
+  SECTION("different alternative")
+  {
+    pf::variant<int, double> v = 42;
+    auto& ref = v.emplace<double>(3.14);
+    CHECK(v.index() == 1);
+    CHECK(pf::get<double>(v) == 3.14);
+    CHECK(ref == 3.14);
+  }
+  SECTION("non-trivially destructible")
+  {
+    pf::variant<int, NonTriviallyDestructible> v = 42;
+    v.emplace<NonTriviallyDestructible>();
+    CHECK(v.index() == 1);
+    v.emplace<int>(10);
+    CHECK(v.index() == 0);
+    CHECK(pf::get<int>(v) == 10);
+  }
+  SECTION("from valueless")
+  {
+    pf::variant<int, ThrowsOnConstruction> v = 42;
+    make_valueless(v);
+    CHECK(v.valueless_by_exception());
+    v.emplace<int>(7);
+    CHECK(!v.valueless_by_exception());
+    CHECK(v.index() == 0);
+    CHECK(pf::get<int>(v) == 7);
+  }
+}
+
+TEST_CASE("variant holds_alternative")
+{
+  {
+    pf::variant<int, double> v = 42;
+    CHECK(pf::holds_alternative<int>(v));
+    CHECK(!pf::holds_alternative<double>(v));
+  }
+  {
+    pf::variant<int, double> v = 3.14;
+    CHECK(!pf::holds_alternative<int>(v));
+    CHECK(pf::holds_alternative<double>(v));
+  }
+  {
+    pf::variant<int, ThrowsOnConstruction> v = 42;
+    make_valueless(v);
+    CHECK(!pf::holds_alternative<int>(v));
+    CHECK(!pf::holds_alternative<ThrowsOnConstruction>(v));
+  }
+}
+
+TEST_CASE("variant get by type")
+{
+  SECTION("lvalue ref")
+  {
+    pf::variant<int, double> v = 42;
+    CHECK(pf::get<int>(v) == 42);
+    CHECK_THROWS(pf::get<double>(v));
+  }
+  SECTION("const lvalue ref")
+  {
+    pf::variant<int, double> const v = 3.14;
+    CHECK(pf::get<double>(v) == 3.14);
+    CHECK_THROWS(pf::get<int>(v));
+  }
+  SECTION("rvalue ref")
+  {
+    pf::variant<int, double> v = 42;
+    CHECK(pf::get<int>(std::move(v)) == 42);
+  }
+  SECTION("const rvalue ref")
+  {
+    pf::variant<int, double> const v = 3.14;
+    CHECK(pf::get<double>(std::move(v)) == 3.14);
+  }
+  SECTION("return type correctness")
+  {
+    using V = pf::variant<int, double>;
+    STATIC_REQUIRE(std::is_same<decltype(pf::get<int>(std::declval<V&>())), int&>::value);
+    STATIC_REQUIRE(std::is_same<decltype(pf::get<int>(std::declval<V const&>())), int const&>::value);
+    STATIC_REQUIRE(std::is_same<decltype(pf::get<int>(std::declval<V&&>())), int&&>::value);
+    STATIC_REQUIRE(std::is_same<decltype(pf::get<int>(std::declval<V const&&>())), int const&&>::value);
+  }
+}
+
+TEST_CASE("variant get_if by index")
+{
+  SECTION("non-null matching")
+  {
+    pf::variant<int, double> v = 42;
+    auto* p = pf::get_if<0>(&v);
+    STATIC_REQUIRE(std::is_same<decltype(p), int*>::value);
+    CHECK(p != nullptr);
+    CHECK(*p == 42);
+  }
+  SECTION("non-null non-matching")
+  {
+    pf::variant<int, double> v = 42;
+    auto* p = pf::get_if<1>(&v);
+    CHECK(p == nullptr);
+  }
+  SECTION("null pointer")
+  {
+    pf::variant<int, double>* v = nullptr;
+    auto* p = pf::get_if<0>(v);
+    CHECK(p == nullptr);
+  }
+  SECTION("const variant")
+  {
+    pf::variant<int, double> const v = 3.14;
+    auto* p = pf::get_if<1>(&v);
+    STATIC_REQUIRE(std::is_same<decltype(p), double const*>::value);
+    CHECK(p != nullptr);
+    CHECK(*p == 3.14);
+  }
+}
+
+TEST_CASE("variant get_if by type")
+{
+  SECTION("non-null matching")
+  {
+    pf::variant<int, double> v = 42;
+    auto* p = pf::get_if<int>(&v);
+    STATIC_REQUIRE(std::is_same<decltype(p), int*>::value);
+    CHECK(p != nullptr);
+    CHECK(*p == 42);
+  }
+  SECTION("non-null non-matching")
+  {
+    pf::variant<int, double> v = 42;
+    auto* p = pf::get_if<double>(&v);
+    CHECK(p == nullptr);
+  }
+  SECTION("null pointer")
+  {
+    pf::variant<int, double>* v = nullptr;
+    auto* p = pf::get_if<int>(v);
+    CHECK(p == nullptr);
+  }
+  SECTION("const variant")
+  {
+    pf::variant<int, double> const v = 3.14;
+    auto* p = pf::get_if<double>(&v);
+    STATIC_REQUIRE(std::is_same<decltype(p), double const*>::value);
+    CHECK(p != nullptr);
+    CHECK(*p == 3.14);
+  }
+  SECTION("valueless")
+  {
+    pf::variant<int, ThrowsOnConstruction> v = 42;
+    make_valueless(v);
+    CHECK(pf::get_if<int>(&v) == nullptr);
+  }
+}
+
+TEST_CASE("variant_detail::exactly_once")
+{
+  namespace vd = pf::variant_detail;
+
+  // type not present at all -> false
+  STATIC_REQUIRE(!vd::exactly_once<int>::value);
+  STATIC_REQUIRE(!vd::exactly_once<int, double>::value);
+  STATIC_REQUIRE(!vd::exactly_once<int, double, char>::value);
+
+  // type present exactly once -> true
+  STATIC_REQUIRE(vd::exactly_once<int, int>::value);
+  STATIC_REQUIRE(vd::exactly_once<int, double, int>::value);
+  STATIC_REQUIRE(vd::exactly_once<int, int, double>::value);
+  STATIC_REQUIRE(vd::exactly_once<int, double, char, int>::value);
+  STATIC_REQUIRE(vd::exactly_once<int, double, int, char>::value);
+
+  // type present more than once -> false
+  STATIC_REQUIRE(!vd::exactly_once<int, int, int>::value);
+  STATIC_REQUIRE(!vd::exactly_once<int, int, double, int>::value);
+  STATIC_REQUIRE(!vd::exactly_once<int, double, int, int>::value);
+  STATIC_REQUIRE(!vd::exactly_once<int, int, int, int>::value);
+
+  // cv-qualified types are distinct
+  STATIC_REQUIRE(vd::exactly_once<int, int, int const>::value);
+  STATIC_REQUIRE(vd::exactly_once<int const, int, int const>::value);
+  STATIC_REQUIRE(!vd::exactly_once<int, int const, int volatile>::value);
+
+  // reference types are distinct
+  STATIC_REQUIRE(vd::exactly_once<int, int, int&>::value);
+}
+
+TEST_CASE("variant_detail::find_index")
+{
+  namespace vd = pf::variant_detail;
+
+  // single-element pack
+  STATIC_REQUIRE(vd::find_index<int, int>::value == 0);
+
+  // first element
+  STATIC_REQUIRE(vd::find_index<int, int, double>::value == 0);
+
+  // second element
+  STATIC_REQUIRE(vd::find_index<double, int, double>::value == 1);
+
+  // later position
+  STATIC_REQUIRE(vd::find_index<char, int, double, char>::value == 2);
+
+  // finds first occurrence when duplicates exist
+  STATIC_REQUIRE(vd::find_index<int, int, double, int>::value == 0);
+  STATIC_REQUIRE(vd::find_index<double, int, double, double>::value == 1);
+
+  // cv-qualified types
+  STATIC_REQUIRE(vd::find_index<int const, int, int const>::value == 1);
+}
+
 TEST_CASE("variant noexcept")
 {
   struct NothrowAll {
