@@ -13,6 +13,7 @@
 #include <yk/polyfill/utility.hpp>
 
 #include <exception>
+#include <memory>
 #include <utility>
 
 #include <cstddef>
