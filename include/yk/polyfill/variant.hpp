@@ -869,7 +869,7 @@ get_if(variant<Ts...>* v) noexcept
 {
   static_assert(I < sizeof...(Ts), "I must be in sizeof...(Ts)");
   if (v && v->index() == I) {
-    return &get<I>(*v);
+    return std::addressof(get<I>(*v));
   }
   return nullptr;
 }
@@ -880,7 +880,7 @@ get_if(variant<Ts...> const* v) noexcept
 {
   static_assert(I < sizeof...(Ts), "I must be in sizeof...(Ts)");
   if (v && v->index() == I) {
-    return &get<I>(*v);
+    return std::addressof(get<I>(*v));
   }
   return nullptr;
 }
