@@ -716,7 +716,7 @@ public:
       typename std::enable_if<std::is_constructible<T, Args...>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR T& emplace(Args&&... args) noexcept(std::is_nothrow_constructible<T, Args...>::value)
   {
-    return this->template emplace<variant_detail::find_index<T, Ts...>::value>(std::forward<Args>(args)...);
+    return base_type::template emplace<variant_detail::find_index<T, Ts...>::value>(std::forward<Args>(args)...);
   }
 
   template<
