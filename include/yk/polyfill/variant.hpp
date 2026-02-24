@@ -707,13 +707,19 @@ private:
   using base_type = cond_trivial_smf<typename variant_detail::make_variant_base<Ts...>::type, Ts...>;
 
 public:
-  using base_type::emplace;
   using base_type::index;
   using base_type::valueless_by_exception;
 
   template<
-      class T, class... Args,
-      typename std::enable_if<variant_detail::exactly_once<T, Ts...>::value, std::nullptr_t>::type = nullptr,
+      std::size_t I, class... Args, class SelectedType = typename extension::pack_indexing<I, Ts...>::type,
+      typename std::enable_if<std::is_constructible<SelectedType, Args...>::value, std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX20_CONSTEXPR SelectedType& emplace(Args&&... args) noexcept(std::is_nothrow_constructible<SelectedType, Args...>::value)
+  {
+    return base_type::template emplace<I>(std::forward<Args>(args)...);
+  }
+
+  template<
+      class T, class... Args, typename std::enable_if<variant_detail::exactly_once<T, Ts...>::value, std::nullptr_t>::type = nullptr,
       typename std::enable_if<std::is_constructible<T, Args...>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR T& emplace(Args&&... args) noexcept(std::is_nothrow_constructible<T, Args...>::value)
   {
@@ -748,8 +754,7 @@ public:
   }
 
   template<
-      class T, class... Args,
-      typename std::enable_if<variant_detail::exactly_once<T, Ts...>::value, std::nullptr_t>::type = nullptr,
+      class T, class... Args, typename std::enable_if<variant_detail::exactly_once<T, Ts...>::value, std::nullptr_t>::type = nullptr,
       typename std::enable_if<std::is_constructible<T, Args...>::value, std::nullptr_t>::type = nullptr>
   constexpr explicit variant(in_place_type_t<T>, Args&&... args) noexcept(std::is_nothrow_constructible<T, Args...>::value)
       : base_type(in_place_index_t<variant_detail::find_index<T, Ts...>::value>{}, std::forward<Args>(args)...)
@@ -865,8 +870,7 @@ YK_POLYFILL_CXX14_CONSTEXPR T const&& get(variant<Ts...> const&& v)
 // get_if<I>
 
 template<std::size_t I, class... Ts>
-YK_POLYFILL_CXX14_CONSTEXPR typename std::add_pointer<typename variant_alternative<I, variant<Ts...>>::type>::type
-get_if(variant<Ts...>* v) noexcept
+YK_POLYFILL_CXX14_CONSTEXPR typename std::add_pointer<typename variant_alternative<I, variant<Ts...>>::type>::type get_if(variant<Ts...>* v) noexcept
 {
   static_assert(I < sizeof...(Ts), "I must be in sizeof...(Ts)");
   if (v && v->index() == I) {
@@ -876,8 +880,9 @@ get_if(variant<Ts...>* v) noexcept
 }
 
 template<std::size_t I, class... Ts>
-YK_POLYFILL_CXX14_CONSTEXPR typename std::add_pointer<typename variant_alternative<I, variant<Ts...>>::type const>::type
-get_if(variant<Ts...> const* v) noexcept
+YK_POLYFILL_CXX14_CONSTEXPR typename std::add_pointer<typename variant_alternative<I, variant<Ts...>>::type const>::type get_if(
+    variant<Ts...> const* v
+) noexcept
 {
   static_assert(I < sizeof...(Ts), "I must be in sizeof...(Ts)");
   if (v && v->index() == I) {
@@ -889,16 +894,14 @@ get_if(variant<Ts...> const* v) noexcept
 // get_if<T>
 
 template<class T, class... Ts>
-YK_POLYFILL_CXX14_CONSTEXPR typename std::add_pointer<T>::type
-get_if(variant<Ts...>* v) noexcept
+YK_POLYFILL_CXX14_CONSTEXPR typename std::add_pointer<T>::type get_if(variant<Ts...>* v) noexcept
 {
   static_assert(variant_detail::exactly_once<T, Ts...>::value, "T must occur exactly once in Ts...");
   return get_if<variant_detail::find_index<T, Ts...>::value>(v);
 }
 
 template<class T, class... Ts>
-YK_POLYFILL_CXX14_CONSTEXPR typename std::add_pointer<T const>::type
-get_if(variant<Ts...> const* v) noexcept
+YK_POLYFILL_CXX14_CONSTEXPR typename std::add_pointer<T const>::type get_if(variant<Ts...> const* v) noexcept
 {
   static_assert(variant_detail::exactly_once<T, Ts...>::value, "T must occur exactly once in Ts...");
   return get_if<variant_detail::find_index<T, Ts...>::value>(v);
