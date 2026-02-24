@@ -1,5 +1,8 @@
 name: Test
 
+permissions:
+  id-token: write
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -116,7 +119,6 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
       - uses: iris-cpp/cpp-warning-notifier@v0.7
         with:
           RUN_ID: ${{ github.run_id }}
