@@ -714,7 +714,7 @@ public:
       class T, class... Args,
       typename std::enable_if<variant_detail::exactly_once<T, Ts...>::value, std::nullptr_t>::type = nullptr,
       typename std::enable_if<std::is_constructible<T, Args...>::value, std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX20_CONSTEXPR T& emplace(Args&&... args)
+  YK_POLYFILL_CXX20_CONSTEXPR T& emplace(Args&&... args) noexcept(std::is_nothrow_constructible<T, Args...>::value)
   {
     return this->template emplace<variant_detail::find_index<T, Ts...>::value>(std::forward<Args>(args)...);
   }
