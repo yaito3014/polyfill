@@ -3,6 +3,7 @@ add_executable(yk_polyfill_cxx11_test)
 target_sources(
     yk_polyfill_cxx11_test
     PRIVATE
+        bit_cast.cpp
         integer_sequence.cpp
         integral_constant.cpp
         is_null_pointer.cpp
