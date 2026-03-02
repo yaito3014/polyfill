@@ -12,6 +12,10 @@ namespace pf = yk::polyfill;
 
 struct ThrowsOnConstruction {
   ThrowsOnConstruction() { throw std::exception{}; }
+  ThrowsOnConstruction(ThrowsOnConstruction const&) noexcept {}
+  ThrowsOnConstruction(ThrowsOnConstruction&&) noexcept {}
+  ThrowsOnConstruction& operator=(ThrowsOnConstruction const&) noexcept { return *this; }
+  ThrowsOnConstruction& operator=(ThrowsOnConstruction&&) noexcept { return *this; }
 };
 
 void make_valueless(pf::variant<int, ThrowsOnConstruction>& var)
@@ -29,6 +33,12 @@ struct NotDefaultConstructible {
 struct NonTriviallyDestructible {
   ~NonTriviallyDestructible() {}
 };
+
+TEST_CASE("never_valueless check")
+{
+  STATIC_REQUIRE(pf::variant_detail::make_variadic_union<int, double>::type::never_valueless);
+  STATIC_REQUIRE(!pf::variant_detail::make_variadic_union<int, ThrowsOnConstruction>::type::never_valueless);
+}
 
 TEST_CASE("variant default construction and destruction")
 {

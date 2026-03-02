@@ -124,7 +124,7 @@ struct make_variadic_union {
 
 template<class Head, class... Rest>
 struct variadic_union<true, Head, Rest...> {
-  static constexpr bool never_valueless = false;  // FIXME
+  static constexpr bool never_valueless = is_never_valueless<Head, Rest...>::value;
 
   using head_type = Head;
   using rest_type = typename make_variadic_union<Rest...>::type;
@@ -151,7 +151,7 @@ struct variadic_union<true, Head, Rest...> {
 
 template<class Head, class... Rest>
 struct variadic_union<false, Head, Rest...> {
-  static constexpr bool never_valueless = false;  // FIXME
+  static constexpr bool never_valueless = is_never_valueless<Head, Rest...>::value;
 
   using head_type = Head;
   using rest_type = typename make_variadic_union<Rest...>::type;
@@ -601,9 +601,16 @@ struct variant_storage {
   template<std::size_t ValidI, class... Args, class T_i = typename extension::pack_indexing<ValidI, Ts...>::type>
   YK_POLYFILL_CXX20_CONSTEXPR T_i& emplace(Args&&... args) noexcept(std::is_nothrow_constructible<T_i, Args...>::value)
   {
-    dynamic_reset();
-    construct_on_valueless_operation::apply<ValidI>(*this, std::forward<Args>(args)...);
-    return raw_get<ValidI>(vunion);
+    if constexpr (union_type::never_valueless) {
+      // TODO: replace this branch with trivial construction (without creating valueless state)
+      dynamic_reset();
+      construct_on_valueless_operation::apply<ValidI>(*this, std::forward<Args>(args)...);  // may throw
+      return raw_get<ValidI>(vunion);
+    } else {
+      dynamic_reset();
+      construct_on_valueless_operation::apply<ValidI>(*this, std::forward<Args>(args)...);  // may throw
+      return raw_get<ValidI>(vunion);
+    }
   }
 
   YK_POLYFILL_CXX20_CONSTEXPR void _copy_construct(variant_storage const& other) noexcept(conjunction<std::is_nothrow_copy_constructible<Ts>...>::value)
