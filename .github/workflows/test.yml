@@ -1,5 +1,8 @@
 name: Test
 
+permissions:
+  id-token: write
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -101,6 +104,7 @@ jobs:
           cmake -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_STANDARD=${{ matrix.cxx-version }} -DCMAKE_CXX_COMPILER=${{ matrix.compiler.executable }} -Bbuild .
       - name: Build tests
         run: |
+          echo "CPPWARNINGNOTIFIER_LOG_MARKER"
           cmake --build build --config ${{ matrix.build-type }}
       - name: Save deps to cache
         if: steps.cache-restore.outputs.cache-hit != 'true'
@@ -112,3 +116,15 @@ jobs:
         working-directory: build/test
         run: |
           ctest -C ${{ matrix.build-type }}
+  run-notifier:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: iris-cpp/cpp-warning-notifier@v0.7
+        with:
+          RUN_ID: ${{ github.run_id }}
+          JOB_ID: ${{ job.check_run_id }}
+          JOB_REGEX: C\+\+(?<cppVersion>\d+) (?<config>.+) \((?<vendorName>.+) (?<vendorVersion>.+) on (?<osName>.+)\)
+          STEP_REGEX: Build.+
+          ROW_HEADERS: '["osName", "vendorName", "vendorVersion", "config"]'
+          COLUMN_HEADER: cppVersion
