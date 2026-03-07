@@ -64,6 +64,7 @@ TEST_CASE("toptional - conversion")
   {
     ext::toptional<int> i = 42;
     ext::toptional<double> d;
+    d = i;
     CHECK(*d == 42.0);
   }
 
