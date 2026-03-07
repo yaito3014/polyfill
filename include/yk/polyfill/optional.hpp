@@ -1,13 +1,14 @@
 #ifndef YK_POLYFILL_OPTIONAL_HPP
 #define YK_POLYFILL_OPTIONAL_HPP
 
+#include <yk/polyfill/bits/cond_trivial_smf.hpp>
 #include <yk/polyfill/bits/core_traits.hpp>
-#include <yk/polyfill/bits/trivial_base.hpp>
 
 #include <yk/polyfill/extension/specialization_of.hpp>
 
 #include <yk/polyfill/bits/optional_common.hpp>
 #include <yk/polyfill/functional.hpp>
+#include <yk/polyfill/memory.hpp>
 #include <yk/polyfill/type_traits.hpp>
 #include <yk/polyfill/utility.hpp>
 
@@ -193,54 +194,66 @@ struct optional_storage_base : public optional_destruct_base<T> {  // T is NOT a
 
   using base::base;
 
-  [[nodiscard]] constexpr bool has_value() const noexcept { return this->engaged; }
+  [[nodiscard]] constexpr bool has_value() const noexcept { return base::engaged; }
 
   template<class... Args>
   YK_POLYFILL_CXX20_CONSTEXPR void construct(Args&&... args) noexcept(std::is_nothrow_constructible<T, Args...>::value)
   {
-#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
-    std::construct_at(std::addressof(this->value), std::forward<Args>(args)...);
-#else
-    new (std::addressof(this->value)) T(std::forward<Args>(args)...);
-#endif
-    this->engaged = true;
+    polyfill::construct_at(std::addressof(base::value), std::forward<Args>(args)...);
+    base::engaged = true;
   }
 
   template<class Arg>
-  YK_POLYFILL_CXX20_CONSTEXPR void assign(Arg&& arg) noexcept(conjunction<std::is_nothrow_assignable<T&, Arg>, std::is_nothrow_constructible<T, Arg>>::value)
+  YK_POLYFILL_CXX17_CONSTEXPR void assign(Arg&& arg) noexcept(std::is_nothrow_constructible<T, Arg>::value && std::is_nothrow_assignable<T, Arg>::value)
   {
-    if (this->engaged) {
-      this->value = std::forward<Arg>(arg);
+    if (base::engaged) {
+      base::value = std::forward<Arg>(arg);
     } else {
       construct(std::forward<Arg>(arg));
     }
   }
 
-  template<class UOpt>
-  YK_POLYFILL_CXX20_CONSTEXPR void construct_from(UOpt&& other) noexcept(noexcept(construct(*std::forward<UOpt>(other))))
+  // for cond_trivial_smf
+
+  YK_POLYFILL_CXX17_CONSTEXPR void _copy_construct(optional_storage_base const& other) noexcept(std::is_nothrow_copy_constructible<T>::value)
   {
-    if (other.has_value()) {
-      construct(*std::forward<UOpt>(other));
+    if (other.base::engaged) {
+      construct(other.base::value);
     }
   }
 
-  template<class UOpt>
-  YK_POLYFILL_CXX20_CONSTEXPR void assign_from(UOpt&& other) noexcept(noexcept(assign(*std::forward<UOpt>(other))))
+  YK_POLYFILL_CXX17_CONSTEXPR void _copy_assign(optional_storage_base const& other) noexcept(std::is_nothrow_copy_assignable<T>::value)
   {
-    if (other.has_value()) {
-      assign(*std::forward<UOpt>(other));
+    if (other.base::engaged) {
+      assign(other.base::value);
     } else {
-      this->reset();
+      base::reset();
     }
   }
 
-  YK_POLYFILL_CXX17_CONSTEXPR T* operator->() noexcept { return std::addressof(this->value); }
-  YK_POLYFILL_CXX17_CONSTEXPR T const* operator->() const noexcept { return std::addressof(this->value); }
+  YK_POLYFILL_CXX17_CONSTEXPR void _move_construct(optional_storage_base&& other) noexcept(std::is_nothrow_move_constructible<T>::value)
+  {
+    if (other.base::engaged) {
+      construct(std::move(other.base::value));
+    }
+  }
 
-  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR value_type& operator*() & noexcept { return this->value; }
-  [[nodiscard]] constexpr value_type const& operator*() const& noexcept { return this->value; }
-  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR value_type&& operator*() && noexcept { return std::move(this->value); }
-  [[nodiscard]] constexpr value_type const&& operator*() const&& noexcept { return std::move(this->value); }
+  YK_POLYFILL_CXX17_CONSTEXPR void _move_assign(optional_storage_base&& other) noexcept(std::is_nothrow_move_assignable<T>::value)
+  {
+    if (other.base::engaged) {
+      assign(std::move(other.base::value));
+    } else {
+      base::reset();
+    }
+  }
+
+  YK_POLYFILL_CXX17_CONSTEXPR value_type* operator->() noexcept { return std::addressof(base::value); }
+  YK_POLYFILL_CXX17_CONSTEXPR value_type const* operator->() const noexcept { return std::addressof(base::value); }
+
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR value_type& operator*() & noexcept { return base::value; }
+  [[nodiscard]] constexpr value_type const& operator*() const& noexcept { return base::value; }
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR value_type&& operator*() && noexcept { return std::move(base::value); }
+  [[nodiscard]] constexpr value_type const&& operator*() const&& noexcept { return std::move(base::value); }
 };
 
 template<class T, class U>
@@ -273,9 +286,9 @@ concept is_derived_from_optional = requires(T const& t) { []<class U>(optional<U
 }  // namespace optional_detail
 
 template<class T>
-class optional : private trivial_base_detail::select_base_for_special_member_functions<optional_detail::optional_storage_base<T>, T> {
+class optional : private cond_trivial_smf<optional_detail::optional_storage_base<T>, T> {
 private:
-  using base = trivial_base_detail::select_base_for_special_member_functions<optional_detail::optional_storage_base<T>, T>;
+  using base = cond_trivial_smf<optional_detail::optional_storage_base<T>, T>;
 
   template<class>
   friend class optional;
@@ -325,7 +338,7 @@ public:
   YK_POLYFILL_CXX20_CONSTEXPR optional(optional<U> const& rhs) noexcept(std::is_nothrow_constructible<T, U const&>::value)
   {
     if (rhs.has_value()) {
-      this->construct(*rhs);
+      base::construct(*rhs);
     }
   }
 
@@ -336,7 +349,7 @@ public:
   YK_POLYFILL_CXX20_CONSTEXPR explicit optional(optional<U> const& rhs) noexcept(std::is_nothrow_constructible<T, U const&>::value)
   {
     if (rhs.has_value()) {
-      this->construct(*rhs);
+      base::construct(*rhs);
     }
   }
 
@@ -347,7 +360,7 @@ public:
   YK_POLYFILL_CXX20_CONSTEXPR optional(optional<U>&& rhs) noexcept(std::is_nothrow_constructible<T, U>::value)
   {
     if (rhs.has_value()) {
-      this->construct(std::move(*rhs));
+      base::construct(std::move(*rhs));
     }
   }
 
@@ -358,7 +371,7 @@ public:
   YK_POLYFILL_CXX20_CONSTEXPR explicit optional(optional<U>&& rhs) noexcept(std::is_nothrow_constructible<T, U>::value)
   {
     if (rhs.has_value()) {
-      this->construct(std::move(*rhs));
+      base::construct(std::move(*rhs));
     }
   }
 
@@ -375,7 +388,7 @@ public:
                    std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR optional& operator=(U&& v) noexcept(std::is_nothrow_constructible<T, U>::value && std::is_nothrow_assignable<T&, U>::value)
   {
-    this->assign(std::forward<U>(v));
+    base::assign(std::forward<U>(v));
     return *this;
   }
 
@@ -389,7 +402,7 @@ public:
   )
   {
     if (rhs.has_value()) {
-      this->assign(*rhs);
+      base::assign(*rhs);
     } else {
       reset();
     }
