@@ -48,28 +48,31 @@ TEST_CASE("toptional - conversion")
 {
   SECTION("copy constructor")
   {
-    ext::toptional<double> d = 3.14;
-    ext::toptional<int> i = d;
+    ext::toptional<int> i = 42;
+    ext::toptional<double> d = i;
+    CHECK(*d == 42.0);
   }
 
   SECTION("move constructor")
   {
-    ext::toptional<double> d = 3.14;
-    ext::toptional<int> i = std::move(d);
+    ext::toptional<int> i = 42;
+    ext::toptional<double> d = std::move(i);
+    CHECK(*d == 42.0);
   }
 
   SECTION("copy assignment")
   {
-    ext::toptional<double> d = 3.14;
-    ext::toptional<int> i;
-    i = d;
+    ext::toptional<int> i = 42;
+    ext::toptional<double> d;
+    CHECK(*d == 42.0);
   }
 
   SECTION("move assignment")
   {
-    ext::toptional<double> d = 3.14;
-    ext::toptional<int> i;
-    i = std::move(d);
+    ext::toptional<int> i = 42;
+    ext::toptional<double> d;
+    d = std::move(i);
+    CHECK(*d == 42.0);
   }
 }
 
