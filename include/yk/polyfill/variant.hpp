@@ -384,7 +384,7 @@ struct destroy_operation;
 template<>
 struct destroy_operation</*TriviallyDestructible = */ true> {
   template<std::size_t /* ValidI */, class ContainedT>
-  static YK_POLYFILL_CXX20_CONSTEXPR void apply(ContainedT&& value) noexcept
+  static YK_POLYFILL_CXX14_CONSTEXPR void apply(ContainedT&& value) noexcept
   {
     // no-op
   }
@@ -415,7 +415,7 @@ struct reset_operation;
 template<>
 struct reset_operation</*TriviallyDestructible = */ true> {
   template<std::size_t /* ValidI */, class ContainedT, class... Ts>
-  static YK_POLYFILL_CXX20_CONSTEXPR void apply(variant_storage<Ts...>& storage, ContainedT&&) noexcept
+  static YK_POLYFILL_CXX14_CONSTEXPR void apply(variant_storage<Ts...>& storage, ContainedT&&) noexcept
   {
     storage.vindex = variant_npos_for<sizeof...(Ts)>::value;
   }
@@ -825,7 +825,7 @@ struct is_in_place_index<in_place_index_t<I>> : true_type {};
 
 struct swap_same_index_operation {
   template<std::size_t ValidI, class ContainedT, class... Ts>
-  static void apply(variant<Ts...>& other, ContainedT& lhs_val)
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(variant<Ts...>& other, ContainedT& lhs_val)
   {
     using std::swap;
     swap(lhs_val, polyfill::get<ValidI>(other));
@@ -836,7 +836,7 @@ template<class... Ts>
 struct swap_same_index_visitor {
   variant<Ts...>& other_ref;
   template<std::size_t I, class ContainedT>
-  void operator()(in_place_index_t<I>, ContainedT&& lhs_val) const
+  YK_POLYFILL_CXX20_CONSTEXPR void operator()(in_place_index_t<I>, ContainedT&& lhs_val) const
   {
     no_op_wrapper<I, swap_same_index_operation>::apply(other_ref, lhs_val);
   }
@@ -1243,7 +1243,7 @@ namespace variant_detail {
 template<std::size_t I, class Operation, class ReturnType, ReturnType DefaultValue>
 struct returning_op_wrapper {
   template<class... Args>
-  static ReturnType apply(Args&&... args)
+  static constexpr ReturnType apply(Args&&... args)
   {
     return Operation::template apply<I>(std::forward<Args>(args)...);
   }
@@ -1252,7 +1252,7 @@ struct returning_op_wrapper {
 template<class Operation, class ReturnType, ReturnType DefaultValue>
 struct returning_op_wrapper<variant_npos, Operation, ReturnType, DefaultValue> {
   template<class... Args>
-  static ReturnType apply(Args&&...) noexcept
+  static constexpr ReturnType apply(Args&&...) noexcept
   {
     return DefaultValue;
   }
@@ -1260,7 +1260,7 @@ struct returning_op_wrapper<variant_npos, Operation, ReturnType, DefaultValue> {
 
 struct eq_operation {
   template<std::size_t ValidI, class ContainedT, class... Ts>
-  static bool apply(variant<Ts...> const& rhs, ContainedT const& lhs_val)
+  static constexpr bool apply(variant<Ts...> const& rhs, ContainedT const& lhs_val)
   {
     return lhs_val == polyfill::get<ValidI>(rhs);
   }
@@ -1268,7 +1268,7 @@ struct eq_operation {
 
 struct ne_operation {
   template<std::size_t ValidI, class ContainedT, class... Ts>
-  static bool apply(variant<Ts...> const& rhs, ContainedT const& lhs_val)
+  static constexpr bool apply(variant<Ts...> const& rhs, ContainedT const& lhs_val)
   {
     return lhs_val != polyfill::get<ValidI>(rhs);
   }
@@ -1276,7 +1276,7 @@ struct ne_operation {
 
 struct lt_operation {
   template<std::size_t ValidI, class ContainedT, class... Ts>
-  static bool apply(variant<Ts...> const& rhs, ContainedT const& lhs_val)
+  static constexpr bool apply(variant<Ts...> const& rhs, ContainedT const& lhs_val)
   {
     return lhs_val < polyfill::get<ValidI>(rhs);
   }
@@ -1284,7 +1284,7 @@ struct lt_operation {
 
 struct le_operation {
   template<std::size_t ValidI, class ContainedT, class... Ts>
-  static bool apply(variant<Ts...> const& rhs, ContainedT const& lhs_val)
+  static constexpr bool apply(variant<Ts...> const& rhs, ContainedT const& lhs_val)
   {
     return lhs_val <= polyfill::get<ValidI>(rhs);
   }
@@ -1292,7 +1292,7 @@ struct le_operation {
 
 struct gt_operation {
   template<std::size_t ValidI, class ContainedT, class... Ts>
-  static bool apply(variant<Ts...> const& rhs, ContainedT const& lhs_val)
+  static constexpr bool apply(variant<Ts...> const& rhs, ContainedT const& lhs_val)
   {
     return lhs_val > polyfill::get<ValidI>(rhs);
   }
@@ -1300,7 +1300,7 @@ struct gt_operation {
 
 struct ge_operation {
   template<std::size_t ValidI, class ContainedT, class... Ts>
-  static bool apply(variant<Ts...> const& rhs, ContainedT const& lhs_val)
+  static constexpr bool apply(variant<Ts...> const& rhs, ContainedT const& lhs_val)
   {
     return lhs_val >= polyfill::get<ValidI>(rhs);
   }
@@ -1310,7 +1310,7 @@ template<class Operation, bool DefaultValue, class... Ts>
 struct cmp_visitor {
   variant<Ts...> const& rhs_ref;
   template<std::size_t I, class ContainedT>
-  bool operator()(in_place_index_t<I>, ContainedT&& lhs_val) const
+  constexpr bool operator()(in_place_index_t<I>, ContainedT&& lhs_val) const
   {
     return returning_op_wrapper<I, Operation, bool, DefaultValue>::apply(rhs_ref, lhs_val);
   }
@@ -1339,7 +1339,7 @@ using ge_visitor = cmp_visitor<ge_operation, true, Ts...>;
 template<class ResultType>
 struct three_way_operation {
   template<std::size_t ValidI, class ContainedT, class... Ts>
-  static ResultType apply(variant<Ts...> const& rhs, ContainedT const& lhs_val)
+  static constexpr ResultType apply(variant<Ts...> const& rhs, ContainedT const& lhs_val)
   {
     return lhs_val <=> polyfill::get<ValidI>(rhs);
   }
@@ -1348,7 +1348,7 @@ struct three_way_operation {
 template<class ResultType>
 struct three_way_npos_operation {
   template<std::size_t /* variant_npos */, class... Args>
-  static ResultType apply(Args&&...) noexcept
+  static constexpr ResultType apply(Args&&...) noexcept
   {
     return ResultType::equivalent;
   }
@@ -1358,7 +1358,7 @@ template<class ResultType, class... Ts>
 struct three_way_cmp_visitor {
   variant<Ts...> const& rhs_ref;
   template<std::size_t I, class ContainedT>
-  ResultType operator()(in_place_index_t<I>, ContainedT&& lhs_val) const
+  constexpr ResultType operator()(in_place_index_t<I>, ContainedT&& lhs_val) const
   {
     if constexpr (I == variant_npos) {
       return ResultType::equivalent;

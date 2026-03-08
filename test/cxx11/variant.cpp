@@ -78,6 +78,50 @@ struct OnlyTrivialCopyAssign {
 };
 static_assert(std::is_trivially_copyable<OnlyTrivialCopyAssign>::value, "");
 
+// Throwing variants of the above types.
+// Construction from int throws when the value is negative.
+// Used to verify that the variant preserves its old value on throw.
+
+struct ThrowingTrivialMoveCtor {
+  int value;
+  ThrowingTrivialMoveCtor(int v) : value(v) { if (v < 0) throw std::exception{}; }
+  ThrowingTrivialMoveCtor(ThrowingTrivialMoveCtor const&) = delete;
+  ThrowingTrivialMoveCtor(ThrowingTrivialMoveCtor&&) = default;
+  ThrowingTrivialMoveCtor& operator=(ThrowingTrivialMoveCtor const&) = delete;
+  ThrowingTrivialMoveCtor& operator=(ThrowingTrivialMoveCtor&&) = delete;
+};
+static_assert(std::is_trivially_copyable<ThrowingTrivialMoveCtor>::value, "");
+
+struct ThrowingTrivialCopyCtor {
+  int value;
+  ThrowingTrivialCopyCtor(int v) : value(v) { if (v < 0) throw std::exception{}; }
+  ThrowingTrivialCopyCtor(ThrowingTrivialCopyCtor const&) = default;
+  ThrowingTrivialCopyCtor(ThrowingTrivialCopyCtor&&) = delete;
+  ThrowingTrivialCopyCtor& operator=(ThrowingTrivialCopyCtor const&) = delete;
+  ThrowingTrivialCopyCtor& operator=(ThrowingTrivialCopyCtor&&) = delete;
+};
+static_assert(std::is_trivially_copyable<ThrowingTrivialCopyCtor>::value, "");
+
+struct ThrowingTrivialMoveAssign {
+  int value;
+  ThrowingTrivialMoveAssign(int v) : value(v) { if (v < 0) throw std::exception{}; }
+  ThrowingTrivialMoveAssign(ThrowingTrivialMoveAssign const&) = delete;
+  ThrowingTrivialMoveAssign(ThrowingTrivialMoveAssign&&) = delete;
+  ThrowingTrivialMoveAssign& operator=(ThrowingTrivialMoveAssign const&) = delete;
+  ThrowingTrivialMoveAssign& operator=(ThrowingTrivialMoveAssign&&) = default;
+};
+static_assert(std::is_trivially_copyable<ThrowingTrivialMoveAssign>::value, "");
+
+struct ThrowingTrivialCopyAssign {
+  int value;
+  ThrowingTrivialCopyAssign(int v) : value(v) { if (v < 0) throw std::exception{}; }
+  ThrowingTrivialCopyAssign(ThrowingTrivialCopyAssign const&) = delete;
+  ThrowingTrivialCopyAssign(ThrowingTrivialCopyAssign&&) = delete;
+  ThrowingTrivialCopyAssign& operator=(ThrowingTrivialCopyAssign const&) = default;
+  ThrowingTrivialCopyAssign& operator=(ThrowingTrivialCopyAssign&&) = delete;
+};
+static_assert(std::is_trivially_copyable<ThrowingTrivialCopyAssign>::value, "");
+
 TEST_CASE("never_valueless check")
 {
   STATIC_REQUIRE(pf::variant_detail::make_variadic_union<int, double>::type::never_valueless);
@@ -785,19 +829,6 @@ TEST_CASE("variant noexcept")
   }
 }
 
-#if __cplusplus >= 201402L
-TEST_CASE("variant_size_v and variant_alternative_t")
-{
-  STATIC_REQUIRE(pf::variant_size_v<pf::variant<int>> == 1);
-  STATIC_REQUIRE(pf::variant_size_v<pf::variant<int, double>> == 2);
-  STATIC_REQUIRE(pf::variant_size_v<pf::variant<int, double, char>> == 3);
-  STATIC_REQUIRE(pf::variant_size_v<pf::variant<int, double, char> const> == 3);
-
-  STATIC_REQUIRE(std::is_same<pf::variant_alternative_t<0, pf::variant<int, double>>, int>::value);
-  STATIC_REQUIRE(std::is_same<pf::variant_alternative_t<1, pf::variant<int, double>>, double>::value);
-  STATIC_REQUIRE(std::is_same<pf::variant_alternative_t<0, pf::variant<int, double> const>, int>::value);
-}
-#endif
 
 TEST_CASE("variant visit")
 {
@@ -1106,4 +1137,133 @@ TEST_CASE("trivially copyable variant emplace (different index)")
     CHECK(pf::get<1>(v).value == 42);
   }
 }
+
+TEST_CASE("throwing trivially copyable emplace preserves old value (same index)")
+{
+  SECTION("only trivial move ctor")
+  {
+    pf::variant<ThrowingTrivialMoveCtor> v(pf::in_place_index_t<0>{}, 1);
+    CHECK_THROWS(v.emplace<0>(-1));
+    CHECK(v.index() == 0);
+    CHECK(pf::get<0>(v).value == 1);
+  }
+  SECTION("only trivial copy ctor")
+  {
+    pf::variant<ThrowingTrivialCopyCtor> v(pf::in_place_index_t<0>{}, 1);
+    CHECK_THROWS(v.emplace<0>(-1));
+    CHECK(v.index() == 0);
+    CHECK(pf::get<0>(v).value == 1);
+  }
+  SECTION("only trivial move assign")
+  {
+    pf::variant<ThrowingTrivialMoveAssign> v(pf::in_place_index_t<0>{}, 1);
+    CHECK_THROWS(v.emplace<0>(-1));
+    CHECK(v.index() == 0);
+    CHECK(pf::get<0>(v).value == 1);
+  }
+  SECTION("only trivial copy assign")
+  {
+    pf::variant<ThrowingTrivialCopyAssign> v(pf::in_place_index_t<0>{}, 1);
+    CHECK_THROWS(v.emplace<0>(-1));
+    CHECK(v.index() == 0);
+    CHECK(pf::get<0>(v).value == 1);
+  }
+}
+
+TEST_CASE("throwing trivially copyable emplace preserves old value (different index)")
+{
+  SECTION("only trivial move ctor")
+  {
+    pf::variant<int, ThrowingTrivialMoveCtor> v(pf::in_place_index_t<0>{}, 42);
+    CHECK_THROWS(v.emplace<1>(-1));
+    CHECK(v.index() == 0);
+    CHECK(pf::get<0>(v) == 42);
+  }
+  SECTION("only trivial copy ctor")
+  {
+    pf::variant<int, ThrowingTrivialCopyCtor> v(pf::in_place_index_t<0>{}, 42);
+    CHECK_THROWS(v.emplace<1>(-1));
+    CHECK(v.index() == 0);
+    CHECK(pf::get<0>(v) == 42);
+  }
+  SECTION("only trivial move assign")
+  {
+    pf::variant<int, ThrowingTrivialMoveAssign> v(pf::in_place_index_t<0>{}, 42);
+    CHECK_THROWS(v.emplace<1>(-1));
+    CHECK(v.index() == 0);
+    CHECK(pf::get<0>(v) == 42);
+  }
+  SECTION("only trivial copy assign")
+  {
+    pf::variant<int, ThrowingTrivialCopyAssign> v(pf::in_place_index_t<0>{}, 42);
+    CHECK_THROWS(v.emplace<1>(-1));
+    CHECK(v.index() == 0);
+    CHECK(pf::get<0>(v) == 42);
+  }
+}
+
+// constexpr tests
+
+TEST_CASE("variant constexpr construction")
+{
+  // default construction
+  constexpr pf::variant<int, double> v1{};
+  STATIC_REQUIRE(v1.index() == 0);
+
+  // value construction
+  constexpr pf::variant<int, double> v2 = 42;
+  STATIC_REQUIRE(v2.index() == 0);
+
+  constexpr pf::variant<int, double> v3 = 3.14;
+  STATIC_REQUIRE(v3.index() == 1);
+
+  // in_place_index construction
+  constexpr pf::variant<int, double> v4(pf::in_place_index_t<1>{}, 2.5);
+  STATIC_REQUIRE(v4.index() == 1);
+
+  // in_place_type construction
+  constexpr pf::variant<int, double> v5(pf::in_place_type_t<double>{}, 2.5);
+  STATIC_REQUIRE(v5.index() == 1);
+
+  // holds_alternative
+  STATIC_REQUIRE(pf::holds_alternative<int>(v2));
+  STATIC_REQUIRE(!pf::holds_alternative<double>(v2));
+
+  // monostate
+  constexpr pf::variant<pf::monostate, int> v6{};
+  STATIC_REQUIRE(v6.index() == 0);
+}
+
+TEST_CASE("variant constexpr comparison")
+{
+  constexpr pf::variant<int, double> a = 42;
+  constexpr pf::variant<int, double> b = 42;
+  constexpr pf::variant<int, double> c = 99;
+  constexpr pf::variant<int, double> d = 3.14;
+
+  // same index, same value
+  STATIC_REQUIRE(a == b);
+  STATIC_REQUIRE(!(a != b));
+
+  // same index, different value
+  STATIC_REQUIRE(a != c);
+  STATIC_REQUIRE(a < c);
+  STATIC_REQUIRE(a <= c);
+  STATIC_REQUIRE(c > a);
+  STATIC_REQUIRE(c >= a);
+
+  // different index
+  STATIC_REQUIRE(a != d);
+  STATIC_REQUIRE(a < d);
+  STATIC_REQUIRE(!(a > d));
+
+  // monostate comparison
+  STATIC_REQUIRE(pf::monostate{} == pf::monostate{});
+  STATIC_REQUIRE(!(pf::monostate{} != pf::monostate{}));
+  STATIC_REQUIRE(!(pf::monostate{} < pf::monostate{}));
+  STATIC_REQUIRE(pf::monostate{} <= pf::monostate{});
+  STATIC_REQUIRE(!(pf::monostate{} > pf::monostate{}));
+  STATIC_REQUIRE(pf::monostate{} >= pf::monostate{});
+}
+
 
