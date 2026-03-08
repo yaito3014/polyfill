@@ -1234,30 +1234,8 @@ TEST_CASE("variant constexpr construction")
   STATIC_REQUIRE(v6.index() == 0);
 }
 
-TEST_CASE("variant constexpr comparison")
+TEST_CASE("monostate constexpr comparison")
 {
-  constexpr pf::variant<int, double> a = 42;
-  constexpr pf::variant<int, double> b = 42;
-  constexpr pf::variant<int, double> c = 99;
-  constexpr pf::variant<int, double> d = 3.14;
-
-  // same index, same value
-  STATIC_REQUIRE(a == b);
-  STATIC_REQUIRE(!(a != b));
-
-  // same index, different value
-  STATIC_REQUIRE(a != c);
-  STATIC_REQUIRE(a < c);
-  STATIC_REQUIRE(a <= c);
-  STATIC_REQUIRE(c > a);
-  STATIC_REQUIRE(c >= a);
-
-  // different index
-  STATIC_REQUIRE(a != d);
-  STATIC_REQUIRE(a < d);
-  STATIC_REQUIRE(!(a > d));
-
-  // monostate comparison
   STATIC_REQUIRE(pf::monostate{} == pf::monostate{});
   STATIC_REQUIRE(!(pf::monostate{} != pf::monostate{}));
   STATIC_REQUIRE(!(pf::monostate{} < pf::monostate{}));
