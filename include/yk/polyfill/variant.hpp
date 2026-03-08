@@ -497,7 +497,9 @@ struct reconstruct_operation<trivial_reconstruction::move_assign> {
     if (storage.index() == ValidI) {
       raw_get<ValidI>(storage.vunion) = T_i(std::forward<Args>(args)...);
     } else {
-      polyfill::construct_at(&storage.vunion, in_place_index_t<ValidI>{}, std::forward<Args>(args)...);
+      using union_type = typename variant_storage<Ts...>::union_type;
+      union_type tmp(in_place_index_t<ValidI>{}, std::forward<Args>(args)...);  // may throw
+      storage.vunion = std::move(tmp);  // trivial move assign, won't throw
       storage.vindex = ValidI;
     }
   }
@@ -515,7 +517,9 @@ struct reconstruct_operation<trivial_reconstruction::copy_assign> {
       T_i tmp(std::forward<Args>(args)...);
       raw_get<ValidI>(storage.vunion) = tmp;
     } else {
-      polyfill::construct_at(&storage.vunion, in_place_index_t<ValidI>{}, std::forward<Args>(args)...);
+      using union_type = typename variant_storage<Ts...>::union_type;
+      union_type tmp(in_place_index_t<ValidI>{}, std::forward<Args>(args)...);  // may throw
+      storage.vunion = tmp;  // trivial copy assign, won't throw
       storage.vindex = ValidI;
     }
   }
