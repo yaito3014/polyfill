@@ -34,14 +34,6 @@ TEST_CASE("variant constexpr get")
   // get<T> const
   STATIC_REQUIRE(pf::get<int>(v1) == 42);
   STATIC_REQUIRE(pf::get<double>(v2) == 3.14);
-
-  // get_if<I>
-  STATIC_REQUIRE(*pf::get_if<0>(&v1) == 42);
-  STATIC_REQUIRE(pf::get_if<1>(&v1) == nullptr);
-
-  // get_if<T>
-  STATIC_REQUIRE(*pf::get_if<int>(&v1) == 42);
-  STATIC_REQUIRE(pf::get_if<double>(&v1) == nullptr);
 }
 
 TEST_CASE("variant constexpr visit")
