@@ -10,6 +10,7 @@
 
 #include <yk/polyfill/functional.hpp>
 #include <yk/polyfill/memory.hpp>
+#include <yk/polyfill/type_traits.hpp>
 #include <yk/polyfill/utility.hpp>
 
 #include <exception>
@@ -48,6 +49,16 @@ struct variant_alternative<I, T const> : variant_alternative<I, T> {};
 template<std::size_t I, class... Ts>
 struct variant_alternative<I, variant<Ts...>> : extension::pack_indexing<I, Ts...> {};
 
+#if __cplusplus >= 201402L
+
+template<class T>
+constexpr std::size_t variant_size_v = variant_size<T>::value;
+
+template<std::size_t I, class T>
+using variant_alternative_t = typename variant_alternative<I, T>::type;
+
+#endif
+
 YK_POLYFILL_INLINE constexpr std::size_t variant_npos = -1;
 
 struct monostate {};
@@ -56,6 +67,18 @@ class bad_variant_access : public std::exception {
 public:
   char const* what() const noexcept override { return "bad variant access"; }
 };
+
+template<std::size_t I, class... Ts>
+YK_POLYFILL_CXX14_CONSTEXPR typename variant_alternative<I, variant<Ts...>>::type& get(variant<Ts...>&);
+
+template<std::size_t I, class... Ts>
+YK_POLYFILL_CXX14_CONSTEXPR typename variant_alternative<I, variant<Ts...>>::type const& get(variant<Ts...> const&);
+
+template<std::size_t I, class... Ts>
+YK_POLYFILL_CXX14_CONSTEXPR typename variant_alternative<I, variant<Ts...>>::type&& get(variant<Ts...>&&);
+
+template<std::size_t I, class... Ts>
+YK_POLYFILL_CXX14_CONSTEXPR typename variant_alternative<I, variant<Ts...>>::type const&& get(variant<Ts...> const&&);
 
 namespace variant_detail {
 
@@ -260,7 +283,7 @@ constexpr typename raw_get_result<I, UnionT&&>::type raw_get(UnionT&& vunion) no
 
 template<
     class VisitorT, class UnionT, class Union = typename remove_cvref<UnionT>::type,
-    class BiasedIndexSeq = make_index_sequence<bias<Union::never_valueless>(Union::size())>>
+    class BiasedIndexSeq = make_index_sequence<variant_detail::bias<Union::never_valueless>(Union::size())>>
 struct raw_visit_noexcept {};
 
 template<class VisitorT, class UnionT, class Union, std::size_t... BiasedIs>
@@ -274,14 +297,14 @@ struct raw_visit_result {
 
 template<bool NeverValueless, std::size_t BiasedI>
 struct do_raw_visit_impl {
-  static constexpr std::size_t I = unbias<NeverValueless>(BiasedI);
+  static constexpr std::size_t I = variant_detail::unbias<NeverValueless>(BiasedI);
 
   template<class VisitorT, class UnionT>
   static constexpr typename raw_visit_result<VisitorT, UnionT&&>::type apply(VisitorT&& vis, UnionT&& vunion) noexcept(
       raw_visit_noexcept<VisitorT, UnionT>::value
   )
   {
-    return invoke(std::forward<VisitorT>(vis), in_place_index_t<I>{}, raw_get<I>(std::forward<UnionT>(vunion)));
+    return polyfill::invoke(std::forward<VisitorT>(vis), in_place_index_t<I>{}, variant_detail::raw_get<I>(std::forward<UnionT>(vunion)));
   }
 };
 
@@ -294,7 +317,7 @@ struct do_raw_visit_impl<false, 0> {
       raw_visit_noexcept<VisitorT, UnionT>::value
   )
   {
-    return invoke(std::forward<VisitorT>(vis), in_place_index_t<variant_npos>{}, std::forward<UnionT>(vunion));
+    return polyfill::invoke(std::forward<VisitorT>(vis), in_place_index_t<variant_npos>{}, std::forward<UnionT>(vunion));
   }
 };
 
@@ -313,7 +336,7 @@ using raw_visit_function_type =
 
 template<
     class VisitorT, class UnionT, class Union = typename remove_cvref<UnionT>::type,
-    class BiasedIndexSeq = make_index_sequence<bias<Union::never_valueless>(Union::size())>>
+    class BiasedIndexSeq = make_index_sequence<variant_detail::bias<Union::never_valueless>(Union::size())>>
 struct raw_visit_table {};
 
 template<class VisitorT, class UnionT, class Union, std::size_t... BiasedIs>
@@ -421,6 +444,83 @@ struct reset_visitor {
   }
 };
 
+enum class trivial_reconstruction { move_construct, copy_construct, move_assign, copy_assign };
+
+template<class T>
+constexpr trivial_reconstruction select_trivial_reconstruction()
+{
+  return std::is_trivially_move_constructible<T>::value   ? trivial_reconstruction::move_construct
+         : std::is_trivially_copy_constructible<T>::value ? trivial_reconstruction::copy_construct
+         : std::is_trivially_move_assignable<T>::value    ? trivial_reconstruction::move_assign
+                                                          : trivial_reconstruction::copy_assign;
+}
+
+template<trivial_reconstruction>
+struct reconstruct_operation;
+
+template<>
+struct reconstruct_operation<trivial_reconstruction::move_construct> {
+  template<std::size_t ValidI, class... Ts, class... Args>
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(variant_storage<Ts...>& storage, Args&&... args) noexcept(
+      std::is_nothrow_constructible<typename extension::pack_indexing<ValidI, Ts...>::type, Args...>::value
+  )
+  {
+    using T_i = typename extension::pack_indexing<ValidI, Ts...>::type;
+    T_i tmp(std::forward<Args>(args)...);  // may throw
+    polyfill::construct_at(&storage.vunion, in_place_index_t<ValidI>{}, std::move(tmp));
+    storage.vindex = ValidI;
+  }
+};
+
+template<>
+struct reconstruct_operation<trivial_reconstruction::copy_construct> {
+  template<std::size_t ValidI, class... Ts, class... Args>
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(variant_storage<Ts...>& storage, Args&&... args) noexcept(
+      std::is_nothrow_constructible<typename extension::pack_indexing<ValidI, Ts...>::type, Args...>::value
+  )
+  {
+    using T_i = typename extension::pack_indexing<ValidI, Ts...>::type;
+    T_i tmp(std::forward<Args>(args)...);  // may throw
+    polyfill::construct_at(&storage.vunion, in_place_index_t<ValidI>{}, tmp);
+    storage.vindex = ValidI;
+  }
+};
+
+template<>
+struct reconstruct_operation<trivial_reconstruction::move_assign> {
+  template<std::size_t ValidI, class... Ts, class... Args>
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(variant_storage<Ts...>& storage, Args&&... args) noexcept(
+      std::is_nothrow_constructible<typename extension::pack_indexing<ValidI, Ts...>::type, Args...>::value
+  )
+  {
+    using T_i = typename extension::pack_indexing<ValidI, Ts...>::type;
+    if (storage.index() == ValidI) {
+      raw_get<ValidI>(storage.vunion) = T_i(std::forward<Args>(args)...);
+    } else {
+      polyfill::construct_at(&storage.vunion, in_place_index_t<ValidI>{}, std::forward<Args>(args)...);
+      storage.vindex = ValidI;
+    }
+  }
+};
+
+template<>
+struct reconstruct_operation<trivial_reconstruction::copy_assign> {
+  template<std::size_t ValidI, class... Ts, class... Args>
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(variant_storage<Ts...>& storage, Args&&... args) noexcept(
+      std::is_nothrow_constructible<typename extension::pack_indexing<ValidI, Ts...>::type, Args...>::value
+  )
+  {
+    using T_i = typename extension::pack_indexing<ValidI, Ts...>::type;
+    if (storage.index() == ValidI) {
+      T_i tmp(std::forward<Args>(args)...);
+      raw_get<ValidI>(storage.vunion) = tmp;
+    } else {
+      polyfill::construct_at(&storage.vunion, in_place_index_t<ValidI>{}, std::forward<Args>(args)...);
+      storage.vindex = ValidI;
+    }
+  }
+};
+
 struct construct_on_valueless_operation {
   template<std::size_t ValidI, class... Ts, class... Args>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(variant_storage<Ts...>& storage, Args&&... args) noexcept(
@@ -442,6 +542,30 @@ struct construct_on_valueless_visitor {
   )
   {
     no_op_wrapper<J, construct_on_valueless_operation>::apply(storage, std::forward<OtherContainedT>(other_value));
+  }
+};
+
+template<bool NeverValueless>
+struct emplace_operation;
+
+template<>
+struct emplace_operation</*NeverValueless = */ true> {
+  template<std::size_t ValidI, class... Ts, class... Args, class T_i = typename extension::pack_indexing<ValidI, Ts...>::type>
+  static YK_POLYFILL_CXX20_CONSTEXPR T_i& apply(variant_storage<Ts...>& storage, Args&&... args) noexcept(std::is_nothrow_constructible<T_i, Args...>::value)
+  {
+    reconstruct_operation<variant_detail::select_trivial_reconstruction<T_i>()>::template apply<ValidI>(storage, std::forward<Args>(args)...);
+    return raw_get<ValidI>(storage.vunion);
+  }
+};
+
+template<>
+struct emplace_operation</*NeverValueless = */ false> {
+  template<std::size_t ValidI, class... Ts, class... Args, class T_i = typename extension::pack_indexing<ValidI, Ts...>::type>
+  static YK_POLYFILL_CXX20_CONSTEXPR T_i& apply(variant_storage<Ts...>& storage, Args&&... args) noexcept(std::is_nothrow_constructible<T_i, Args...>::value)
+  {
+    storage.dynamic_reset();
+    construct_on_valueless_operation::apply<ValidI>(storage, std::forward<Args>(args)...);  // may throw
+    return raw_get<ValidI>(storage.vunion);
   }
 };
 
@@ -571,25 +695,25 @@ struct variant_storage {
   template<class Visitor>
   YK_POLYFILL_CXX14_CONSTEXPR typename raw_visit_result<Visitor, union_type&>::type raw_visit(Visitor&& vis) &
   {
-    return raw_visit_dispatch::apply(std::forward<Visitor>(vis), vunion, bias<union_type::never_valueless>(index()));
+    return raw_visit_dispatch::apply(std::forward<Visitor>(vis), vunion, variant_detail::bias<union_type::never_valueless>(index()));
   }
 
   template<class Visitor>
   constexpr typename raw_visit_result<Visitor, union_type const&>::type raw_visit(Visitor&& vis) const&
   {
-    return raw_visit_dispatch::apply(std::forward<Visitor>(vis), vunion, bias<union_type::never_valueless>(index()));
+    return raw_visit_dispatch::apply(std::forward<Visitor>(vis), vunion, variant_detail::bias<union_type::never_valueless>(index()));
   }
 
   template<class Visitor>
   YK_POLYFILL_CXX14_CONSTEXPR typename raw_visit_result<Visitor, union_type&&>::type raw_visit(Visitor&& vis) &&
   {
-    return raw_visit_dispatch::apply(std::forward<Visitor>(vis), std::move(vunion), bias<union_type::never_valueless>(index()));
+    return raw_visit_dispatch::apply(std::forward<Visitor>(vis), std::move(vunion), variant_detail::bias<union_type::never_valueless>(index()));
   }
 
   template<class Visitor>
   constexpr typename raw_visit_result<Visitor, union_type const&&>::type raw_visit(Visitor&& vis) const&&
   {
-    return raw_visit_dispatch::apply(std::forward<Visitor>(vis), std::move(vunion), bias<union_type::never_valueless>(index()));
+    return raw_visit_dispatch::apply(std::forward<Visitor>(vis), std::move(vunion), variant_detail::bias<union_type::never_valueless>(index()));
   }
 
   // calls `visit` to destroy contained value and *DO NOT* set index
@@ -601,16 +725,7 @@ struct variant_storage {
   template<std::size_t ValidI, class... Args, class T_i = typename extension::pack_indexing<ValidI, Ts...>::type>
   YK_POLYFILL_CXX20_CONSTEXPR T_i& emplace(Args&&... args) noexcept(std::is_nothrow_constructible<T_i, Args...>::value)
   {
-    if constexpr (union_type::never_valueless) {
-      // TODO: replace this branch with trivial construction (without creating valueless state)
-      dynamic_reset();
-      construct_on_valueless_operation::apply<ValidI>(*this, std::forward<Args>(args)...);  // may throw
-      return raw_get<ValidI>(vunion);
-    } else {
-      dynamic_reset();
-      construct_on_valueless_operation::apply<ValidI>(*this, std::forward<Args>(args)...);  // may throw
-      return raw_get<ValidI>(vunion);
-    }
+    return emplace_operation<union_type::never_valueless>::template apply<ValidI>(*this, std::forward<Args>(args)...);
   }
 
   YK_POLYFILL_CXX20_CONSTEXPR void _copy_construct(variant_storage const& other) noexcept(conjunction<std::is_nothrow_copy_constructible<Ts>...>::value)
@@ -703,6 +818,25 @@ struct is_in_place_index : false_type {};
 
 template<std::size_t I>
 struct is_in_place_index<in_place_index_t<I>> : true_type {};
+
+struct swap_same_index_operation {
+  template<std::size_t ValidI, class ContainedT, class... Ts>
+  static void apply(variant<Ts...>& other, ContainedT& lhs_val)
+  {
+    using std::swap;
+    swap(lhs_val, polyfill::get<ValidI>(other));
+  }
+};
+
+template<class... Ts>
+struct swap_same_index_visitor {
+  variant<Ts...>& other_ref;
+  template<std::size_t I, class ContainedT>
+  void operator()(in_place_index_t<I>, ContainedT&& lhs_val) const
+  {
+    no_op_wrapper<I, swap_same_index_operation>::apply(other_ref, lhs_val);
+  }
+};
 
 }  // namespace variant_detail
 
@@ -802,6 +936,21 @@ public:
     return *this;
   }
 
+  YK_POLYFILL_CXX20_CONSTEXPR void swap(variant& other) noexcept(conjunction<std::is_nothrow_move_constructible<Ts>..., is_nothrow_swappable<Ts>...>::value)
+  {
+    if (index() == other.index()) {
+      if (!valueless_by_exception()) {
+        this->raw_visit(variant_detail::swap_same_index_visitor<Ts...>{other});
+      }
+    } else {
+      variant tmp(std::move(other));
+      other = std::move(*this);
+      *this = std::move(tmp);
+    }
+  }
+
+  using base_type::raw_visit;
+
   template<std::size_t I, class... Us>
   friend YK_POLYFILL_CXX14_CONSTEXPR typename variant_alternative<I, variant<Us...>>::type& get(variant<Us...>& v);
 
@@ -870,28 +1019,28 @@ template<class T, class... Ts>
 YK_POLYFILL_CXX14_CONSTEXPR T& get(variant<Ts...>& v)
 {
   static_assert(variant_detail::exactly_once<T, Ts...>::value, "T must occur exactly once in Ts...");
-  return get<variant_detail::find_index<T, Ts...>::value>(v);
+  return polyfill::get<variant_detail::find_index<T, Ts...>::value>(v);
 }
 
 template<class T, class... Ts>
 YK_POLYFILL_CXX14_CONSTEXPR T const& get(variant<Ts...> const& v)
 {
   static_assert(variant_detail::exactly_once<T, Ts...>::value, "T must occur exactly once in Ts...");
-  return get<variant_detail::find_index<T, Ts...>::value>(v);
+  return polyfill::get<variant_detail::find_index<T, Ts...>::value>(v);
 }
 
 template<class T, class... Ts>
 YK_POLYFILL_CXX14_CONSTEXPR T&& get(variant<Ts...>&& v)
 {
   static_assert(variant_detail::exactly_once<T, Ts...>::value, "T must occur exactly once in Ts...");
-  return get<variant_detail::find_index<T, Ts...>::value>(std::move(v));
+  return polyfill::get<variant_detail::find_index<T, Ts...>::value>(std::move(v));
 }
 
 template<class T, class... Ts>
 YK_POLYFILL_CXX14_CONSTEXPR T const&& get(variant<Ts...> const&& v)
 {
   static_assert(variant_detail::exactly_once<T, Ts...>::value, "T must occur exactly once in Ts...");
-  return get<variant_detail::find_index<T, Ts...>::value>(std::move(v));
+  return polyfill::get<variant_detail::find_index<T, Ts...>::value>(std::move(v));
 }
 
 // get_if<I>
@@ -901,7 +1050,7 @@ YK_POLYFILL_CXX14_CONSTEXPR typename std::add_pointer<typename variant_alternati
 {
   static_assert(I < sizeof...(Ts), "I must be in sizeof...(Ts)");
   if (v && v->index() == I) {
-    return std::addressof(get<I>(*v));
+    return std::addressof(polyfill::get<I>(*v));
   }
   return nullptr;
 }
@@ -913,7 +1062,7 @@ YK_POLYFILL_CXX14_CONSTEXPR typename std::add_pointer<typename variant_alternati
 {
   static_assert(I < sizeof...(Ts), "I must be in sizeof...(Ts)");
   if (v && v->index() == I) {
-    return std::addressof(get<I>(*v));
+    return std::addressof(polyfill::get<I>(*v));
   }
   return nullptr;
 }
@@ -933,6 +1082,378 @@ YK_POLYFILL_CXX14_CONSTEXPR typename std::add_pointer<T const>::type get_if(vari
   static_assert(variant_detail::exactly_once<T, Ts...>::value, "T must occur exactly once in Ts...");
   return get_if<variant_detail::find_index<T, Ts...>::value>(v);
 }
+
+// visit
+
+namespace variant_detail {
+
+// is_variant trait
+template<class T>
+struct is_variant : false_type {};
+
+template<class... Ts>
+struct is_variant<variant<Ts...>> : true_type {};
+
+// product of variant sizes
+template<class... Variants>
+struct multi_visit_total_size;
+
+template<>
+struct multi_visit_total_size<> : integral_constant<std::size_t, 1> {};
+
+template<class V0, class... Vs>
+struct multi_visit_total_size<V0, Vs...> : integral_constant<std::size_t, variant_size<typename remove_cvref<V0>::type>::value * multi_visit_total_size<Vs...>::value> {};
+
+// stride for K-th variant: product of sizes of variants after K
+template<std::size_t K, class... Variants>
+struct multi_visit_stride;
+
+template<std::size_t K, class V0, class... Vs>
+struct multi_visit_stride<K, V0, Vs...> : multi_visit_stride<K - 1, Vs...> {};
+
+template<class V0, class... Vs>
+struct multi_visit_stride<0, V0, Vs...> : multi_visit_total_size<Vs...> {};
+
+// size of K-th variant in the pack
+template<std::size_t K, class... Variants>
+struct multi_visit_variant_size_at;
+
+template<std::size_t K, class V0, class... Vs>
+struct multi_visit_variant_size_at<K, V0, Vs...> : multi_visit_variant_size_at<K - 1, Vs...> {};
+
+template<class V0, class... Vs>
+struct multi_visit_variant_size_at<0, V0, Vs...> : variant_size<typename remove_cvref<V0>::type> {};
+
+// index for K-th variant given flat index
+template<std::size_t FlatI, std::size_t K, class... Variants>
+struct multi_visit_index_at
+    : integral_constant<std::size_t, (FlatI / multi_visit_stride<K, Variants...>::value) % multi_visit_variant_size_at<K, Variants...>::value> {};
+
+// do_multi_visit: dispatch for a given flat index
+template<class ReturnType, std::size_t FlatI, class IndexSeq, class Visitor, class... Variants>
+struct do_multi_visit_impl;
+
+template<class ReturnType, std::size_t FlatI, std::size_t... Ks, class Visitor, class... Variants>
+struct do_multi_visit_impl<ReturnType, FlatI, index_sequence<Ks...>, Visitor, Variants...> {
+  static YK_POLYFILL_CXX14_CONSTEXPR ReturnType call(Visitor&& vis, Variants&&... vars)
+  {
+    return polyfill::invoke(std::forward<Visitor>(vis), polyfill::get<multi_visit_index_at<FlatI, Ks, Variants...>::value>(std::forward<Variants>(vars))...);
+  }
+};
+
+template<class ReturnType, std::size_t FlatI, class Visitor, class... Variants>
+YK_POLYFILL_CXX14_CONSTEXPR ReturnType do_multi_visit(Visitor&& vis, Variants&&... vars)
+{
+  return do_multi_visit_impl<ReturnType, FlatI, index_sequence_for<Variants...>, Visitor, Variants...>::call(
+      std::forward<Visitor>(vis), std::forward<Variants>(vars)...
+  );
+}
+
+// visit function pointer type
+template<class ReturnType, class Visitor, class... Variants>
+using multi_visit_function_type = ReturnType (*)(Visitor&&, Variants&&...);
+
+// visit table
+template<class ReturnType, class Visitor, class IndexSeq, class... Variants>
+struct multi_visit_table;
+
+template<class ReturnType, class Visitor, std::size_t... FlatIs, class... Variants>
+struct multi_visit_table<ReturnType, Visitor, index_sequence<FlatIs...>, Variants...> {
+  static constexpr multi_visit_function_type<ReturnType, Visitor, Variants...> value[sizeof...(FlatIs)]{
+      &do_multi_visit<ReturnType, FlatIs, Visitor, Variants...>...
+  };
+};
+
+template<class ReturnType, class Visitor, std::size_t... FlatIs, class... Variants>
+constexpr multi_visit_function_type<ReturnType, Visitor, Variants...>
+    multi_visit_table<ReturnType, Visitor, index_sequence<FlatIs...>, Variants...>::value[sizeof...(FlatIs)];
+
+// compute runtime flat index
+inline constexpr std::size_t compute_flat_index_impl(std::size_t acc) { return acc; }
+
+template<class V0, class... Vs>
+constexpr std::size_t compute_flat_index_impl(std::size_t acc, V0 const& v0, Vs const&... vs)
+{
+  return variant_detail::compute_flat_index_impl(acc * variant_size<typename remove_cvref<V0>::type>::value + v0.index(), vs...);
+}
+
+template<class... Variants>
+constexpr std::size_t compute_flat_index(Variants const&... vars)
+{
+  return variant_detail::compute_flat_index_impl(0, vars...);
+}
+
+// check any valueless
+inline constexpr bool any_valueless_impl() { return false; }
+
+template<class V0, class... Vs>
+constexpr bool any_valueless_impl(V0 const& v0, Vs const&... vs)
+{
+  return v0.valueless_by_exception() || variant_detail::any_valueless_impl(vs...);
+}
+
+// return type deduction helper: invoke_result with get<0> of each variant
+template<class Visitor, class... Variants>
+using multi_visit_return_type = typename invoke_result<Visitor, decltype(polyfill::get<0>(std::declval<Variants>()))...>::type;
+
+}  // namespace variant_detail
+
+template<class Visitor, class... Variants, typename std::enable_if<conjunction<variant_detail::is_variant<typename remove_cvref<Variants>::type>...>::value, std::nullptr_t>::type = nullptr>
+YK_POLYFILL_CXX14_CONSTEXPR variant_detail::multi_visit_return_type<Visitor, Variants...> visit(Visitor&& vis, Variants&&... vars)
+{
+  using return_type = variant_detail::multi_visit_return_type<Visitor, Variants...>;
+  if (variant_detail::any_valueless_impl(vars...)) throw bad_variant_access{};
+  constexpr std::size_t total = variant_detail::multi_visit_total_size<Variants...>::value;
+  return variant_detail::multi_visit_table<return_type, Visitor, make_index_sequence<total>, Variants...>::value[variant_detail::compute_flat_index(vars...)](
+      std::forward<Visitor>(vis), std::forward<Variants>(vars)...
+  );
+}
+
+// swap
+
+template<class... Ts, typename std::enable_if<conjunction<std::is_move_constructible<Ts>..., is_swappable<Ts>...>::value, std::nullptr_t>::type = nullptr>
+YK_POLYFILL_CXX20_CONSTEXPR void swap(variant<Ts...>& lhs, variant<Ts...>& rhs) noexcept(
+    conjunction<std::is_nothrow_move_constructible<Ts>..., is_nothrow_swappable<Ts>...>::value
+)
+{
+  lhs.swap(rhs);
+}
+
+// monostate comparisons
+
+constexpr bool operator==(monostate, monostate) noexcept { return true; }
+constexpr bool operator!=(monostate, monostate) noexcept { return false; }
+constexpr bool operator<(monostate, monostate) noexcept { return false; }
+constexpr bool operator<=(monostate, monostate) noexcept { return true; }
+constexpr bool operator>(monostate, monostate) noexcept { return false; }
+constexpr bool operator>=(monostate, monostate) noexcept { return true; }
+
+#if __cplusplus >= 202002L
+constexpr std::strong_ordering operator<=>(monostate, monostate) noexcept { return std::strong_ordering::equal; }
+#endif
+
+// variant comparison operators
+
+namespace variant_detail {
+
+template<std::size_t I, class Operation, class ReturnType, ReturnType DefaultValue>
+struct returning_op_wrapper {
+  template<class... Args>
+  static ReturnType apply(Args&&... args)
+  {
+    return Operation::template apply<I>(std::forward<Args>(args)...);
+  }
+};
+
+template<class Operation, class ReturnType, ReturnType DefaultValue>
+struct returning_op_wrapper<variant_npos, Operation, ReturnType, DefaultValue> {
+  template<class... Args>
+  static ReturnType apply(Args&&...) noexcept
+  {
+    return DefaultValue;
+  }
+};
+
+struct eq_operation {
+  template<std::size_t ValidI, class ContainedT, class... Ts>
+  static bool apply(variant<Ts...> const& rhs, ContainedT const& lhs_val)
+  {
+    return lhs_val == polyfill::get<ValidI>(rhs);
+  }
+};
+
+struct ne_operation {
+  template<std::size_t ValidI, class ContainedT, class... Ts>
+  static bool apply(variant<Ts...> const& rhs, ContainedT const& lhs_val)
+  {
+    return lhs_val != polyfill::get<ValidI>(rhs);
+  }
+};
+
+struct lt_operation {
+  template<std::size_t ValidI, class ContainedT, class... Ts>
+  static bool apply(variant<Ts...> const& rhs, ContainedT const& lhs_val)
+  {
+    return lhs_val < polyfill::get<ValidI>(rhs);
+  }
+};
+
+struct le_operation {
+  template<std::size_t ValidI, class ContainedT, class... Ts>
+  static bool apply(variant<Ts...> const& rhs, ContainedT const& lhs_val)
+  {
+    return lhs_val <= polyfill::get<ValidI>(rhs);
+  }
+};
+
+struct gt_operation {
+  template<std::size_t ValidI, class ContainedT, class... Ts>
+  static bool apply(variant<Ts...> const& rhs, ContainedT const& lhs_val)
+  {
+    return lhs_val > polyfill::get<ValidI>(rhs);
+  }
+};
+
+struct ge_operation {
+  template<std::size_t ValidI, class ContainedT, class... Ts>
+  static bool apply(variant<Ts...> const& rhs, ContainedT const& lhs_val)
+  {
+    return lhs_val >= polyfill::get<ValidI>(rhs);
+  }
+};
+
+template<class Operation, bool DefaultValue, class... Ts>
+struct cmp_visitor {
+  variant<Ts...> const& rhs_ref;
+  template<std::size_t I, class ContainedT>
+  bool operator()(in_place_index_t<I>, ContainedT&& lhs_val) const
+  {
+    return returning_op_wrapper<I, Operation, bool, DefaultValue>::apply(rhs_ref, lhs_val);
+  }
+};
+
+template<class... Ts>
+using eq_visitor = cmp_visitor<eq_operation, true, Ts...>;
+
+template<class... Ts>
+using ne_visitor = cmp_visitor<ne_operation, false, Ts...>;
+
+template<class... Ts>
+using lt_visitor = cmp_visitor<lt_operation, false, Ts...>;
+
+template<class... Ts>
+using le_visitor = cmp_visitor<le_operation, true, Ts...>;
+
+template<class... Ts>
+using gt_visitor = cmp_visitor<gt_operation, false, Ts...>;
+
+template<class... Ts>
+using ge_visitor = cmp_visitor<ge_operation, true, Ts...>;
+
+#if __cplusplus >= 202002L
+
+template<class ResultType>
+struct three_way_operation {
+  template<std::size_t ValidI, class ContainedT, class... Ts>
+  static ResultType apply(variant<Ts...> const& rhs, ContainedT const& lhs_val)
+  {
+    return lhs_val <=> polyfill::get<ValidI>(rhs);
+  }
+};
+
+template<class ResultType>
+struct three_way_npos_operation {
+  template<std::size_t /* variant_npos */, class... Args>
+  static ResultType apply(Args&&...) noexcept
+  {
+    return ResultType::equivalent;
+  }
+};
+
+template<class ResultType, class... Ts>
+struct three_way_cmp_visitor {
+  variant<Ts...> const& rhs_ref;
+  template<std::size_t I, class ContainedT>
+  ResultType operator()(in_place_index_t<I>, ContainedT&& lhs_val) const
+  {
+    if constexpr (I == variant_npos) {
+      return ResultType::equivalent;
+    } else {
+      return lhs_val <=> polyfill::get<I>(rhs_ref);
+    }
+  }
+};
+
+#endif
+
+}  // namespace variant_detail
+
+template<
+    class... Ts,
+    typename std::enable_if<
+        conjunction<std::is_convertible<decltype(std::declval<Ts const&>() == std::declval<Ts const&>()), bool>...>::value, std::nullptr_t>::type = nullptr>
+YK_POLYFILL_CXX14_CONSTEXPR bool operator==(variant<Ts...> const& lhs, variant<Ts...> const& rhs)
+{
+  if (lhs.index() != rhs.index()) return false;
+  if (lhs.valueless_by_exception()) return true;
+  return lhs.raw_visit(variant_detail::eq_visitor<Ts...>{rhs});
+}
+
+template<
+    class... Ts,
+    typename std::enable_if<
+        conjunction<std::is_convertible<decltype(std::declval<Ts const&>() != std::declval<Ts const&>()), bool>...>::value, std::nullptr_t>::type = nullptr>
+YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(variant<Ts...> const& lhs, variant<Ts...> const& rhs)
+{
+  if (lhs.index() != rhs.index()) return true;
+  if (lhs.valueless_by_exception()) return false;
+  return lhs.raw_visit(variant_detail::ne_visitor<Ts...>{rhs});
+}
+
+template<
+    class... Ts,
+    typename std::enable_if<
+        conjunction<std::is_convertible<decltype(std::declval<Ts const&>() < std::declval<Ts const&>()), bool>...>::value, std::nullptr_t>::type = nullptr>
+YK_POLYFILL_CXX14_CONSTEXPR bool operator<(variant<Ts...> const& lhs, variant<Ts...> const& rhs)
+{
+  if (rhs.valueless_by_exception()) return false;
+  if (lhs.valueless_by_exception()) return true;
+  if (lhs.index() != rhs.index()) return lhs.index() < rhs.index();
+  return lhs.raw_visit(variant_detail::lt_visitor<Ts...>{rhs});
+}
+
+template<
+    class... Ts,
+    typename std::enable_if<
+        conjunction<std::is_convertible<decltype(std::declval<Ts const&>() <= std::declval<Ts const&>()), bool>...>::value, std::nullptr_t>::type = nullptr>
+YK_POLYFILL_CXX14_CONSTEXPR bool operator<=(variant<Ts...> const& lhs, variant<Ts...> const& rhs)
+{
+  if (lhs.valueless_by_exception()) return true;
+  if (rhs.valueless_by_exception()) return false;
+  if (lhs.index() != rhs.index()) return lhs.index() < rhs.index();
+  return lhs.raw_visit(variant_detail::le_visitor<Ts...>{rhs});
+}
+
+template<
+    class... Ts,
+    typename std::enable_if<
+        conjunction<std::is_convertible<decltype(std::declval<Ts const&>() > std::declval<Ts const&>()), bool>...>::value, std::nullptr_t>::type = nullptr>
+YK_POLYFILL_CXX14_CONSTEXPR bool operator>(variant<Ts...> const& lhs, variant<Ts...> const& rhs)
+{
+  if (lhs.valueless_by_exception()) return false;
+  if (rhs.valueless_by_exception()) return true;
+  if (lhs.index() != rhs.index()) return lhs.index() > rhs.index();
+  return lhs.raw_visit(variant_detail::gt_visitor<Ts...>{rhs});
+}
+
+template<
+    class... Ts,
+    typename std::enable_if<
+        conjunction<std::is_convertible<decltype(std::declval<Ts const&>() >= std::declval<Ts const&>()), bool>...>::value, std::nullptr_t>::type = nullptr>
+YK_POLYFILL_CXX14_CONSTEXPR bool operator>=(variant<Ts...> const& lhs, variant<Ts...> const& rhs)
+{
+  if (rhs.valueless_by_exception()) return true;
+  if (lhs.valueless_by_exception()) return false;
+  if (lhs.index() != rhs.index()) return lhs.index() > rhs.index();
+  return lhs.raw_visit(variant_detail::ge_visitor<Ts...>{rhs});
+}
+
+#if __cplusplus >= 202002L
+
+// Three-way comparison for variant
+template<class... Ts>
+  requires (std::three_way_comparable<Ts> && ...)
+constexpr std::common_comparison_category_t<std::compare_three_way_result_t<Ts>...> operator<=>(variant<Ts...> const& lhs, variant<Ts...> const& rhs)
+{
+  using result_type = std::common_comparison_category_t<std::compare_three_way_result_t<Ts>...>;
+  if (lhs.valueless_by_exception() && rhs.valueless_by_exception()) return result_type::equivalent;
+  if (lhs.valueless_by_exception()) return result_type::less;
+  if (rhs.valueless_by_exception()) return result_type::greater;
+  if (lhs.index() != rhs.index()) return lhs.index() <=> rhs.index();
+  return lhs.raw_visit(variant_detail::three_way_cmp_visitor<result_type, Ts...>{rhs});
+}
+
+#endif
 
 }  // namespace polyfill
 

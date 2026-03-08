@@ -34,6 +34,50 @@ struct NonTriviallyDestructible {
   ~NonTriviallyDestructible() {}
 };
 
+// Trivially copyable types with restricted special member functions.
+// Each type has exactly one eligible trivial copy/move operation.
+// Used to verify that the library selects the correct trivial operation.
+
+struct OnlyTrivialMoveCtor {
+  int value;
+  OnlyTrivialMoveCtor(int v) : value(v) {}
+  OnlyTrivialMoveCtor(OnlyTrivialMoveCtor const&) = delete;
+  OnlyTrivialMoveCtor(OnlyTrivialMoveCtor&&) = default;
+  OnlyTrivialMoveCtor& operator=(OnlyTrivialMoveCtor const&) = delete;
+  OnlyTrivialMoveCtor& operator=(OnlyTrivialMoveCtor&&) = delete;
+};
+static_assert(std::is_trivially_copyable<OnlyTrivialMoveCtor>::value, "");
+
+struct OnlyTrivialCopyCtor {
+  int value;
+  OnlyTrivialCopyCtor(int v) : value(v) {}
+  OnlyTrivialCopyCtor(OnlyTrivialCopyCtor const&) = default;
+  OnlyTrivialCopyCtor(OnlyTrivialCopyCtor&&) = delete;
+  OnlyTrivialCopyCtor& operator=(OnlyTrivialCopyCtor const&) = delete;
+  OnlyTrivialCopyCtor& operator=(OnlyTrivialCopyCtor&&) = delete;
+};
+static_assert(std::is_trivially_copyable<OnlyTrivialCopyCtor>::value, "");
+
+struct OnlyTrivialMoveAssign {
+  int value;
+  OnlyTrivialMoveAssign(int v) : value(v) {}
+  OnlyTrivialMoveAssign(OnlyTrivialMoveAssign const&) = delete;
+  OnlyTrivialMoveAssign(OnlyTrivialMoveAssign&&) = delete;
+  OnlyTrivialMoveAssign& operator=(OnlyTrivialMoveAssign const&) = delete;
+  OnlyTrivialMoveAssign& operator=(OnlyTrivialMoveAssign&&) = default;
+};
+static_assert(std::is_trivially_copyable<OnlyTrivialMoveAssign>::value, "");
+
+struct OnlyTrivialCopyAssign {
+  int value;
+  OnlyTrivialCopyAssign(int v) : value(v) {}
+  OnlyTrivialCopyAssign(OnlyTrivialCopyAssign const&) = delete;
+  OnlyTrivialCopyAssign(OnlyTrivialCopyAssign&&) = delete;
+  OnlyTrivialCopyAssign& operator=(OnlyTrivialCopyAssign const&) = default;
+  OnlyTrivialCopyAssign& operator=(OnlyTrivialCopyAssign&&) = delete;
+};
+static_assert(std::is_trivially_copyable<OnlyTrivialCopyAssign>::value, "");
+
 TEST_CASE("never_valueless check")
 {
   STATIC_REQUIRE(pf::variant_detail::make_variadic_union<int, double>::type::never_valueless);
@@ -740,3 +784,326 @@ TEST_CASE("variant noexcept")
     STATIC_REQUIRE(!std::is_nothrow_assignable<pf::variant<ThrowingAssignFromInt>&, int>::value);
   }
 }
+
+#if __cplusplus >= 201402L
+TEST_CASE("variant_size_v and variant_alternative_t")
+{
+  STATIC_REQUIRE(pf::variant_size_v<pf::variant<int>> == 1);
+  STATIC_REQUIRE(pf::variant_size_v<pf::variant<int, double>> == 2);
+  STATIC_REQUIRE(pf::variant_size_v<pf::variant<int, double, char>> == 3);
+  STATIC_REQUIRE(pf::variant_size_v<pf::variant<int, double, char> const> == 3);
+
+  STATIC_REQUIRE(std::is_same<pf::variant_alternative_t<0, pf::variant<int, double>>, int>::value);
+  STATIC_REQUIRE(std::is_same<pf::variant_alternative_t<1, pf::variant<int, double>>, double>::value);
+  STATIC_REQUIRE(std::is_same<pf::variant_alternative_t<0, pf::variant<int, double> const>, int>::value);
+}
+#endif
+
+TEST_CASE("variant visit")
+{
+  SECTION("lvalue variant")
+  {
+    pf::variant<int, double> v = 42;
+    struct visitor {
+      int operator()(int i) const { return i * 2; }
+      int operator()(double d) const { return static_cast<int>(d); }
+    };
+    CHECK(pf::visit(visitor{}, v) == 84);
+  }
+  SECTION("const lvalue variant")
+  {
+    pf::variant<int, double> const v = 3.14;
+    struct visitor {
+      double operator()(int i) const { return static_cast<double>(i); }
+      double operator()(double d) const { return d * 2; }
+    };
+    CHECK(pf::visit(visitor{}, v) == 6.28);
+  }
+  SECTION("rvalue variant")
+  {
+    pf::variant<int, double> v = 42;
+    struct visitor {
+      int operator()(int&& i) const { return i + 1; }
+      int operator()(double&& d) const { return static_cast<int>(d); }
+    };
+    CHECK(pf::visit(visitor{}, std::move(v)) == 43);
+  }
+  SECTION("valueless variant throws")
+  {
+    pf::variant<int, ThrowsOnConstruction> v = 42;
+    make_valueless(v);
+    struct visitor {
+      int operator()(int) const { return 0; }
+      int operator()(ThrowsOnConstruction const&) const { return 1; }
+    };
+    CHECK_THROWS_AS(pf::visit(visitor{}, v), pf::bad_variant_access);
+  }
+  SECTION("void return type")
+  {
+    pf::variant<int, double> v = 42;
+    int result = 0;
+    struct visitor {
+      int& result_ref;
+      void operator()(int i) const { result_ref = i; }
+      void operator()(double) const {}
+    };
+    pf::visit(visitor{result}, v);
+    CHECK(result == 42);
+  }
+}
+
+TEST_CASE("variant multi-visit")
+{
+  SECTION("two variants")
+  {
+    pf::variant<int, double> v1 = 42;
+    pf::variant<char, float> v2 = 'a';
+    struct visitor {
+      int operator()(int i, char c) const { return i + c; }
+      int operator()(int i, float) const { return i; }
+      int operator()(double, char c) const { return c; }
+      int operator()(double, float) const { return 0; }
+    };
+    CHECK(pf::visit(visitor{}, v1, v2) == 42 + 'a');
+  }
+  SECTION("two variants - second alternative")
+  {
+    pf::variant<int, double> v1 = 3.14;
+    pf::variant<char, float> v2 = 1.5f;
+    struct visitor {
+      int operator()(int, char) const { return 1; }
+      int operator()(int, float) const { return 2; }
+      int operator()(double, char) const { return 3; }
+      int operator()(double, float) const { return 4; }
+    };
+    CHECK(pf::visit(visitor{}, v1, v2) == 4);
+  }
+  SECTION("three variants")
+  {
+    pf::variant<int, double> v1 = 42;
+    pf::variant<char, float> v2 = 'b';
+    pf::variant<long, short> v3(pf::in_place_index_t<1>{}, static_cast<short>(10));
+    struct visitor {
+      int operator()(int i, char c, long) const { return i + c + 100; }
+      int operator()(int i, char c, short s) const { return i + c + s; }
+      int operator()(int, float, long) const { return 0; }
+      int operator()(int, float, short) const { return 0; }
+      int operator()(double, char, long) const { return 0; }
+      int operator()(double, char, short) const { return 0; }
+      int operator()(double, float, long) const { return 0; }
+      int operator()(double, float, short) const { return 0; }
+    };
+    CHECK(pf::visit(visitor{}, v1, v2, v3) == 42 + 'b' + 10);
+  }
+  SECTION("valueless variant throws")
+  {
+    pf::variant<int, ThrowsOnConstruction> v1 = 42;
+    pf::variant<int, double> v2 = 3.14;
+    make_valueless(v1);
+    struct visitor {
+      int operator()(int, int) const { return 0; }
+      int operator()(int, double) const { return 1; }
+      int operator()(ThrowsOnConstruction const&, int) const { return 2; }
+      int operator()(ThrowsOnConstruction const&, double) const { return 3; }
+    };
+    CHECK_THROWS_AS(pf::visit(visitor{}, v1, v2), pf::bad_variant_access);
+  }
+  SECTION("void return type")
+  {
+    pf::variant<int, double> v1 = 42;
+    pf::variant<char, float> v2 = 'x';
+    int result = 0;
+    struct visitor {
+      int& result_ref;
+      void operator()(int i, char c) const { result_ref = i + c; }
+      void operator()(int, float) const {}
+      void operator()(double, char) const {}
+      void operator()(double, float) const {}
+    };
+    pf::visit(visitor{result}, v1, v2);
+    CHECK(result == 42 + 'x');
+  }
+  SECTION("mixed ref-qualifiers")
+  {
+    pf::variant<int, double> v1 = 42;
+    pf::variant<char, float> const v2 = 'a';
+    struct visitor {
+      int operator()(int i, char c) const { return i + c; }
+      int operator()(int, float) const { return 0; }
+      int operator()(double, char) const { return 0; }
+      int operator()(double, float) const { return 0; }
+    };
+    CHECK(pf::visit(visitor{}, v1, v2) == 42 + 'a');
+  }
+}
+
+TEST_CASE("variant swap")
+{
+  SECTION("same alternative")
+  {
+    pf::variant<int, double> a = 42;
+    pf::variant<int, double> b = 99;
+    a.swap(b);
+    CHECK(pf::get<0>(a) == 99);
+    CHECK(pf::get<0>(b) == 42);
+  }
+  SECTION("different alternatives")
+  {
+    pf::variant<int, double> a = 42;
+    pf::variant<int, double> b = 3.14;
+    a.swap(b);
+    CHECK(a.index() == 1);
+    CHECK(pf::get<1>(a) == 3.14);
+    CHECK(b.index() == 0);
+    CHECK(pf::get<0>(b) == 42);
+  }
+  SECTION("free function swap")
+  {
+    pf::variant<int, double> a = 42;
+    pf::variant<int, double> b = 3.14;
+    using std::swap;
+    swap(a, b);
+    CHECK(a.index() == 1);
+    CHECK(pf::get<1>(a) == 3.14);
+    CHECK(b.index() == 0);
+    CHECK(pf::get<0>(b) == 42);
+  }
+  SECTION("both valueless")
+  {
+    pf::variant<int, ThrowsOnConstruction> a = 42;
+    pf::variant<int, ThrowsOnConstruction> b = 42;
+    make_valueless(a);
+    make_valueless(b);
+    a.swap(b);
+    CHECK(a.valueless_by_exception());
+    CHECK(b.valueless_by_exception());
+  }
+}
+
+TEST_CASE("monostate comparisons")
+{
+  pf::monostate a, b;
+  CHECK(a == b);
+  CHECK_FALSE(a != b);
+  CHECK_FALSE(a < b);
+  CHECK(a <= b);
+  CHECK_FALSE(a > b);
+  CHECK(a >= b);
+}
+
+TEST_CASE("variant comparison operators")
+{
+  SECTION("equal - same alternative same value")
+  {
+    pf::variant<int, double> a = 42;
+    pf::variant<int, double> b = 42;
+    CHECK(a == b);
+    CHECK_FALSE(a != b);
+  }
+  SECTION("equal - same alternative different value")
+  {
+    pf::variant<int, double> a = 42;
+    pf::variant<int, double> b = 99;
+    CHECK_FALSE(a == b);
+    CHECK(a != b);
+  }
+  SECTION("different alternatives")
+  {
+    pf::variant<int, double> a = 42;
+    pf::variant<int, double> b = 3.14;
+    CHECK_FALSE(a == b);
+    CHECK(a != b);
+    CHECK(a < b);
+    CHECK(a <= b);
+    CHECK_FALSE(a > b);
+    CHECK_FALSE(a >= b);
+  }
+  SECTION("ordering - same alternative")
+  {
+    pf::variant<int, double> a = 10;
+    pf::variant<int, double> b = 42;
+    CHECK(a < b);
+    CHECK(a <= b);
+    CHECK_FALSE(a > b);
+    CHECK_FALSE(a >= b);
+    CHECK(b > a);
+    CHECK(b >= a);
+  }
+  SECTION("monostate variant comparison")
+  {
+    pf::variant<pf::monostate, int> a;
+    pf::variant<pf::monostate, int> b;
+    CHECK(a == b);
+    CHECK(a <= b);
+    CHECK(a >= b);
+  }
+}
+
+TEST_CASE("trivially copyable variant emplace (same index)")
+{
+  SECTION("only trivial move ctor")
+  {
+    pf::variant<OnlyTrivialMoveCtor> v(pf::in_place_index_t<0>{}, 1);
+    CHECK(pf::get<0>(v).value == 1);
+    v.emplace<0>(2);
+    CHECK(pf::get<0>(v).value == 2);
+  }
+  SECTION("only trivial copy ctor")
+  {
+    pf::variant<OnlyTrivialCopyCtor> v(pf::in_place_index_t<0>{}, 1);
+    CHECK(pf::get<0>(v).value == 1);
+    v.emplace<0>(2);
+    CHECK(pf::get<0>(v).value == 2);
+  }
+  SECTION("only trivial move assign")
+  {
+    pf::variant<OnlyTrivialMoveAssign> v(pf::in_place_index_t<0>{}, 1);
+    CHECK(pf::get<0>(v).value == 1);
+    v.emplace<0>(2);
+    CHECK(pf::get<0>(v).value == 2);
+  }
+  SECTION("only trivial copy assign")
+  {
+    pf::variant<OnlyTrivialCopyAssign> v(pf::in_place_index_t<0>{}, 1);
+    CHECK(pf::get<0>(v).value == 1);
+    v.emplace<0>(2);
+    CHECK(pf::get<0>(v).value == 2);
+  }
+}
+
+TEST_CASE("trivially copyable variant emplace (different index)")
+{
+  SECTION("only trivial move ctor")
+  {
+    pf::variant<int, OnlyTrivialMoveCtor> v(pf::in_place_index_t<0>{}, 0);
+    CHECK(v.index() == 0);
+    v.emplace<1>(42);
+    CHECK(v.index() == 1);
+    CHECK(pf::get<1>(v).value == 42);
+  }
+  SECTION("only trivial copy ctor")
+  {
+    pf::variant<int, OnlyTrivialCopyCtor> v(pf::in_place_index_t<0>{}, 0);
+    CHECK(v.index() == 0);
+    v.emplace<1>(42);
+    CHECK(v.index() == 1);
+    CHECK(pf::get<1>(v).value == 42);
+  }
+  SECTION("only trivial move assign")
+  {
+    pf::variant<int, OnlyTrivialMoveAssign> v(pf::in_place_index_t<0>{}, 0);
+    CHECK(v.index() == 0);
+    v.emplace<1>(42);
+    CHECK(v.index() == 1);
+    CHECK(pf::get<1>(v).value == 42);
+  }
+  SECTION("only trivial copy assign")
+  {
+    pf::variant<int, OnlyTrivialCopyAssign> v(pf::in_place_index_t<0>{}, 0);
+    CHECK(v.index() == 0);
+    v.emplace<1>(42);
+    CHECK(v.index() == 1);
+    CHECK(pf::get<1>(v).value == 42);
+  }
+}
+
