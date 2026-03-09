@@ -183,6 +183,101 @@ class polymorphic {
     polymorphic_detail::ops::destroy_cb(cb_, alloc_);
   }
 
+  // Copy assignment content (allocator already propagated)
+  YK_POLYFILL_CXX20_CONSTEXPR void copy_assign_content(const polymorphic& other)
+  {
+    destroy_owned();
+    if (other.cb_ != nullptr) {
+      cb_ = other.cb_->clone(alloc_);
+    }
+  }
+
+  // --- Tag-dispatch helpers for compile-time allocator traits ---
+
+  // Extended-alloc move ctor: is_always_equal dispatch
+  YK_POLYFILL_CXX20_CONSTEXPR void move_with_alloc(polymorphic&& other, std::true_type) noexcept
+  {
+    cb_ = other.cb_;
+    other.cb_ = nullptr;
+  }
+  YK_POLYFILL_CXX20_CONSTEXPR void move_with_alloc(polymorphic&& other, std::false_type)
+  {
+    if (alloc_ == other.alloc_) {
+      cb_ = other.cb_;
+      other.cb_ = nullptr;
+    } else if (other.cb_ != nullptr) {
+      cb_ = other.cb_->clone(alloc_);
+    }
+  }
+
+  // Copy assignment: POCCA dispatch
+  YK_POLYFILL_CXX20_CONSTEXPR polymorphic& copy_assign_impl(const polymorphic& other, std::true_type /*pocca*/)
+  {
+    if (alloc_ != other.alloc_) {
+      destroy_owned();
+      alloc_ = other.alloc_;
+      if (other.cb_ != nullptr) cb_ = other.cb_->clone(alloc_);
+      return *this;
+    }
+    alloc_ = other.alloc_;
+    copy_assign_content(other);
+    return *this;
+  }
+  YK_POLYFILL_CXX20_CONSTEXPR polymorphic& copy_assign_impl(const polymorphic& other, std::false_type /*pocca*/)
+  {
+    copy_assign_content(other);
+    return *this;
+  }
+
+  // Move assignment: is_always_equal dispatch (called when POCMA = false)
+  YK_POLYFILL_CXX20_CONSTEXPR polymorphic& move_assign_no_pocma(polymorphic&& other, std::true_type) noexcept
+  {
+    destroy_owned();
+    cb_ = other.cb_;
+    other.cb_ = nullptr;
+    return *this;
+  }
+  YK_POLYFILL_CXX20_CONSTEXPR polymorphic& move_assign_no_pocma(polymorphic&& other, std::false_type)
+  {
+    if (alloc_ == other.alloc_) {
+      destroy_owned();
+      cb_ = other.cb_;
+      other.cb_ = nullptr;
+    } else {
+      destroy_owned();
+      if (other.cb_ != nullptr) cb_ = other.cb_->clone(alloc_);
+    }
+    return *this;
+  }
+
+  // Move assignment: POCMA dispatch
+  YK_POLYFILL_CXX20_CONSTEXPR polymorphic& move_assign_impl(polymorphic&& other, std::true_type /*pocma*/) noexcept
+  {
+    destroy_owned();
+    alloc_ = static_cast<A&&>(other.alloc_);
+    cb_ = other.cb_;
+    other.cb_ = nullptr;
+    return *this;
+  }
+  YK_POLYFILL_CXX20_CONSTEXPR polymorphic& move_assign_impl(polymorphic&& other, std::false_type /*pocma*/)
+      noexcept(indirect_detail::is_always_equal<A>::value)
+  {
+    return move_assign_no_pocma(static_cast<polymorphic&&>(other), indirect_detail::is_always_equal<A>{});
+  }
+
+  // Swap: POCS dispatch
+  YK_POLYFILL_CXX20_CONSTEXPR void swap_impl(polymorphic& other, std::true_type /*pocs*/) noexcept
+  {
+    using std::swap;
+    swap(alloc_, other.alloc_);
+    swap(cb_, other.cb_);
+  }
+  YK_POLYFILL_CXX20_CONSTEXPR void swap_impl(polymorphic& other, std::false_type /*pocs*/) noexcept
+  {
+    using std::swap;
+    swap(cb_, other.cb_);
+  }
+
  public:
   using value_type = T;
   using allocator_type = A;
@@ -256,15 +351,7 @@ class polymorphic {
       noexcept(indirect_detail::is_always_equal<A>::value)
       : cb_(nullptr), alloc_(a)
   {
-    if (indirect_detail::is_always_equal<A>::value || alloc_ == other.alloc_) {
-      cb_ = other.cb_;
-      other.cb_ = nullptr;
-    } else {
-      if (other.cb_ != nullptr) {
-        // Can't cheaply move with different allocators; clone instead
-        cb_ = other.cb_->clone(alloc_);
-      }
-    }
+    move_with_alloc(static_cast<polymorphic&&>(other), indirect_detail::is_always_equal<A>{});
   }
 
   // --- Destructor ---
@@ -276,25 +363,7 @@ class polymorphic {
   YK_POLYFILL_CXX20_CONSTEXPR polymorphic& operator=(const polymorphic& other)
   {
     if (this == &other) return *this;
-
-    if (std::allocator_traits<A>::propagate_on_container_copy_assignment::value && alloc_ != other.alloc_) {
-      destroy_owned();
-      alloc_ = other.alloc_;
-      if (other.cb_ != nullptr) {
-        cb_ = other.cb_->clone(alloc_);
-      }
-      return *this;
-    }
-
-    if (std::allocator_traits<A>::propagate_on_container_copy_assignment::value) {
-      alloc_ = other.alloc_;
-    }
-
-    destroy_owned();
-    if (other.cb_ != nullptr) {
-      cb_ = other.cb_->clone(alloc_);
-    }
-    return *this;
+    return copy_assign_impl(other, typename std::allocator_traits<A>::propagate_on_container_copy_assignment{});
   }
 
   YK_POLYFILL_CXX20_CONSTEXPR polymorphic& operator=(polymorphic&& other)
@@ -302,23 +371,7 @@ class polymorphic {
                || indirect_detail::is_always_equal<A>::value)
   {
     if (this == &other) return *this;
-
-    if (std::allocator_traits<A>::propagate_on_container_move_assignment::value) {
-      destroy_owned();
-      alloc_ = static_cast<A&&>(other.alloc_);
-      cb_ = other.cb_;
-      other.cb_ = nullptr;
-    } else if (indirect_detail::is_always_equal<A>::value || alloc_ == other.alloc_) {
-      destroy_owned();
-      cb_ = other.cb_;
-      other.cb_ = nullptr;
-    } else {
-      destroy_owned();
-      if (other.cb_ != nullptr) {
-        cb_ = other.cb_->clone(alloc_);
-      }
-    }
-    return *this;
+    return move_assign_impl(static_cast<polymorphic&&>(other), typename std::allocator_traits<A>::propagate_on_container_move_assignment{});
   }
 
   // --- Observers ---
@@ -341,11 +394,7 @@ class polymorphic {
       noexcept(std::allocator_traits<A>::propagate_on_container_swap::value
                || indirect_detail::is_always_equal<A>::value)
   {
-    using std::swap;
-    if (std::allocator_traits<A>::propagate_on_container_swap::value) {
-      swap(alloc_, other.alloc_);
-    }
-    swap(cb_, other.cb_);
+    swap_impl(other, typename std::allocator_traits<A>::propagate_on_container_swap{});
   }
 
   friend YK_POLYFILL_CXX20_CONSTEXPR void swap(polymorphic& a, polymorphic& b) noexcept(noexcept(a.swap(b))) { a.swap(b); }
