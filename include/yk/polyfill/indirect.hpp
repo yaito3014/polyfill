@@ -31,6 +31,15 @@ namespace indirect_detail {
 template <class A, class = void>
 struct is_always_equal : std::is_empty<A> {};
 
+// constexpr-friendly swap: std::swap is not constexpr before C++20
+template <class T>
+YK_POLYFILL_CXX14_CONSTEXPR void cswap(T& a, T& b) noexcept(noexcept(T(static_cast<T&&>(a))))
+{
+  T tmp(static_cast<T&&>(a));
+  a = static_cast<T&&>(b);
+  b = static_cast<T&&>(tmp);
+}
+
 #if __cpp_lib_allocator_traits_is_always_equal >= 201411L
 template <class A>
 struct is_always_equal<A, typename std::enable_if<std::allocator_traits<A>::is_always_equal::value>::type> : std::true_type {};
@@ -142,7 +151,7 @@ class indirect {
   }
 
   // Move constructor
-  YK_POLYFILL_CXX20_CONSTEXPR indirect(indirect&& other) noexcept : ptr_(other.ptr_), alloc_(static_cast<A&&>(other.alloc_))
+  YK_POLYFILL_CXX14_CONSTEXPR indirect(indirect&& other) noexcept : ptr_(other.ptr_), alloc_(static_cast<A&&>(other.alloc_))
   {
     other.ptr_ = nullptr;
   }
@@ -178,33 +187,33 @@ class indirect {
 
   // --- Observers ---
 
-  [[nodiscard]] YK_POLYFILL_CXX20_CONSTEXPR T& operator*() & noexcept { return *ptr_; }
-  [[nodiscard]] YK_POLYFILL_CXX20_CONSTEXPR const T& operator*() const& noexcept { return *ptr_; }
-  [[nodiscard]] YK_POLYFILL_CXX20_CONSTEXPR T&& operator*() && noexcept { return static_cast<T&&>(*ptr_); }
-  [[nodiscard]] YK_POLYFILL_CXX20_CONSTEXPR const T&& operator*() const&& noexcept { return static_cast<const T&&>(*ptr_); }
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR T& operator*() & noexcept { return *ptr_; }
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR const T& operator*() const& noexcept { return *ptr_; }
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR T&& operator*() && noexcept { return static_cast<T&&>(*ptr_); }
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR const T&& operator*() const&& noexcept { return static_cast<const T&&>(*ptr_); }
 
-  [[nodiscard]] YK_POLYFILL_CXX20_CONSTEXPR T* operator->() noexcept { return ptr_; }
-  [[nodiscard]] YK_POLYFILL_CXX20_CONSTEXPR const T* operator->() const noexcept { return ptr_; }
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR T* operator->() noexcept { return ptr_; }
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR const T* operator->() const noexcept { return ptr_; }
 
-  [[nodiscard]] YK_POLYFILL_CXX20_CONSTEXPR bool valueless_after_move() const noexcept { return ptr_ == nullptr; }
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR bool valueless_after_move() const noexcept { return ptr_ == nullptr; }
 
-  [[nodiscard]] YK_POLYFILL_CXX20_CONSTEXPR A get_allocator() const noexcept { return alloc_; }
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR A get_allocator() const noexcept { return alloc_; }
 
   // --- Swap ---
 
-  YK_POLYFILL_CXX20_CONSTEXPR void swap(indirect& other)
+  YK_POLYFILL_CXX14_CONSTEXPR void swap(indirect& other)
       noexcept(alloc_traits::propagate_on_container_swap::value
                || indirect_detail::is_always_equal<A>::value)
   {
     indirect_detail::swap_ops<alloc_traits::propagate_on_container_swap::value>::apply(*this, other);
   }
 
-  friend YK_POLYFILL_CXX20_CONSTEXPR void swap(indirect& a, indirect& b) noexcept(noexcept(a.swap(b))) { a.swap(b); }
+  friend YK_POLYFILL_CXX14_CONSTEXPR void swap(indirect& a, indirect& b) noexcept(noexcept(a.swap(b))) { a.swap(b); }
 
   // --- Comparison ---
 
   template <class U, class AA>
-  friend YK_POLYFILL_CXX20_CONSTEXPR bool operator==(const indirect& lhs, const indirect<U, AA>& rhs)
+  friend YK_POLYFILL_CXX14_CONSTEXPR bool operator==(const indirect& lhs, const indirect<U, AA>& rhs)
   {
     if (lhs.valueless_after_move()) return rhs.valueless_after_move();
     if (rhs.valueless_after_move()) return false;
@@ -212,33 +221,33 @@ class indirect {
   }
 
   template <class U, class AA>
-  friend YK_POLYFILL_CXX20_CONSTEXPR bool operator!=(const indirect& lhs, const indirect<U, AA>& rhs)
+  friend YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const indirect& lhs, const indirect<U, AA>& rhs)
   {
     return !(lhs == rhs);
   }
 
   template <class U, class = typename std::enable_if<!is_indirect<U>::value>::type>
-  friend YK_POLYFILL_CXX20_CONSTEXPR bool operator==(const indirect& lhs, const U& rhs)
+  friend YK_POLYFILL_CXX14_CONSTEXPR bool operator==(const indirect& lhs, const U& rhs)
   {
     if (lhs.valueless_after_move()) return false;
     return *lhs == rhs;
   }
 
   template <class U, class = typename std::enable_if<!is_indirect<U>::value>::type>
-  friend YK_POLYFILL_CXX20_CONSTEXPR bool operator==(const U& lhs, const indirect& rhs)
+  friend YK_POLYFILL_CXX14_CONSTEXPR bool operator==(const U& lhs, const indirect& rhs)
   {
     if (rhs.valueless_after_move()) return false;
     return lhs == *rhs;
   }
 
   template <class U, class = typename std::enable_if<!is_indirect<U>::value>::type>
-  friend YK_POLYFILL_CXX20_CONSTEXPR bool operator!=(const indirect& lhs, const U& rhs)
+  friend YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const indirect& lhs, const U& rhs)
   {
     return !(lhs == rhs);
   }
 
   template <class U, class = typename std::enable_if<!is_indirect<U>::value>::type>
-  friend YK_POLYFILL_CXX20_CONSTEXPR bool operator!=(const U& lhs, const indirect& rhs)
+  friend YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const U& lhs, const indirect& rhs)
   {
     return !(lhs == rhs);
   }
@@ -273,21 +282,19 @@ namespace indirect_detail {
 template <>
 struct swap_ops<true> {
   template <class T, class A>
-  static YK_POLYFILL_CXX20_CONSTEXPR void apply(indirect<T, A>& a, indirect<T, A>& b) noexcept
+  static YK_POLYFILL_CXX14_CONSTEXPR void apply(indirect<T, A>& a, indirect<T, A>& b) noexcept
   {
-    using std::swap;
-    swap(a.alloc_, b.alloc_);
-    swap(a.ptr_, b.ptr_);
+    cswap(a.alloc_, b.alloc_);
+    cswap(a.ptr_, b.ptr_);
   }
 };
 
 template <>
 struct swap_ops<false> {
   template <class T, class A>
-  static YK_POLYFILL_CXX20_CONSTEXPR void apply(indirect<T, A>& a, indirect<T, A>& b) noexcept
+  static YK_POLYFILL_CXX14_CONSTEXPR void apply(indirect<T, A>& a, indirect<T, A>& b) noexcept
   {
-    using std::swap;
-    swap(a.ptr_, b.ptr_);
+    cswap(a.ptr_, b.ptr_);
   }
 };
 
@@ -373,7 +380,7 @@ struct move_assign_ne_ops<false> {  // may differ: check at runtime
 template <>
 struct move_ctor_ops<true> {  // always-equal: steal unconditionally
   template <class T, class A>
-  static YK_POLYFILL_CXX20_CONSTEXPR void apply(indirect<T, A>& self, indirect<T, A>&& other) noexcept
+  static YK_POLYFILL_CXX14_CONSTEXPR void apply(indirect<T, A>& self, indirect<T, A>&& other) noexcept
   {
     self.ptr_ = other.ptr_;
     other.ptr_ = nullptr;

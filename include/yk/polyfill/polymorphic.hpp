@@ -250,7 +250,7 @@ class polymorphic {
   }
 
   // Move constructor
-  YK_POLYFILL_CXX20_CONSTEXPR polymorphic(polymorphic&& other) noexcept
+  YK_POLYFILL_CXX14_CONSTEXPR polymorphic(polymorphic&& other) noexcept
       : cb_(other.cb_), alloc_(static_cast<A&&>(other.alloc_))
   {
     other.cb_ = nullptr;
@@ -287,33 +287,33 @@ class polymorphic {
 
   // --- Observers ---
 
-  [[nodiscard]] YK_POLYFILL_CXX20_CONSTEXPR T& operator*() & noexcept { return *cb_->ptr_; }
-  [[nodiscard]] YK_POLYFILL_CXX20_CONSTEXPR const T& operator*() const& noexcept { return *cb_->ptr_; }
-  [[nodiscard]] YK_POLYFILL_CXX20_CONSTEXPR T&& operator*() && noexcept { return static_cast<T&&>(*cb_->ptr_); }
-  [[nodiscard]] YK_POLYFILL_CXX20_CONSTEXPR const T&& operator*() const&& noexcept { return static_cast<const T&&>(*cb_->ptr_); }
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR T& operator*() & noexcept { return *cb_->ptr_; }
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR const T& operator*() const& noexcept { return *cb_->ptr_; }
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR T&& operator*() && noexcept { return static_cast<T&&>(*cb_->ptr_); }
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR const T&& operator*() const&& noexcept { return static_cast<const T&&>(*cb_->ptr_); }
 
-  [[nodiscard]] YK_POLYFILL_CXX20_CONSTEXPR T* operator->() noexcept { return cb_->ptr_; }
-  [[nodiscard]] YK_POLYFILL_CXX20_CONSTEXPR const T* operator->() const noexcept { return cb_->ptr_; }
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR T* operator->() noexcept { return cb_->ptr_; }
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR const T* operator->() const noexcept { return cb_->ptr_; }
 
-  [[nodiscard]] YK_POLYFILL_CXX20_CONSTEXPR bool valueless_after_move() const noexcept { return cb_ == nullptr; }
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR bool valueless_after_move() const noexcept { return cb_ == nullptr; }
 
-  [[nodiscard]] YK_POLYFILL_CXX20_CONSTEXPR A get_allocator() const noexcept { return alloc_; }
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR A get_allocator() const noexcept { return alloc_; }
 
   // --- Swap ---
 
-  YK_POLYFILL_CXX20_CONSTEXPR void swap(polymorphic& other)
+  YK_POLYFILL_CXX14_CONSTEXPR void swap(polymorphic& other)
       noexcept(std::allocator_traits<A>::propagate_on_container_swap::value
                || indirect_detail::is_always_equal<A>::value)
   {
     polymorphic_detail::swap_ops<std::allocator_traits<A>::propagate_on_container_swap::value>::apply(*this, other);
   }
 
-  friend YK_POLYFILL_CXX20_CONSTEXPR void swap(polymorphic& a, polymorphic& b) noexcept(noexcept(a.swap(b))) { a.swap(b); }
+  friend YK_POLYFILL_CXX14_CONSTEXPR void swap(polymorphic& a, polymorphic& b) noexcept(noexcept(a.swap(b))) { a.swap(b); }
 
   // --- Comparison ---
 
   template <class U, class AA>
-  friend YK_POLYFILL_CXX20_CONSTEXPR bool operator==(const polymorphic& lhs, const polymorphic<U, AA>& rhs)
+  friend YK_POLYFILL_CXX14_CONSTEXPR bool operator==(const polymorphic& lhs, const polymorphic<U, AA>& rhs)
   {
     if (lhs.valueless_after_move()) return rhs.valueless_after_move();
     if (rhs.valueless_after_move()) return false;
@@ -321,33 +321,33 @@ class polymorphic {
   }
 
   template <class U, class AA>
-  friend YK_POLYFILL_CXX20_CONSTEXPR bool operator!=(const polymorphic& lhs, const polymorphic<U, AA>& rhs)
+  friend YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const polymorphic& lhs, const polymorphic<U, AA>& rhs)
   {
     return !(lhs == rhs);
   }
 
   template <class U, class = typename std::enable_if<!is_polymorphic_wrapper<U>::value>::type>
-  friend YK_POLYFILL_CXX20_CONSTEXPR bool operator==(const polymorphic& lhs, const U& rhs)
+  friend YK_POLYFILL_CXX14_CONSTEXPR bool operator==(const polymorphic& lhs, const U& rhs)
   {
     if (lhs.valueless_after_move()) return false;
     return *lhs == rhs;
   }
 
   template <class U, class = typename std::enable_if<!is_polymorphic_wrapper<U>::value>::type>
-  friend YK_POLYFILL_CXX20_CONSTEXPR bool operator==(const U& lhs, const polymorphic& rhs)
+  friend YK_POLYFILL_CXX14_CONSTEXPR bool operator==(const U& lhs, const polymorphic& rhs)
   {
     if (rhs.valueless_after_move()) return false;
     return lhs == *rhs;
   }
 
   template <class U, class = typename std::enable_if<!is_polymorphic_wrapper<U>::value>::type>
-  friend YK_POLYFILL_CXX20_CONSTEXPR bool operator!=(const polymorphic& lhs, const U& rhs)
+  friend YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const polymorphic& lhs, const U& rhs)
   {
     return !(lhs == rhs);
   }
 
   template <class U, class = typename std::enable_if<!is_polymorphic_wrapper<U>::value>::type>
-  friend YK_POLYFILL_CXX20_CONSTEXPR bool operator!=(const U& lhs, const polymorphic& rhs)
+  friend YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const U& lhs, const polymorphic& rhs)
   {
     return !(lhs == rhs);
   }
@@ -378,21 +378,19 @@ namespace polymorphic_detail {
 template <>
 struct swap_ops<true> {
   template <class T, class A>
-  static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& a, polymorphic<T, A>& b) noexcept
+  static YK_POLYFILL_CXX14_CONSTEXPR void apply(polymorphic<T, A>& a, polymorphic<T, A>& b) noexcept
   {
-    using std::swap;
-    swap(a.alloc_, b.alloc_);
-    swap(a.cb_, b.cb_);
+    indirect_detail::cswap(a.alloc_, b.alloc_);
+    indirect_detail::cswap(a.cb_, b.cb_);
   }
 };
 
 template <>
 struct swap_ops<false> {
   template <class T, class A>
-  static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& a, polymorphic<T, A>& b) noexcept
+  static YK_POLYFILL_CXX14_CONSTEXPR void apply(polymorphic<T, A>& a, polymorphic<T, A>& b) noexcept
   {
-    using std::swap;
-    swap(a.cb_, b.cb_);
+    indirect_detail::cswap(a.cb_, b.cb_);
   }
 };
 
@@ -473,7 +471,7 @@ struct move_assign_ne_ops<false> {  // may differ: check at runtime
 template <>
 struct move_ctor_ops<true> {  // always-equal: steal unconditionally
   template <class T, class A>
-  static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, polymorphic<T, A>&& other) noexcept
+  static YK_POLYFILL_CXX14_CONSTEXPR void apply(polymorphic<T, A>& self, polymorphic<T, A>&& other) noexcept
   {
     self.cb_ = other.cb_;
     other.cb_ = nullptr;
