@@ -256,7 +256,7 @@ class indirect {
 
   template <class U, class AA>
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator==(const indirect& lhs, const indirect<U, AA>& rhs)
-      noexcept(noexcept(*lhs == *rhs))
+      noexcept(noexcept(std::declval<const T&>() == std::declval<const U&>()))
   {
     if (lhs.valueless_after_move()) return rhs.valueless_after_move();
     if (rhs.valueless_after_move()) return false;
@@ -265,7 +265,7 @@ class indirect {
 
   template <class U, class AA>
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const indirect& lhs, const indirect<U, AA>& rhs)
-      noexcept(noexcept(*lhs != *rhs))
+      noexcept(noexcept(std::declval<const T&>() != std::declval<const U&>()))
   {
     if (lhs.valueless_after_move()) return !rhs.valueless_after_move();
     if (rhs.valueless_after_move()) return true;
@@ -307,7 +307,7 @@ class indirect {
 #if __cpp_lib_three_way_comparison >= 201907L
   template <class U, class AA>
   friend constexpr auto operator<=>(const indirect& lhs, const indirect<U, AA>& rhs)
-      noexcept(noexcept(*lhs <=> *rhs))
+      noexcept(noexcept(std::declval<const T&>() <=> std::declval<const U&>()))
   {
     if (lhs.valueless_after_move() && rhs.valueless_after_move()) return std::strong_ordering::equal;
     if (lhs.valueless_after_move()) return std::strong_ordering::less;
