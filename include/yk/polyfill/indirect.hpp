@@ -15,17 +15,17 @@ namespace yk {
 
 namespace polyfill {
 
-// Forward declaration so is_indirect and the ops structs can reference indirect
+// Forward declaration so the ops structs can reference indirect
 template <class T, class A>
 class indirect;
+
+namespace indirect_detail {
 
 template <class T>
 struct is_indirect : std::false_type {};
 
 template <class T, class A>
 struct is_indirect<indirect<T, A>> : std::true_type {};
-
-namespace indirect_detail {
 
 // Fallback for is_always_equal (added to allocator_traits in C++17)
 template <class A, class = void>
@@ -227,27 +227,27 @@ class indirect {
     return !(lhs == rhs);
   }
 
-  template <class U, class = typename std::enable_if<!is_indirect<U>::value>::type>
+  template <class U, class = typename std::enable_if<!indirect_detail::is_indirect<U>::value>::type>
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator==(const indirect& lhs, const U& rhs)
   {
     if (lhs.valueless_after_move()) return false;
     return *lhs == rhs;
   }
 
-  template <class U, class = typename std::enable_if<!is_indirect<U>::value>::type>
+  template <class U, class = typename std::enable_if<!indirect_detail::is_indirect<U>::value>::type>
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator==(const U& lhs, const indirect& rhs)
   {
     if (rhs.valueless_after_move()) return false;
     return lhs == *rhs;
   }
 
-  template <class U, class = typename std::enable_if<!is_indirect<U>::value>::type>
+  template <class U, class = typename std::enable_if<!indirect_detail::is_indirect<U>::value>::type>
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const indirect& lhs, const U& rhs)
   {
     return !(lhs == rhs);
   }
 
-  template <class U, class = typename std::enable_if<!is_indirect<U>::value>::type>
+  template <class U, class = typename std::enable_if<!indirect_detail::is_indirect<U>::value>::type>
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const U& lhs, const indirect& rhs)
   {
     return !(lhs == rhs);

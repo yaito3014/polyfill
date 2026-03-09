@@ -21,13 +21,13 @@ namespace polyfill {
 template <class T, class A>
 class polymorphic;
 
+namespace polymorphic_detail {
+
 template <class T>
 struct is_polymorphic_wrapper : std::false_type {};
 
 template <class T, class A>
 struct is_polymorphic_wrapper<polymorphic<T, A>> : std::true_type {};
-
-namespace polymorphic_detail {
 
 // --- Compile-time dispatch between constexpr and runtime allocation ---------
 //
@@ -326,27 +326,27 @@ class polymorphic {
     return !(lhs == rhs);
   }
 
-  template <class U, class = typename std::enable_if<!is_polymorphic_wrapper<U>::value>::type>
+  template <class U, class = typename std::enable_if<!polymorphic_detail::is_polymorphic_wrapper<U>::value>::type>
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator==(const polymorphic& lhs, const U& rhs)
   {
     if (lhs.valueless_after_move()) return false;
     return *lhs == rhs;
   }
 
-  template <class U, class = typename std::enable_if<!is_polymorphic_wrapper<U>::value>::type>
+  template <class U, class = typename std::enable_if<!polymorphic_detail::is_polymorphic_wrapper<U>::value>::type>
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator==(const U& lhs, const polymorphic& rhs)
   {
     if (rhs.valueless_after_move()) return false;
     return lhs == *rhs;
   }
 
-  template <class U, class = typename std::enable_if<!is_polymorphic_wrapper<U>::value>::type>
+  template <class U, class = typename std::enable_if<!polymorphic_detail::is_polymorphic_wrapper<U>::value>::type>
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const polymorphic& lhs, const U& rhs)
   {
     return !(lhs == rhs);
   }
 
-  template <class U, class = typename std::enable_if<!is_polymorphic_wrapper<U>::value>::type>
+  template <class U, class = typename std::enable_if<!polymorphic_detail::is_polymorphic_wrapper<U>::value>::type>
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const U& lhs, const polymorphic& rhs)
   {
     return !(lhs == rhs);
