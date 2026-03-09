@@ -20,7 +20,6 @@ namespace yk {
 
 namespace polyfill {
 
-// Forward declaration so the ops structs can reference polymorphic
 template <class T, class A>
 class polymorphic;
 
@@ -32,7 +31,6 @@ struct is_polymorphic_wrapper : std::false_type {};
 template <class T, class A>
 struct is_polymorphic_wrapper<polymorphic<T, A>> : std::true_type {};
 
-// Forward declarations — specialisations are defined after polymorphic is complete.
 template <bool Pocs>        struct swap_ops;
 template <bool Pocca>       struct copy_assign_ops;
 template <bool Pocma>       struct move_assign_ops;
@@ -44,8 +42,6 @@ template <bool AlwaysEqual> struct move_ctor_ops;       // extended-alloc move c
 template <class T, class A = std::allocator<T>>
 class polymorphic {
   static_assert(!std::is_array<T>::value, "polymorphic: T must not be an array type");
-
-  // ---- Value holder --------------------------------------------------------
 
   struct holder_base {
     T* ptr_ = nullptr;
@@ -99,8 +95,6 @@ class polymorphic {
     }
   };
 
-  // ---- Data members --------------------------------------------------------
-
   holder_base* holder_;
   YK_POLYFILL_NO_UNIQUE_ADDRESS A alloc_;
 
@@ -145,8 +139,6 @@ class polymorphic {
   using value_type = T;
   using allocator_type = A;
 
-  // --- Constructors ---
-
   YK_POLYFILL_CXX20_CONSTEXPR polymorphic() : holder_(nullptr), alloc_()
   {
     allocate_holder<T>();
@@ -185,7 +177,6 @@ class polymorphic {
     allocate_holder<U>(static_cast<Ts&&>(ts)...);
   }
 
-  // Copy constructor
   YK_POLYFILL_CXX20_CONSTEXPR polymorphic(const polymorphic& other)
       : holder_(nullptr), alloc_(std::allocator_traits<A>::select_on_container_copy_construction(other.alloc_))
   {
@@ -202,7 +193,6 @@ class polymorphic {
     }
   }
 
-  // Move constructor
   YK_POLYFILL_CXX14_CONSTEXPR polymorphic(polymorphic&& other) noexcept
       : holder_(other.holder_), alloc_(static_cast<A&&>(other.alloc_))
   {
@@ -216,11 +206,7 @@ class polymorphic {
     polymorphic_detail::move_ctor_ops<indirect_detail::is_always_equal<A>::value>::apply(*this, static_cast<polymorphic&&>(other));
   }
 
-  // --- Destructor ---
-
   YK_POLYFILL_CXX20_CONSTEXPR ~polymorphic() noexcept { destroy_owned(); }
-
-  // --- Assignment ---
 
   YK_POLYFILL_CXX20_CONSTEXPR polymorphic& operator=(const polymorphic& other)
   {
@@ -238,8 +224,6 @@ class polymorphic {
     return *this;
   }
 
-  // --- Observers ---
-
   [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR T& operator*() & noexcept { return *holder_->ptr_; }
   [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR const T& operator*() const& noexcept { return *holder_->ptr_; }
   [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR T&& operator*() && noexcept { return static_cast<T&&>(*holder_->ptr_); }
@@ -252,8 +236,6 @@ class polymorphic {
 
   [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR A get_allocator() const noexcept { return alloc_; }
 
-  // --- Swap ---
-
   YK_POLYFILL_CXX14_CONSTEXPR void swap(polymorphic& other)
       noexcept(std::allocator_traits<A>::propagate_on_container_swap::value
                || indirect_detail::is_always_equal<A>::value)
@@ -262,8 +244,6 @@ class polymorphic {
   }
 
   friend YK_POLYFILL_CXX14_CONSTEXPR void swap(polymorphic& a, polymorphic& b) noexcept(noexcept(a.swap(b))) { a.swap(b); }
-
-  // --- Comparison ---
 
   template <class U, class AA>
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator==(const polymorphic& lhs, const polymorphic<U, AA>& rhs)
