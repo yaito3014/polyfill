@@ -399,14 +399,11 @@ struct copy_assign_ops<true> {
   template <class T, class A>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, const polymorphic<T, A>& other)
   {
-    if (self.alloc_ != other.alloc_) {
-      self.destroy_owned();
-      self.alloc_ = other.alloc_;
-      if (other.cb_ != nullptr) self.cb_ = other.cb_->clone(self.alloc_);
-    } else {
-      self.alloc_ = other.alloc_;
-      self.copy_assign_content(other);
-    }
+    // polymorphic always destroys before cloning (no in-place reuse), so both
+    // branches reduce to the same sequence: destroy, propagate alloc, clone.
+    self.destroy_owned();
+    self.alloc_ = other.alloc_;
+    if (other.cb_ != nullptr) self.cb_ = other.cb_->clone(self.alloc_);
   }
 };
 
@@ -457,13 +454,12 @@ struct move_assign_ne_ops<false> {  // may differ: check at runtime
   template <class T, class A>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, polymorphic<T, A>&& other)
   {
+    self.destroy_owned();
     if (self.alloc_ == other.alloc_) {
-      self.destroy_owned();
       self.cb_ = other.cb_;
       other.cb_ = nullptr;
-    } else {
-      self.destroy_owned();
-      if (other.cb_ != nullptr) self.cb_ = other.cb_->clone(self.alloc_);
+    } else if (other.cb_ != nullptr) {
+      self.cb_ = other.cb_->clone(self.alloc_);
     }
   }
 };

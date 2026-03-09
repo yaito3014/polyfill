@@ -31,19 +31,20 @@ namespace indirect_detail {
 template <class A, class = void>
 struct is_always_equal : std::is_empty<A> {};
 
+#if __cpp_lib_allocator_traits_is_always_equal >= 201411L
+template <class A>
+struct is_always_equal<A, typename std::enable_if<std::allocator_traits<A>::is_always_equal::value>::type> : std::true_type {};
+#endif
+
 // constexpr-friendly swap: std::swap is not constexpr before C++20
 template <class T>
-YK_POLYFILL_CXX14_CONSTEXPR void cswap(T& a, T& b) noexcept(noexcept(T(static_cast<T&&>(a))))
+YK_POLYFILL_CXX14_CONSTEXPR void cswap(T& a, T& b)
+    noexcept(std::is_nothrow_move_constructible<T>::value && std::is_nothrow_move_assignable<T>::value)
 {
   T tmp(static_cast<T&&>(a));
   a = static_cast<T&&>(b);
   b = static_cast<T&&>(tmp);
 }
-
-#if __cpp_lib_allocator_traits_is_always_equal >= 201411L
-template <class A>
-struct is_always_equal<A, typename std::enable_if<std::allocator_traits<A>::is_always_equal::value>::type> : std::true_type {};
-#endif
 
 // Forward declarations — specialisations are defined after indirect is complete.
 template <bool Pocs>        struct swap_ops;
