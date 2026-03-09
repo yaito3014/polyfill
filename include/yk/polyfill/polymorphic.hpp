@@ -261,38 +261,6 @@ class polymorphic {
     return *lhs != *rhs;
   }
 
-  template <class U, typename std::enable_if<!polymorphic_detail::is_polymorphic_wrapper<U>::value, std::nullptr_t>::type = nullptr>
-  friend YK_POLYFILL_CXX14_CONSTEXPR bool operator==(const polymorphic& lhs, const U& rhs)
-      noexcept(noexcept(*lhs == rhs))
-  {
-    if (lhs.valueless_after_move()) return false;
-    return *lhs == rhs;
-  }
-
-  template <class U, typename std::enable_if<!polymorphic_detail::is_polymorphic_wrapper<U>::value, std::nullptr_t>::type = nullptr>
-  friend YK_POLYFILL_CXX14_CONSTEXPR bool operator==(const U& lhs, const polymorphic& rhs)
-      noexcept(noexcept(lhs == *rhs))
-  {
-    if (rhs.valueless_after_move()) return false;
-    return lhs == *rhs;
-  }
-
-  template <class U, typename std::enable_if<!polymorphic_detail::is_polymorphic_wrapper<U>::value, std::nullptr_t>::type = nullptr>
-  friend YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const polymorphic& lhs, const U& rhs)
-      noexcept(noexcept(*lhs != rhs))
-  {
-    if (lhs.valueless_after_move()) return true;
-    return *lhs != rhs;
-  }
-
-  template <class U, typename std::enable_if<!polymorphic_detail::is_polymorphic_wrapper<U>::value, std::nullptr_t>::type = nullptr>
-  friend YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const U& lhs, const polymorphic& rhs)
-      noexcept(noexcept(lhs != *rhs))
-  {
-    if (rhs.valueless_after_move()) return true;
-    return lhs != *rhs;
-  }
-
 #if __cpp_lib_three_way_comparison >= 201907L
   friend constexpr auto operator<=>(const polymorphic& lhs, const polymorphic& rhs)
   {
@@ -312,6 +280,44 @@ class polymorphic {
   }
 #endif  // __cpp_lib_three_way_comparison
 };
+
+// ---- Heterogeneous comparisons (outside class to avoid MSVC ADL recursion) ----
+
+template <class T, class A, class U,
+    typename std::enable_if<!polymorphic_detail::is_polymorphic_wrapper<U>::value, std::nullptr_t>::type = nullptr>
+YK_POLYFILL_CXX14_CONSTEXPR bool operator==(const polymorphic<T, A>& lhs, const U& rhs)
+    noexcept(noexcept(std::declval<const T&>() == std::declval<const U&>()))
+{
+  if (lhs.valueless_after_move()) return false;
+  return *lhs == rhs;
+}
+
+template <class T, class A, class U,
+    typename std::enable_if<!polymorphic_detail::is_polymorphic_wrapper<U>::value, std::nullptr_t>::type = nullptr>
+YK_POLYFILL_CXX14_CONSTEXPR bool operator==(const U& lhs, const polymorphic<T, A>& rhs)
+    noexcept(noexcept(std::declval<const U&>() == std::declval<const T&>()))
+{
+  if (rhs.valueless_after_move()) return false;
+  return lhs == *rhs;
+}
+
+template <class T, class A, class U,
+    typename std::enable_if<!polymorphic_detail::is_polymorphic_wrapper<U>::value, std::nullptr_t>::type = nullptr>
+YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const polymorphic<T, A>& lhs, const U& rhs)
+    noexcept(noexcept(std::declval<const T&>() != std::declval<const U&>()))
+{
+  if (lhs.valueless_after_move()) return true;
+  return *lhs != rhs;
+}
+
+template <class T, class A, class U,
+    typename std::enable_if<!polymorphic_detail::is_polymorphic_wrapper<U>::value, std::nullptr_t>::type = nullptr>
+YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const U& lhs, const polymorphic<T, A>& rhs)
+    noexcept(noexcept(std::declval<const U&>() != std::declval<const T&>()))
+{
+  if (rhs.valueless_after_move()) return true;
+  return lhs != *rhs;
+}
 
 // ---- Allocator-aware operations (defined after polymorphic is complete) -----
 
