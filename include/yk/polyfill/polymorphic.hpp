@@ -37,13 +37,7 @@ struct is_polymorphic_wrapper<polymorphic<T, A>> : std::true_type {};
 // The <true> specialisation is only ever instantiated when C++20 is active,
 // so std::is_constant_evaluated() is always available in its bodies.
 
-#if __cpp_lib_is_constant_evaluated >= 201811L
-static constexpr bool has_constexpr_dynamic_alloc = true;
-#else
-static constexpr bool has_constexpr_dynamic_alloc = false;
-#endif
-
-template <bool HasConstexpr>
+template <bool HasConstexprDynamicAlloc>
 struct cb_ops {
   template <class Cb, class CbAlloc, class CbTraits, class... Args>
   static Cb* construct(CbAlloc& a, Args&&... args) {
@@ -64,10 +58,11 @@ struct cb_ops {
   }
 };
 
+#if __cpp_constexpr_dynamic_alloc >= 201907L
 template <>
 struct cb_ops<true> {
   template <class Cb, class CbAlloc, class CbTraits, class... Args>
-  static YK_POLYFILL_CXX20_CONSTEXPR Cb* construct(CbAlloc& a, Args&&... args) {
+  static constexpr Cb* construct(CbAlloc& a, Args&&... args) {
     if (std::is_constant_evaluated()) {
       return new Cb(static_cast<Args&&>(args)...);
     }
@@ -82,7 +77,7 @@ struct cb_ops<true> {
   }
 
   template <class CbBase, class Alloc>
-  static YK_POLYFILL_CXX20_CONSTEXPR void destroy_cb(CbBase*& cb, Alloc& alloc) noexcept {
+  static constexpr void destroy_cb(CbBase*& cb, Alloc& alloc) noexcept {
     if (std::is_constant_evaluated()) {
       delete cb;
     } else {
@@ -91,6 +86,13 @@ struct cb_ops<true> {
     cb = nullptr;
   }
 };
+#endif  // __cpp_constexpr_dynamic_alloc
+
+#if __cpp_constexpr_dynamic_alloc >= 201907L
+static constexpr bool has_constexpr_dynamic_alloc = true;
+#else
+static constexpr bool has_constexpr_dynamic_alloc = false;
+#endif
 
 using ops = cb_ops<has_constexpr_dynamic_alloc>;
 
