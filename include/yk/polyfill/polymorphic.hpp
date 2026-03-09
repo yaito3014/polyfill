@@ -46,7 +46,7 @@ class polymorphic {
   struct holder_base {
     T* ptr_ = nullptr;
     virtual YK_POLYFILL_CXX20_CONSTEXPR holder_base* clone(A& alloc) const = 0;
-    virtual YK_POLYFILL_CXX20_CONSTEXPR void destroy(A& alloc) noexcept = 0;
+    virtual YK_POLYFILL_CXX20_CONSTEXPR_VDESTROY void destroy(A& alloc) noexcept = 0;
     virtual YK_POLYFILL_CXX20_CONSTEXPR ~holder_base() noexcept = default;
   };
 
@@ -87,7 +87,7 @@ class polymorphic {
       return p;
     }
 
-    YK_POLYFILL_CXX20_CONSTEXPR void destroy(A& alloc) noexcept override
+    YK_POLYFILL_CXX20_CONSTEXPR_VDESTROY void destroy(A& alloc) noexcept override
     {
       holder_alloc_t holder_alloc(alloc);
       holder_traits_t::destroy(holder_alloc, this);
