@@ -101,7 +101,7 @@ jobs:
           key: ${{ matrix.cxx-version }}-${{ matrix.build-type }}-${{ matrix.compiler.name }}-${{ matrix.compiler.version }}-${{ matrix.os.name }}-${{ matrix.os.version }}
       - name: Configure
         run: |
-          cmake -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_STANDARD=${{ matrix.cxx-version }} -DCMAKE_CXX_COMPILER=${{ matrix.compiler.executable }} -Bbuild .
+          cmake -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_STANDARD=${{ matrix.cxx-version }} -DCMAKE_CXX_COMPILER=${{ matrix.compiler.executable }} -DYK_POLYFILL_CI=ON -Bbuild .
       - name: Build tests
         run: |
           echo "CPPWARNINGNOTIFIER_LOG_MARKER"

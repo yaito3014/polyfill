@@ -31,4 +31,10 @@
 #define YK_POLYFILL_INLINE static
 #endif
 
+#if __cpp_noexcept_function_type >= 201510
+#define YK_POLYFILL_CXX17_NOEXCEPT(...) noexcept(__VA_ARGS__)
+#else
+#define YK_POLYFILL_CXX17_NOEXCEPT(...)
+#endif
+
 #endif  // YK_POLYFILL_CONFIG_HPP
