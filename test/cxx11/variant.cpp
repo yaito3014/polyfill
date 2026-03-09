@@ -1014,12 +1014,12 @@ TEST_CASE("variant swap")
 TEST_CASE("monostate comparisons")
 {
   pf::monostate a, b;
-  CHECK(a == b);
-  CHECK_FALSE(a != b);
-  CHECK_FALSE(a < b);
-  CHECK(a <= b);
-  CHECK_FALSE(a > b);
-  CHECK(a >= b);
+  CHECK((a == b));
+  CHECK_FALSE((a != b));
+  CHECK_FALSE((a < b));
+  CHECK((a <= b));
+  CHECK_FALSE((a > b));
+  CHECK((a >= b));
 }
 
 TEST_CASE("variant comparison operators")
@@ -1028,45 +1028,45 @@ TEST_CASE("variant comparison operators")
   {
     pf::variant<int, double> a = 42;
     pf::variant<int, double> b = 42;
-    CHECK(a == b);
-    CHECK_FALSE(a != b);
+    CHECK((a == b));
+    CHECK_FALSE((a != b));
   }
   SECTION("equal - same alternative different value")
   {
     pf::variant<int, double> a = 42;
     pf::variant<int, double> b = 99;
-    CHECK_FALSE(a == b);
-    CHECK(a != b);
+    CHECK_FALSE((a == b));
+    CHECK((a != b));
   }
   SECTION("different alternatives")
   {
     pf::variant<int, double> a = 42;
     pf::variant<int, double> b = 3.14;
-    CHECK_FALSE(a == b);
-    CHECK(a != b);
-    CHECK(a < b);
-    CHECK(a <= b);
-    CHECK_FALSE(a > b);
-    CHECK_FALSE(a >= b);
+    CHECK_FALSE((a == b));
+    CHECK((a != b));
+    CHECK((a < b));
+    CHECK((a <= b));
+    CHECK_FALSE((a > b));
+    CHECK_FALSE((a >= b));
   }
   SECTION("ordering - same alternative")
   {
     pf::variant<int, double> a = 10;
     pf::variant<int, double> b = 42;
-    CHECK(a < b);
-    CHECK(a <= b);
-    CHECK_FALSE(a > b);
-    CHECK_FALSE(a >= b);
-    CHECK(b > a);
-    CHECK(b >= a);
+    CHECK((a < b));
+    CHECK((a <= b));
+    CHECK_FALSE((a > b));
+    CHECK_FALSE((a >= b));
+    CHECK((b > a));
+    CHECK((b >= a));
   }
   SECTION("monostate variant comparison")
   {
     pf::variant<pf::monostate, int> a;
     pf::variant<pf::monostate, int> b;
-    CHECK(a == b);
-    CHECK(a <= b);
-    CHECK(a >= b);
+    CHECK((a == b));
+    CHECK((a <= b));
+    CHECK((a >= b));
   }
 }
 

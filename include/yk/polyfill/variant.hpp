@@ -1383,6 +1383,8 @@ YK_POLYFILL_CXX14_CONSTEXPR bool operator==(variant<Ts...> const& lhs, variant<T
   return lhs.raw_visit(variant_detail::eq_visitor<Ts...>{rhs});
 }
 
+#if __cplusplus < 202002L
+
 template<
     class... Ts,
     typename std::enable_if<
@@ -1442,7 +1444,7 @@ YK_POLYFILL_CXX14_CONSTEXPR bool operator>=(variant<Ts...> const& lhs, variant<T
   return lhs.raw_visit(variant_detail::ge_visitor<Ts...>{rhs});
 }
 
-#if __cplusplus >= 202002L
+#else  // C++20
 
 // Three-way comparison for variant
 template<class... Ts>
