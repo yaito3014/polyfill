@@ -202,10 +202,10 @@ TEST_CASE("indirect: get_allocator")
   STATIC_REQUIRE(std::is_same<decltype(i.get_allocator()), std::allocator<int>>::value);
 }
 
-// ---- constraint tests -----------------------------------------------------
+// ---- constraint / mandate tests -------------------------------------------
 //
-// Verify that in_place_t constructor participates in overload resolution only
-// when T is constructible from the given arguments.
+// Constraints (enable_if): affect overload resolution — reflected in type traits.
+// Mandates (static_assert): fire at instantiation — NOT reflected in type traits.
 
 struct MoveOnly {
   MoveOnly() = default;
@@ -221,20 +221,51 @@ struct NonDefault {
   int value;
 };
 
-TEST_CASE("indirect: in_place_t SFINAE — constructible args accepted")
+// Allocator with no default constructor — tests the Constraint on indirect().
+template <class T>
+struct NoDefaultAlloc {
+  using value_type = T;
+  NoDefaultAlloc() = delete;
+  explicit NoDefaultAlloc(int) {}
+  template <class U> NoDefaultAlloc(const NoDefaultAlloc<U>&) {}
+  T* allocate(std::size_t n) { return std::allocator<T>{}.allocate(n); }
+  void deallocate(T* p, std::size_t n) { std::allocator<T>{}.deallocate(p, n); }
+  bool operator==(const NoDefaultAlloc&) const { return true; }
+  bool operator!=(const NoDefaultAlloc&) const { return false; }
+};
+
+// --- Constraint: default ctor requires default-constructible A ---
+
+TEST_CASE("indirect: default ctor Constraint — not in overload set when A has no default ctor")
 {
-  // T=string, construct with (size, char): is_constructible<string, size_t, char> is true
+  // Constraint (enable_if) on A: indirect<T, NoDefaultAlloc>() must not be selectable
+  STATIC_REQUIRE(!std::is_default_constructible<pf::indirect<int, NoDefaultAlloc<int>>>::value);
+}
+
+// --- Constraint: in_place_t ctor requires is_constructible<T, Ts...> ---
+
+TEST_CASE("indirect: in_place_t Constraint — selected when args match")
+{
   pf::indirect<std::string> s(pf::in_place, 3u, 'a');
   CHECK(*s == "aaa");
 }
 
-TEST_CASE("indirect: in_place_t SFINAE — not selected when args don't match")
+TEST_CASE("indirect: in_place_t Constraint — not in overload set when args don't match")
 {
-  // in_place_t ctor for indirect<int> with (const char*) args must not be selected
   STATIC_REQUIRE(!std::is_constructible<pf::indirect<int>, pf::in_place_t, const char*>::value);
 }
 
-TEST_CASE("indirect: move-only T — move construction and assignment work")
+// --- Mandate: T must be default-constructible (static_assert, not a type-trait effect) ---
+
+TEST_CASE("indirect: non-default T — in_place construction works")
+{
+  pf::indirect<NonDefault> p(pf::in_place, 42);
+  CHECK(p->value == 42);
+}
+
+// --- Mandate: T must be move-constructible (static_assert) ---
+
+TEST_CASE("indirect: move-only T — basic move ctor and move assign work")
 {
   pf::indirect<MoveOnly> a(pf::in_place);
   pf::indirect<MoveOnly> b = std::move(a);
@@ -244,17 +275,6 @@ TEST_CASE("indirect: move-only T — move construction and assignment work")
   pf::indirect<MoveOnly> c(pf::in_place);
   c = std::move(b);
   CHECK(b.valueless_after_move());
-}
-
-TEST_CASE("indirect: non-default-constructible T — in_place construction works")
-{
-  pf::indirect<NonDefault> p(pf::in_place, 42);
-  CHECK(p->value == 42);
-}
-
-TEST_CASE("indirect: non-default-constructible T — default ctor not in overload set")
-{
-  STATIC_REQUIRE(!std::is_default_constructible<pf::indirect<NonDefault>>::value);
 }
 
 // ---- allocator-propagation tests ------------------------------------------

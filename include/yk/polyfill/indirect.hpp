@@ -113,31 +113,37 @@ class indirect {
 
   // --- Constructors ---
 
-  template <typename Dummy = T, typename std::enable_if<std::is_default_constructible<Dummy>::value, std::nullptr_t>::type = nullptr>
+  // Constraint: A must be default-constructible (enable_if)
+  // Mandate:    T must be default-constructible (static_assert)
+  template <typename AllocDummy = A, typename std::enable_if<std::is_default_constructible<AllocDummy>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR indirect() : ptr_(nullptr), alloc_()
   {
+    static_assert(std::is_default_constructible<T>::value, "indirect: T must be default-constructible");
     allocate_and_construct();
   }
 
-  template <typename Dummy = T, typename std::enable_if<std::is_default_constructible<Dummy>::value, std::nullptr_t>::type = nullptr>
+  // Mandate: T must be default-constructible (static_assert)
   YK_POLYFILL_CXX20_CONSTEXPR explicit indirect(std::allocator_arg_t, const A& a) : ptr_(nullptr), alloc_(a)
   {
+    static_assert(std::is_default_constructible<T>::value, "indirect: T must be default-constructible");
     allocate_and_construct();
   }
 
-  template <class... Ts, typename std::enable_if<std::is_constructible<T, Ts...>::value, std::nullptr_t>::type = nullptr>
+  // Constraints: T constructible from Ts...; A must be default-constructible (enable_if)
+  template <class... Ts, typename std::enable_if<std::is_constructible<T, Ts...>::value && std::is_default_constructible<A>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR explicit indirect(in_place_t, Ts&&... ts) : ptr_(nullptr), alloc_()
   {
     allocate_and_construct(static_cast<Ts&&>(ts)...);
   }
 
+  // Constraint: T constructible from Ts... (enable_if)
   template <class... Ts, typename std::enable_if<std::is_constructible<T, Ts...>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR explicit indirect(std::allocator_arg_t, const A& a, in_place_t, Ts&&... ts) : ptr_(nullptr), alloc_(a)
   {
     allocate_and_construct(static_cast<Ts&&>(ts)...);
   }
 
-  // Copy constructor
+  // Mandate: T must be copy-constructible (static_assert)
   YK_POLYFILL_CXX20_CONSTEXPR indirect(const indirect& other)
       : ptr_(nullptr), alloc_(alloc_traits::select_on_container_copy_construction(other.alloc_))
   {
@@ -147,6 +153,7 @@ class indirect {
     }
   }
 
+  // Mandate: T must be copy-constructible (static_assert)
   YK_POLYFILL_CXX20_CONSTEXPR indirect(const indirect& other, std::allocator_arg_t, const A& a) : ptr_(nullptr), alloc_(a)
   {
     static_assert(std::is_copy_constructible<T>::value, "indirect: T must be copy-constructible");
@@ -155,16 +162,18 @@ class indirect {
     }
   }
 
-  // Move constructor
+  // (no constraint on T: move always works)
   YK_POLYFILL_CXX14_CONSTEXPR indirect(indirect&& other) noexcept : ptr_(other.ptr_), alloc_(static_cast<A&&>(other.alloc_))
   {
     other.ptr_ = nullptr;
   }
 
+  // Mandate: T must be move-constructible (static_assert)
   YK_POLYFILL_CXX20_CONSTEXPR indirect(indirect&& other, std::allocator_arg_t, const A& a)
       noexcept(indirect_detail::is_always_equal<A>::value)
       : ptr_(nullptr), alloc_(a)
   {
+    static_assert(std::is_move_constructible<T>::value, "indirect: T must be move-constructible");
     indirect_detail::move_ctor_ops<indirect_detail::is_always_equal<A>::value>::apply(*this, static_cast<indirect&&>(other));
   }
 
@@ -174,6 +183,7 @@ class indirect {
 
   // --- Assignment ---
 
+  // Mandate: T must be copy-constructible (static_assert)
   YK_POLYFILL_CXX20_CONSTEXPR indirect& operator=(const indirect& other)
   {
     static_assert(std::is_copy_constructible<T>::value, "indirect: T must be copy-constructible");
@@ -182,10 +192,12 @@ class indirect {
     return *this;
   }
 
+  // Mandate: T must be move-constructible (static_assert)
   YK_POLYFILL_CXX20_CONSTEXPR indirect& operator=(indirect&& other)
       noexcept(alloc_traits::propagate_on_container_move_assignment::value
                || indirect_detail::is_always_equal<A>::value)
   {
+    static_assert(std::is_move_constructible<T>::value, "indirect: T must be move-constructible");
     if (this == &other) return *this;
     indirect_detail::move_assign_ops<alloc_traits::propagate_on_container_move_assignment::value>::apply(*this, static_cast<indirect&&>(other));
     return *this;
