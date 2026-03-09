@@ -326,7 +326,7 @@ class indirect {
   template <class U>
   friend constexpr auto operator<=>(const indirect<T, A>& lhs, const U& rhs)
       -> indirect_detail::synth_three_way_result<T, U>
-      requires(!is_indirect_v<U>)
+      requires(!indirect_detail::is_indirect<U>::value)
   {
     if (lhs.valueless_after_move()) return std::strong_ordering::less;
     return indirect_detail::synth_three_way(*lhs, rhs);
