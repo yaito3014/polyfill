@@ -28,12 +28,12 @@ template <class T, class A>
 struct is_indirect<indirect<T, A>> : std::true_type {};
 
 // Fallback for is_always_equal (added to allocator_traits in C++17)
-template <class A, class = void>
-struct is_always_equal : std::is_empty<A> {};
-
 #if __cpp_lib_allocator_traits_is_always_equal >= 201411L
 template <class A>
-struct is_always_equal<A, typename std::enable_if<std::allocator_traits<A>::is_always_equal::value>::type> : std::true_type {};
+struct is_always_equal : std::allocator_traits<A>::is_always_equal {};
+#else
+template <class A>
+struct is_always_equal : std::is_empty<A> {};
 #endif
 
 // constexpr-friendly swap: std::swap is not constexpr before C++20
