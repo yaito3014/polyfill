@@ -47,18 +47,6 @@ class indirect {
   T* ptr_;
   YK_POLYFILL_NO_UNIQUE_ADDRESS A alloc_;
 
-  YK_POLYFILL_CXX20_CONSTEXPR void allocate_and_construct_default()
-  {
-    ptr_ = alloc_traits::allocate(alloc_, 1);
-    try {
-      alloc_traits::construct(alloc_, ptr_);
-    } catch (...) {
-      alloc_traits::deallocate(alloc_, ptr_, 1);
-      ptr_ = nullptr;
-      throw;
-    }
-  }
-
   template <class... Ts>
   YK_POLYFILL_CXX20_CONSTEXPR void allocate_and_construct(Ts&&... ts)
   {
@@ -89,12 +77,12 @@ class indirect {
 
   YK_POLYFILL_CXX20_CONSTEXPR indirect() : ptr_(nullptr), alloc_()
   {
-    allocate_and_construct_default();
+    allocate_and_construct();
   }
 
   YK_POLYFILL_CXX20_CONSTEXPR explicit indirect(std::allocator_arg_t, const A& a) : ptr_(nullptr), alloc_(a)
   {
-    allocate_and_construct_default();
+    allocate_and_construct();
   }
 
   template <class... Ts>
