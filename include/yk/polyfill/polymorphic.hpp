@@ -52,13 +52,13 @@ class polymorphic {
     template <class... Ts>
     YK_POLYFILL_CXX20_CONSTEXPR explicit cb(Ts&&... ts) : obj_(static_cast<Ts&&>(ts)...)
     {
-      this->ptr_ = &obj_;
+      this->ptr_ = std::addressof(obj_);
     }
 
     // Copy-construct from another cb<U> (used in clone())
     YK_POLYFILL_CXX20_CONSTEXPR cb(const cb& other) : obj_(other.obj_)
     {
-      this->ptr_ = &obj_;
+      this->ptr_ = std::addressof(obj_);
     }
 
     YK_POLYFILL_CXX20_CONSTEXPR ~cb() override = default;
