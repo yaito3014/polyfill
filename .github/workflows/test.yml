@@ -62,7 +62,7 @@ jobs:
           - name: MSVC
             version: 2026
             executable: cl
-            toolset: '14.4'
+            toolset: '14.50'
         cxx-version: [11, 14, 17, 20, 23, 26]
         exclude:
           - os:
