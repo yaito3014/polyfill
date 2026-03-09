@@ -167,13 +167,13 @@ TEST_CASE("polymorphic: valueless comparison")
 
 TEST_CASE("polymorphic: in_place_type_t construction with derived type")
 {
-  pf::polymorphic<Animal> p(pf::in_place_type<Dog>);
+  pf::polymorphic<Animal> p(pf::in_place_type_t<Dog>{});
   CHECK(p->sound() == "woof");
 }
 
 TEST_CASE("polymorphic: in_place_type_t construction with U == T (class type)")
 {
-  pf::polymorphic<Point> p(pf::in_place_type<Point>, 1, 2);
+  pf::polymorphic<Point> p(pf::in_place_type_t<Point>{}, 1, 2);
   CHECK(p->x == 1);
   CHECK(p->y == 2);
 }
@@ -194,7 +194,7 @@ TEST_CASE("polymorphic: self move-assignment is safe")
 
 TEST_CASE("polymorphic: copy preserves dynamic type (the key feature)")
 {
-  pf::polymorphic<Animal> p1(pf::in_place_type<Dog>);
+  pf::polymorphic<Animal> p1(pf::in_place_type_t<Dog>{});
   pf::polymorphic<Animal> p2 = p1;
   CHECK(p1->sound() == "woof");
   CHECK(p2->sound() == "woof");
@@ -202,8 +202,8 @@ TEST_CASE("polymorphic: copy preserves dynamic type (the key feature)")
 
 TEST_CASE("polymorphic: two different derived types are independent")
 {
-  pf::polymorphic<Animal> dog(pf::in_place_type<Dog>);
-  pf::polymorphic<Animal> cat(pf::in_place_type<Cat>);
+  pf::polymorphic<Animal> dog(pf::in_place_type_t<Dog>{});
+  pf::polymorphic<Animal> cat(pf::in_place_type_t<Cat>{});
 
   CHECK(dog->sound() == "woof");
   CHECK(cat->sound() == "meow");
@@ -220,7 +220,7 @@ TEST_CASE("polymorphic: two different derived types are independent")
 
 TEST_CASE("polymorphic: move of derived type")
 {
-  pf::polymorphic<Animal> dog(pf::in_place_type<Dog>);
+  pf::polymorphic<Animal> dog(pf::in_place_type_t<Dog>{});
   pf::polymorphic<Animal> moved = std::move(dog);
 
   CHECK(dog.valueless_after_move());
@@ -315,8 +315,8 @@ TEST_CASE("polymorphic alloc: copy assign POCCA=true propagates allocator")
 TEST_CASE("polymorphic alloc: copy assign POCCA=true preserves dynamic type")
 {
   PoccaAlloc<Animal> a1(1), a2(2);
-  pf::polymorphic<Animal, PoccaAlloc<Animal>> dog(std::allocator_arg, a1, pf::in_place_type<Dog>);
-  pf::polymorphic<Animal, PoccaAlloc<Animal>> dst(std::allocator_arg, a2, pf::in_place_type<Cat>);
+  pf::polymorphic<Animal, PoccaAlloc<Animal>> dog(std::allocator_arg, a1, pf::in_place_type_t<Dog>{});
+  pf::polymorphic<Animal, PoccaAlloc<Animal>> dst(std::allocator_arg, a2, pf::in_place_type_t<Cat>{});
   dst = dog;
   CHECK(dst->sound() == "woof");   // dynamic type (Dog) preserved after clone
   CHECK(dst.get_allocator() == a1);
@@ -359,8 +359,8 @@ TEST_CASE("polymorphic alloc: move assign POCMA=false different alloc clones wit
 TEST_CASE("polymorphic alloc: move assign POCMA=false different alloc preserves dynamic type")
 {
   StaticAlloc<Animal> a1(1), a2(2);
-  pf::polymorphic<Animal, StaticAlloc<Animal>> src(std::allocator_arg, a1, pf::in_place_type<Dog>);
-  pf::polymorphic<Animal, StaticAlloc<Animal>> dst(std::allocator_arg, a2, pf::in_place_type<Cat>);
+  pf::polymorphic<Animal, StaticAlloc<Animal>> src(std::allocator_arg, a1, pf::in_place_type_t<Dog>{});
+  pf::polymorphic<Animal, StaticAlloc<Animal>> dst(std::allocator_arg, a2, pf::in_place_type_t<Cat>{});
   dst = std::move(src);
   CHECK(dst->sound() == "woof");  // Dog cloned into dst's allocator
   CHECK(dst.get_allocator() == a2);
