@@ -51,6 +51,10 @@ YK_POLYFILL_CXX14_CONSTEXPR void cswap(T& a, T& b)
 #if __cpp_lib_three_way_comparison >= 201907L
 template <class T, class U = T>
 constexpr auto synth_three_way(const T& t, const U& u)
+  requires requires {
+    { t < u } -> std::convertible_to<bool>;
+    { u < t } -> std::convertible_to<bool>;
+  }
 {
   if constexpr (std::three_way_comparable_with<T, U>) {
     return t <=> u;
@@ -305,8 +309,13 @@ class indirect {
   }
 
 #if __cpp_lib_three_way_comparison >= 201907L
-  friend constexpr auto operator<=>(const indirect& lhs, const indirect& rhs)
-      -> indirect_detail::synth_three_way_result<T>
+  // Handles same-type and cross-type indirect<U,AA> comparisons.
+  // Must be a function template so the return type is deferred and not
+  // evaluated eagerly at class instantiation (avoids hard errors for T
+  // types that lack operator< / operator<=>).
+  template <class U, class AA>
+  friend constexpr auto operator<=>(const indirect<T, A>& lhs, const indirect<U, AA>& rhs)
+      -> indirect_detail::synth_three_way_result<T, U>
   {
     if (lhs.valueless_after_move() || rhs.valueless_after_move()) {
       return !lhs.valueless_after_move() <=> !rhs.valueless_after_move();
@@ -315,8 +324,9 @@ class indirect {
   }
 
   template <class U>
-  friend constexpr auto operator<=>(const indirect& lhs, const U& rhs)
+  friend constexpr auto operator<=>(const indirect<T, A>& lhs, const U& rhs)
       -> indirect_detail::synth_three_way_result<T, U>
+      requires(!is_indirect_v<U>)
   {
     if (lhs.valueless_after_move()) return std::strong_ordering::less;
     return indirect_detail::synth_three_way(*lhs, rhs);
@@ -383,19 +393,6 @@ YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const indirect<T, A>& lhs, const ind
   if (rhs.valueless_after_move()) return true;
   return *lhs != *rhs;
 }
-
-#if __cpp_lib_three_way_comparison >= 201907L
-template <class T, class A, class U, class AA,
-    typename std::enable_if<!std::is_same<T, U>::value || !std::is_same<A, AA>::value, std::nullptr_t>::type = nullptr>
-constexpr auto operator<=>(const indirect<T, A>& lhs, const indirect<U, AA>& rhs)
-    -> indirect_detail::synth_three_way_result<T, U>
-{
-  if (lhs.valueless_after_move() || rhs.valueless_after_move()) {
-    return !lhs.valueless_after_move() <=> !rhs.valueless_after_move();
-  }
-  return indirect_detail::synth_three_way(*lhs, *rhs);
-}
-#endif  // __cpp_lib_three_way_comparison
 
 #if __cplusplus >= 201703L
 // Deduction guides
