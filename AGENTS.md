@@ -1,25 +1,20 @@
 # AGENTS.md
 
-## Build
+## Build and test
+
+Configure, build, and test one directory per standard:
 
 ```bash
-cmake -B build -DCMAKE_CXX_STANDARD=20
-cmake --build build
+for std in 11 14 17 20; do
+  cmake -B build-cxx${std} -DCMAKE_CXX_STANDARD=${std}
+  cmake --build build-cxx${std}
+  ctest --test-dir build-cxx${std} --output-on-failure
+done
 ```
 
-Any standard version (11–26) works; C++20 enables the full constexpr test suite.
-
-## Test
-
-```bash
-ctest --test-dir build
-```
-
-Or with verbose output on failure:
-
-```bash
-ctest --test-dir build --output-on-failure
-```
+Each build-cxxNN directory includes only the test suites whose required standard
+is ≤ N (enforced by `test/CMakeLists.txt`), so `build-cxx11` runs only the
+`cxx11` suite while `build-cxx20` runs all four.
 
 ## Test layout
 
@@ -42,7 +37,7 @@ For any non-trivial change, add a test that would fail if the change were revert
 - **Allocator-propagation path** → use `TestAlloc<T, Pocs, Pocca, Pocma>` (already
   defined in `test/cxx11/indirect.cpp` and `test/cxx11/polymorphic.cpp`) to
   construct objects with distinct allocator IDs and assert the expected post-state.
-- Always run `ctest --test-dir build` and confirm all tests pass before committing.
+- Always run the full loop above and confirm all tests pass before committing.
 
 ## Guidance for indirect / polymorphic changes
 
