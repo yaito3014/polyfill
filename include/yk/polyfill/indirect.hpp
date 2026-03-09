@@ -113,15 +113,15 @@ class indirect {
 
   // --- Constructors ---
 
+  template <typename Dummy = T, typename std::enable_if<std::is_default_constructible<Dummy>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR indirect() : ptr_(nullptr), alloc_()
   {
-    static_assert(std::is_default_constructible<T>::value, "indirect: T must be default-constructible");
     allocate_and_construct();
   }
 
+  template <typename Dummy = T, typename std::enable_if<std::is_default_constructible<Dummy>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR explicit indirect(std::allocator_arg_t, const A& a) : ptr_(nullptr), alloc_(a)
   {
-    static_assert(std::is_default_constructible<T>::value, "indirect: T must be default-constructible");
     allocate_and_construct();
   }
 

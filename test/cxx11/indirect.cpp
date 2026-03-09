@@ -252,6 +252,11 @@ TEST_CASE("indirect: non-default-constructible T — in_place construction works
   CHECK(p->value == 42);
 }
 
+TEST_CASE("indirect: non-default-constructible T — default ctor not in overload set")
+{
+  STATIC_REQUIRE(!std::is_default_constructible<pf::indirect<NonDefault>>::value);
+}
+
 // ---- allocator-propagation tests ------------------------------------------
 //
 // TestAlloc<T, Pocs, Pocca, Pocma> is a minimal stateful allocator with
