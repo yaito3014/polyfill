@@ -206,10 +206,11 @@ class indirect {
 
   // --- Assignment ---
 
-  // Mandate: T must be copy-constructible (static_assert)
+  // Mandates: T must be copy-constructible and copy-assignable (static_assert)
   YK_POLYFILL_CXX20_CONSTEXPR indirect& operator=(const indirect& other)
   {
     static_assert(std::is_copy_constructible<T>::value, "indirect: T must be copy-constructible");
+    static_assert(std::is_copy_assignable<T>::value, "indirect: T must be copy-assignable");
     if (this == &other) return *this;
     indirect_detail::copy_assign_ops<alloc_traits::propagate_on_container_copy_assignment::value>::apply(*this, other);
     return *this;
