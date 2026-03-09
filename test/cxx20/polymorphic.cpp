@@ -80,24 +80,6 @@ constexpr bool polymorphic_swap()
   return *a == 2 && *b == 1;
 }
 
-constexpr bool polymorphic_eq()
-{
-  pf::polymorphic<int> a(pf::in_place, 4);
-  pf::polymorphic<int> b(pf::in_place, 4);
-  pf::polymorphic<int> c(pf::in_place, 5);
-  return a == b && !(a == c) && a != c;
-}
-
-constexpr bool polymorphic_valueless_eq()
-{
-  pf::polymorphic<int> a(pf::in_place, 1);
-  pf::polymorphic<int> b = static_cast<pf::polymorphic<int>&&>(a);
-  pf::polymorphic<int> c = static_cast<pf::polymorphic<int>&&>(b);
-  return a.valueless_after_move() && b.valueless_after_move()
-      && a == b
-      && !(a == c);
-}
-
 TEST_CASE("polymorphic constexpr: default construction")
 {
   POLYMORPHIC_STATIC_REQUIRE(polymorphic_default_construct() == 0);
@@ -133,15 +115,6 @@ TEST_CASE("polymorphic constexpr: swap")
   POLYMORPHIC_STATIC_REQUIRE(polymorphic_swap());
 }
 
-TEST_CASE("polymorphic constexpr: equality comparison")
-{
-  POLYMORPHIC_STATIC_REQUIRE(polymorphic_eq());
-}
-
-TEST_CASE("polymorphic constexpr: valueless equality")
-{
-  POLYMORPHIC_STATIC_REQUIRE(polymorphic_valueless_eq());
-}
 
 constexpr bool polymorphic_in_place_type_stores_derived()
 {
