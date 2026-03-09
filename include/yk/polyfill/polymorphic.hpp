@@ -314,6 +314,7 @@ class polymorphic {
 
   template <class U, class AA>
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator==(const polymorphic& lhs, const polymorphic<U, AA>& rhs)
+      noexcept(noexcept(*lhs == *rhs))
   {
     if (lhs.valueless_after_move()) return rhs.valueless_after_move();
     if (rhs.valueless_after_move()) return false;
@@ -322,12 +323,14 @@ class polymorphic {
 
   template <class U, class AA>
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const polymorphic& lhs, const polymorphic<U, AA>& rhs)
+      noexcept(noexcept(lhs == rhs))
   {
     return !(lhs == rhs);
   }
 
   template <class U, typename std::enable_if<!polymorphic_detail::is_polymorphic_wrapper<U>::value, std::nullptr_t>::type = nullptr>
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator==(const polymorphic& lhs, const U& rhs)
+      noexcept(noexcept(*lhs == rhs))
   {
     if (lhs.valueless_after_move()) return false;
     return *lhs == rhs;
@@ -335,6 +338,7 @@ class polymorphic {
 
   template <class U, typename std::enable_if<!polymorphic_detail::is_polymorphic_wrapper<U>::value, std::nullptr_t>::type = nullptr>
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator==(const U& lhs, const polymorphic& rhs)
+      noexcept(noexcept(lhs == *rhs))
   {
     if (rhs.valueless_after_move()) return false;
     return lhs == *rhs;
@@ -342,12 +346,14 @@ class polymorphic {
 
   template <class U, typename std::enable_if<!polymorphic_detail::is_polymorphic_wrapper<U>::value, std::nullptr_t>::type = nullptr>
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const polymorphic& lhs, const U& rhs)
+      noexcept(noexcept(lhs == rhs))
   {
     return !(lhs == rhs);
   }
 
   template <class U, typename std::enable_if<!polymorphic_detail::is_polymorphic_wrapper<U>::value, std::nullptr_t>::type = nullptr>
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const U& lhs, const polymorphic& rhs)
+      noexcept(noexcept(lhs == rhs))
   {
     return !(lhs == rhs);
   }
@@ -355,6 +361,7 @@ class polymorphic {
 #if __cpp_lib_three_way_comparison >= 201907L
   template <class U, class AA>
   friend constexpr auto operator<=>(const polymorphic& lhs, const polymorphic<U, AA>& rhs)
+      noexcept(noexcept(*lhs <=> *rhs))
   {
     if (lhs.valueless_after_move() && rhs.valueless_after_move()) return std::strong_ordering::equal;
     if (lhs.valueless_after_move()) return std::strong_ordering::less;
@@ -364,6 +371,7 @@ class polymorphic {
 
   template <class U>
   friend constexpr auto operator<=>(const polymorphic& lhs, const U& rhs)
+      noexcept(noexcept(*lhs <=> rhs))
   {
     if (lhs.valueless_after_move()) return std::strong_ordering::less;
     return *lhs <=> rhs;
