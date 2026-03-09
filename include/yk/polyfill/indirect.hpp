@@ -227,27 +227,27 @@ class indirect {
     return !(lhs == rhs);
   }
 
-  template <class U, class = typename std::enable_if<!indirect_detail::is_indirect<U>::value>::type>
+  template <class U, typename std::enable_if<!indirect_detail::is_indirect<U>::value, std::nullptr_t>::type = nullptr>
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator==(const indirect& lhs, const U& rhs)
   {
     if (lhs.valueless_after_move()) return false;
     return *lhs == rhs;
   }
 
-  template <class U, class = typename std::enable_if<!indirect_detail::is_indirect<U>::value>::type>
+  template <class U, typename std::enable_if<!indirect_detail::is_indirect<U>::value, std::nullptr_t>::type = nullptr>
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator==(const U& lhs, const indirect& rhs)
   {
     if (rhs.valueless_after_move()) return false;
     return lhs == *rhs;
   }
 
-  template <class U, class = typename std::enable_if<!indirect_detail::is_indirect<U>::value>::type>
+  template <class U, typename std::enable_if<!indirect_detail::is_indirect<U>::value, std::nullptr_t>::type = nullptr>
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const indirect& lhs, const U& rhs)
   {
     return !(lhs == rhs);
   }
 
-  template <class U, class = typename std::enable_if<!indirect_detail::is_indirect<U>::value>::type>
+  template <class U, typename std::enable_if<!indirect_detail::is_indirect<U>::value, std::nullptr_t>::type = nullptr>
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const U& lhs, const indirect& rhs)
   {
     return !(lhs == rhs);

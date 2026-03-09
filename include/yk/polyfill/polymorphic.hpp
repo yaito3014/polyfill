@@ -218,14 +218,14 @@ class polymorphic {
   }
 
   template <class U, class... Ts,
-            class = typename std::enable_if<std::is_base_of<T, U>::value && !std::is_same<T, U>::value>::type>
+            typename std::enable_if<std::is_base_of<T, U>::value && !std::is_same<T, U>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR explicit polymorphic(in_place_type_t<U>, Ts&&... ts) : cb_(nullptr), alloc_()
   {
     allocate_cb<U>(static_cast<Ts&&>(ts)...);
   }
 
   template <class U, class... Ts,
-            class = typename std::enable_if<std::is_base_of<T, U>::value && !std::is_same<T, U>::value>::type>
+            typename std::enable_if<std::is_base_of<T, U>::value && !std::is_same<T, U>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR explicit polymorphic(std::allocator_arg_t, const A& a, in_place_type_t<U>, Ts&&... ts)
       : cb_(nullptr), alloc_(a)
   {
@@ -326,27 +326,27 @@ class polymorphic {
     return !(lhs == rhs);
   }
 
-  template <class U, class = typename std::enable_if<!polymorphic_detail::is_polymorphic_wrapper<U>::value>::type>
+  template <class U, typename std::enable_if<!polymorphic_detail::is_polymorphic_wrapper<U>::value, std::nullptr_t>::type = nullptr>
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator==(const polymorphic& lhs, const U& rhs)
   {
     if (lhs.valueless_after_move()) return false;
     return *lhs == rhs;
   }
 
-  template <class U, class = typename std::enable_if<!polymorphic_detail::is_polymorphic_wrapper<U>::value>::type>
+  template <class U, typename std::enable_if<!polymorphic_detail::is_polymorphic_wrapper<U>::value, std::nullptr_t>::type = nullptr>
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator==(const U& lhs, const polymorphic& rhs)
   {
     if (rhs.valueless_after_move()) return false;
     return lhs == *rhs;
   }
 
-  template <class U, class = typename std::enable_if<!polymorphic_detail::is_polymorphic_wrapper<U>::value>::type>
+  template <class U, typename std::enable_if<!polymorphic_detail::is_polymorphic_wrapper<U>::value, std::nullptr_t>::type = nullptr>
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const polymorphic& lhs, const U& rhs)
   {
     return !(lhs == rhs);
   }
 
-  template <class U, class = typename std::enable_if<!polymorphic_detail::is_polymorphic_wrapper<U>::value>::type>
+  template <class U, typename std::enable_if<!polymorphic_detail::is_polymorphic_wrapper<U>::value, std::nullptr_t>::type = nullptr>
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const U& lhs, const polymorphic& rhs)
   {
     return !(lhs == rhs);
