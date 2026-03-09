@@ -34,8 +34,8 @@ struct is_polymorphic_wrapper<polymorphic<T, A>> : std::true_type {};
 template <bool Pocs>        struct swap_ops;
 template <bool Pocca>       struct copy_assign_ops;
 template <bool Pocma>       struct move_assign_ops;
-template <bool AlwaysEqual> struct move_assign_ne_ops;  // POCMA=false path
-template <bool AlwaysEqual> struct move_ctor_ops;       // extended-alloc move ctor
+template <bool AlwaysEqual> struct move_assign_ne_ops;
+template <bool AlwaysEqual> struct move_ctor_ops;
 
 }  // namespace polymorphic_detail
 
