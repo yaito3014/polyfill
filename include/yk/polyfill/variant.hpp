@@ -22,7 +22,6 @@
 
 #if __cplusplus >= 202002L
 #include <compare>
-#include <concepts>
 #endif
 
 namespace yk {
@@ -1373,18 +1372,19 @@ struct three_way_cmp_visitor {
 
 }  // namespace variant_detail
 
-#if __cplusplus < 202002L
-
-template<
-    class... Ts,
-    typename std::enable_if<
-        conjunction<std::is_convertible<decltype(std::declval<Ts const&>() == std::declval<Ts const&>()), bool>...>::value, std::nullptr_t>::type = nullptr>
-YK_POLYFILL_CXX14_CONSTEXPR bool operator==(variant<Ts...> const& lhs, variant<Ts...> const& rhs)
+// Workaround: SFINAE via return type instead of default template parameter.
+// MSVC fails to deduce the default enable_if parameter for C++20 reversed comparison candidates.
+template<class... Ts>
+YK_POLYFILL_CXX14_CONSTEXPR typename std::enable_if<
+    conjunction<std::is_convertible<decltype(std::declval<Ts const&>() == std::declval<Ts const&>()), bool>...>::value, bool>::type
+operator==(variant<Ts...> const& lhs, variant<Ts...> const& rhs)
 {
   if (lhs.index() != rhs.index()) return false;
   if (lhs.valueless_by_exception()) return true;
   return lhs.raw_visit(variant_detail::eq_visitor<Ts...>{rhs});
 }
+
+#if __cplusplus < 202002L
 
 template<
     class... Ts,
@@ -1446,15 +1446,6 @@ YK_POLYFILL_CXX14_CONSTEXPR bool operator>=(variant<Ts...> const& lhs, variant<T
 }
 
 #else  // C++20
-
-template<class... Ts>
-  requires (std::equality_comparable<Ts> && ...)
-constexpr bool operator==(variant<Ts...> const& lhs, variant<Ts...> const& rhs)
-{
-  if (lhs.index() != rhs.index()) return false;
-  if (lhs.valueless_by_exception()) return true;
-  return lhs.raw_visit(variant_detail::eq_visitor<Ts...>{rhs});
-}
 
 // Three-way comparison for variant
 template<class... Ts>
