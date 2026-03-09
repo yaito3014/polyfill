@@ -265,9 +265,11 @@ class indirect {
 
   template <class U, class AA>
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const indirect& lhs, const indirect<U, AA>& rhs)
-      noexcept(noexcept(lhs == rhs))
+      noexcept(noexcept(*lhs != *rhs))
   {
-    return !(lhs == rhs);
+    if (lhs.valueless_after_move()) return !rhs.valueless_after_move();
+    if (rhs.valueless_after_move()) return true;
+    return *lhs != *rhs;
   }
 
   template <class U, typename std::enable_if<!indirect_detail::is_indirect<U>::value, std::nullptr_t>::type = nullptr>
@@ -288,16 +290,18 @@ class indirect {
 
   template <class U, typename std::enable_if<!indirect_detail::is_indirect<U>::value, std::nullptr_t>::type = nullptr>
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const indirect& lhs, const U& rhs)
-      noexcept(noexcept(lhs == rhs))
+      noexcept(noexcept(*lhs != rhs))
   {
-    return !(lhs == rhs);
+    if (lhs.valueless_after_move()) return true;
+    return *lhs != rhs;
   }
 
   template <class U, typename std::enable_if<!indirect_detail::is_indirect<U>::value, std::nullptr_t>::type = nullptr>
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const U& lhs, const indirect& rhs)
-      noexcept(noexcept(lhs == rhs))
+      noexcept(noexcept(lhs != *rhs))
   {
-    return !(lhs == rhs);
+    if (rhs.valueless_after_move()) return true;
+    return lhs != *rhs;
   }
 
 #if __cpp_lib_three_way_comparison >= 201907L
