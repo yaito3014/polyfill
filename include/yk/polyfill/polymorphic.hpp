@@ -17,7 +17,7 @@ namespace yk {
 
 namespace polyfill {
 
-// Forward declaration for the constraint helper
+// Forward declaration so the ops structs can reference polymorphic
 template <class T, class A>
 class polymorphic;
 
@@ -27,25 +27,15 @@ struct is_polymorphic_wrapper : std::false_type {};
 template <class T, class A>
 struct is_polymorphic_wrapper<polymorphic<T, A>> : std::true_type {};
 
-// --- Compile-time dispatch between constexpr and runtime allocation ---
-//
-// In constexpr contexts (C++20+) allocator_traits::construct cannot be used
-// because its noexcept specifier (via std::construct_at) is not
-// constexpr-evaluable on GCC 13.  We therefore need new/delete in constexpr
-// and allocator_traits at runtime.
-//
-// The selection is compile-time: either C++20 constexpr allocation is
-// available or it is not.  Since we cannot use `if constexpr` (C++11
-// compatibility), we express this via template specialisation:
-//
-//   cb_ops<false>  — pre-C++20: always use allocator_traits
-//   cb_ops<true>   — C++20+  : use is_constant_evaluated() to branch
-//
-// The <true> specialisation is only ever instantiated when C++20 is active
-// (has_constexpr_dynamic_alloc == true), so std::is_constant_evaluated() is
-// always available in its bodies.
-
 namespace polymorphic_detail {
+
+// --- Compile-time dispatch between constexpr and runtime allocation ---------
+//
+// cb_ops<false>  — pre-C++20: always use allocator_traits
+// cb_ops<true>   — C++20+  : use is_constant_evaluated() to branch
+//
+// The <true> specialisation is only ever instantiated when C++20 is active,
+// so std::is_constant_evaluated() is always available in its bodies.
 
 #if __cpp_lib_is_constant_evaluated >= 201811L
 static constexpr bool has_constexpr_dynamic_alloc = true;
@@ -53,7 +43,6 @@ static constexpr bool has_constexpr_dynamic_alloc = true;
 static constexpr bool has_constexpr_dynamic_alloc = false;
 #endif
 
-// Pre-C++20: only allocator path, no constexpr dynamic allocation.
 template <bool HasConstexpr>
 struct cb_ops {
   template <class Cb, class CbAlloc, class CbTraits, class... Args>
@@ -75,7 +64,6 @@ struct cb_ops {
   }
 };
 
-// C++20+: constexpr path uses new/delete; runtime path uses allocator_traits.
 template <>
 struct cb_ops<true> {
   template <class Cb, class CbAlloc, class CbTraits, class... Args>
@@ -106,6 +94,13 @@ struct cb_ops<true> {
 
 using ops = cb_ops<has_constexpr_dynamic_alloc>;
 
+// Forward declarations — specialisations are defined after polymorphic is complete.
+template <bool Pocs>        struct swap_ops;
+template <bool Pocca>       struct copy_assign_ops;
+template <bool Pocma>       struct move_assign_ops;
+template <bool AlwaysEqual> struct move_assign_ne_ops;  // POCMA=false path
+template <bool AlwaysEqual> struct move_ctor_ops;       // extended-alloc move ctor
+
 }  // namespace polymorphic_detail
 
 template <class T, class A = std::allocator<T>>
@@ -113,21 +108,16 @@ class polymorphic {
   static_assert(!std::is_array<T>::value, "polymorphic: T must not be an array type");
 
   // ---- Control block -------------------------------------------------------
-  // cb_base is type-erased: it knows how to clone and destroy the stored object
-  // without knowing U (the actual dynamic type).
 
   struct cb_base {
-    T* ptr_;  // pointer to the owned T (actually U) object
+    T* ptr_;
     virtual YK_POLYFILL_CXX20_CONSTEXPR cb_base* clone(A& alloc) const = 0;
     virtual YK_POLYFILL_CXX20_CONSTEXPR void destroy(A& alloc) noexcept = 0;
-    // Public virtual destructor: used by delete cb_ in the constexpr path.
     virtual YK_POLYFILL_CXX20_CONSTEXPR ~cb_base() = default;
   };
 
   template <class U>
   struct cb : cb_base {
-    // Store U as a direct typed member so std::construct_at can be used in
-    // constexpr contexts (placement new on void* is not constexpr).
     U obj_;
 
     template <class... Ts>
@@ -136,7 +126,6 @@ class polymorphic {
       this->ptr_ = std::addressof(obj_);
     }
 
-    // Copy-construct from another cb<U> (used in clone())
     YK_POLYFILL_CXX20_CONSTEXPR cb(const cb& other) : obj_(other.obj_)
     {
       this->ptr_ = std::addressof(obj_);
@@ -166,7 +155,7 @@ class polymorphic {
   cb_base* cb_;
   YK_POLYFILL_NO_UNIQUE_ADDRESS A alloc_;
 
-  // ---- Private helpers -----------------------------------------------------
+  // --- Private helpers (called by ops specialisations via friendship) --------
 
   template <class U, class... Ts>
   YK_POLYFILL_CXX20_CONSTEXPR void allocate_cb(Ts&&... ts)
@@ -183,7 +172,6 @@ class polymorphic {
     polymorphic_detail::ops::destroy_cb(cb_, alloc_);
   }
 
-  // Copy assignment content (allocator already propagated)
   YK_POLYFILL_CXX20_CONSTEXPR void copy_assign_content(const polymorphic& other)
   {
     destroy_owned();
@@ -192,91 +180,13 @@ class polymorphic {
     }
   }
 
-  // --- Tag-dispatch helpers for compile-time allocator traits ---
+  // --- Friends: ops specialisations need access to private members -----------
 
-  // Extended-alloc move ctor: is_always_equal dispatch
-  YK_POLYFILL_CXX20_CONSTEXPR void move_with_alloc(polymorphic&& other, std::true_type) noexcept
-  {
-    cb_ = other.cb_;
-    other.cb_ = nullptr;
-  }
-  YK_POLYFILL_CXX20_CONSTEXPR void move_with_alloc(polymorphic&& other, std::false_type)
-  {
-    if (alloc_ == other.alloc_) {
-      cb_ = other.cb_;
-      other.cb_ = nullptr;
-    } else if (other.cb_ != nullptr) {
-      cb_ = other.cb_->clone(alloc_);
-    }
-  }
-
-  // Copy assignment: POCCA dispatch
-  YK_POLYFILL_CXX20_CONSTEXPR polymorphic& copy_assign_impl(const polymorphic& other, std::true_type /*pocca*/)
-  {
-    if (alloc_ != other.alloc_) {
-      destroy_owned();
-      alloc_ = other.alloc_;
-      if (other.cb_ != nullptr) cb_ = other.cb_->clone(alloc_);
-      return *this;
-    }
-    alloc_ = other.alloc_;
-    copy_assign_content(other);
-    return *this;
-  }
-  YK_POLYFILL_CXX20_CONSTEXPR polymorphic& copy_assign_impl(const polymorphic& other, std::false_type /*pocca*/)
-  {
-    copy_assign_content(other);
-    return *this;
-  }
-
-  // Move assignment: is_always_equal dispatch (called when POCMA = false)
-  YK_POLYFILL_CXX20_CONSTEXPR polymorphic& move_assign_no_pocma(polymorphic&& other, std::true_type) noexcept
-  {
-    destroy_owned();
-    cb_ = other.cb_;
-    other.cb_ = nullptr;
-    return *this;
-  }
-  YK_POLYFILL_CXX20_CONSTEXPR polymorphic& move_assign_no_pocma(polymorphic&& other, std::false_type)
-  {
-    if (alloc_ == other.alloc_) {
-      destroy_owned();
-      cb_ = other.cb_;
-      other.cb_ = nullptr;
-    } else {
-      destroy_owned();
-      if (other.cb_ != nullptr) cb_ = other.cb_->clone(alloc_);
-    }
-    return *this;
-  }
-
-  // Move assignment: POCMA dispatch
-  YK_POLYFILL_CXX20_CONSTEXPR polymorphic& move_assign_impl(polymorphic&& other, std::true_type /*pocma*/) noexcept
-  {
-    destroy_owned();
-    alloc_ = static_cast<A&&>(other.alloc_);
-    cb_ = other.cb_;
-    other.cb_ = nullptr;
-    return *this;
-  }
-  YK_POLYFILL_CXX20_CONSTEXPR polymorphic& move_assign_impl(polymorphic&& other, std::false_type /*pocma*/)
-      noexcept(indirect_detail::is_always_equal<A>::value)
-  {
-    return move_assign_no_pocma(static_cast<polymorphic&&>(other), indirect_detail::is_always_equal<A>{});
-  }
-
-  // Swap: POCS dispatch
-  YK_POLYFILL_CXX20_CONSTEXPR void swap_impl(polymorphic& other, std::true_type /*pocs*/) noexcept
-  {
-    using std::swap;
-    swap(alloc_, other.alloc_);
-    swap(cb_, other.cb_);
-  }
-  YK_POLYFILL_CXX20_CONSTEXPR void swap_impl(polymorphic& other, std::false_type /*pocs*/) noexcept
-  {
-    using std::swap;
-    swap(cb_, other.cb_);
-  }
+  template <bool> friend struct polymorphic_detail::swap_ops;
+  template <bool> friend struct polymorphic_detail::copy_assign_ops;
+  template <bool> friend struct polymorphic_detail::move_assign_ops;
+  template <bool> friend struct polymorphic_detail::move_assign_ne_ops;
+  template <bool> friend struct polymorphic_detail::move_ctor_ops;
 
  public:
   using value_type = T;
@@ -307,7 +217,6 @@ class polymorphic {
     allocate_cb<T>(static_cast<Ts&&>(ts)...);
   }
 
-  // Construct from a derived type U
   template <class U, class... Ts,
             class = typename std::enable_if<std::is_base_of<T, U>::value && !std::is_same<T, U>::value>::type>
   YK_POLYFILL_CXX20_CONSTEXPR explicit polymorphic(in_place_type_t<U>, Ts&&... ts) : cb_(nullptr), alloc_()
@@ -351,7 +260,7 @@ class polymorphic {
       noexcept(indirect_detail::is_always_equal<A>::value)
       : cb_(nullptr), alloc_(a)
   {
-    move_with_alloc(static_cast<polymorphic&&>(other), indirect_detail::is_always_equal<A>{});
+    polymorphic_detail::move_ctor_ops<indirect_detail::is_always_equal<A>::value>::apply(*this, static_cast<polymorphic&&>(other));
   }
 
   // --- Destructor ---
@@ -363,7 +272,8 @@ class polymorphic {
   YK_POLYFILL_CXX20_CONSTEXPR polymorphic& operator=(const polymorphic& other)
   {
     if (this == &other) return *this;
-    return copy_assign_impl(other, typename std::allocator_traits<A>::propagate_on_container_copy_assignment{});
+    polymorphic_detail::copy_assign_ops<std::allocator_traits<A>::propagate_on_container_copy_assignment::value>::apply(*this, other);
+    return *this;
   }
 
   YK_POLYFILL_CXX20_CONSTEXPR polymorphic& operator=(polymorphic&& other)
@@ -371,7 +281,8 @@ class polymorphic {
                || indirect_detail::is_always_equal<A>::value)
   {
     if (this == &other) return *this;
-    return move_assign_impl(static_cast<polymorphic&&>(other), typename std::allocator_traits<A>::propagate_on_container_move_assignment{});
+    polymorphic_detail::move_assign_ops<std::allocator_traits<A>::propagate_on_container_move_assignment::value>::apply(*this, static_cast<polymorphic&&>(other));
+    return *this;
   }
 
   // --- Observers ---
@@ -394,7 +305,7 @@ class polymorphic {
       noexcept(std::allocator_traits<A>::propagate_on_container_swap::value
                || indirect_detail::is_always_equal<A>::value)
   {
-    swap_impl(other, typename std::allocator_traits<A>::propagate_on_container_swap{});
+    polymorphic_detail::swap_ops<std::allocator_traits<A>::propagate_on_container_swap::value>::apply(*this, other);
   }
 
   friend YK_POLYFILL_CXX20_CONSTEXPR void swap(polymorphic& a, polymorphic& b) noexcept(noexcept(a.swap(b))) { a.swap(b); }
@@ -459,6 +370,131 @@ class polymorphic {
   }
 #endif  // __cpp_lib_three_way_comparison
 };
+
+// ---- ops specialisations (polymorphic is now complete) ----------------------
+
+namespace polymorphic_detail {
+
+template <>
+struct swap_ops<true> {
+  template <class T, class A>
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& a, polymorphic<T, A>& b) noexcept
+  {
+    using std::swap;
+    swap(a.alloc_, b.alloc_);
+    swap(a.cb_, b.cb_);
+  }
+};
+
+template <>
+struct swap_ops<false> {
+  template <class T, class A>
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& a, polymorphic<T, A>& b) noexcept
+  {
+    using std::swap;
+    swap(a.cb_, b.cb_);
+  }
+};
+
+template <>
+struct copy_assign_ops<true> {
+  template <class T, class A>
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, const polymorphic<T, A>& other)
+  {
+    if (self.alloc_ != other.alloc_) {
+      self.destroy_owned();
+      self.alloc_ = other.alloc_;
+      if (other.cb_ != nullptr) self.cb_ = other.cb_->clone(self.alloc_);
+    } else {
+      self.alloc_ = other.alloc_;
+      self.copy_assign_content(other);
+    }
+  }
+};
+
+template <>
+struct copy_assign_ops<false> {
+  template <class T, class A>
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, const polymorphic<T, A>& other)
+  {
+    self.copy_assign_content(other);
+  }
+};
+
+template <>
+struct move_assign_ops<true> {
+  template <class T, class A>
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, polymorphic<T, A>&& other) noexcept
+  {
+    self.destroy_owned();
+    self.alloc_ = static_cast<A&&>(other.alloc_);
+    self.cb_ = other.cb_;
+    other.cb_ = nullptr;
+  }
+};
+
+template <>
+struct move_assign_ops<false> {
+  template <class T, class A>
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, polymorphic<T, A>&& other)
+      noexcept(indirect_detail::is_always_equal<A>::value)
+  {
+    move_assign_ne_ops<indirect_detail::is_always_equal<A>::value>::apply(self, static_cast<polymorphic<T, A>&&>(other));
+  }
+};
+
+template <>
+struct move_assign_ne_ops<true> {  // always-equal: steal unconditionally
+  template <class T, class A>
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, polymorphic<T, A>&& other) noexcept
+  {
+    self.destroy_owned();
+    self.cb_ = other.cb_;
+    other.cb_ = nullptr;
+  }
+};
+
+template <>
+struct move_assign_ne_ops<false> {  // may differ: check at runtime
+  template <class T, class A>
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, polymorphic<T, A>&& other)
+  {
+    if (self.alloc_ == other.alloc_) {
+      self.destroy_owned();
+      self.cb_ = other.cb_;
+      other.cb_ = nullptr;
+    } else {
+      self.destroy_owned();
+      if (other.cb_ != nullptr) self.cb_ = other.cb_->clone(self.alloc_);
+    }
+  }
+};
+
+template <>
+struct move_ctor_ops<true> {  // always-equal: steal unconditionally
+  template <class T, class A>
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, polymorphic<T, A>&& other) noexcept
+  {
+    self.cb_ = other.cb_;
+    other.cb_ = nullptr;
+  }
+};
+
+template <>
+struct move_ctor_ops<false> {  // may differ: check at runtime
+  template <class T, class A>
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, polymorphic<T, A>&& other)
+  {
+    if (self.alloc_ == other.alloc_) {
+      self.cb_ = other.cb_;
+      other.cb_ = nullptr;
+    } else if (other.cb_ != nullptr) {
+      self.cb_ = other.cb_->clone(self.alloc_);
+    }
+  }
+};
+
+}  // namespace polymorphic_detail
 
 }  // namespace polyfill
 

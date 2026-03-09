@@ -15,7 +15,7 @@ namespace yk {
 
 namespace polyfill {
 
-// Forward declaration so is_indirect can be defined before the class body
+// Forward declaration so is_indirect and the ops structs can reference indirect
 template <class T, class A>
 class indirect;
 
@@ -36,6 +36,13 @@ template <class A>
 struct is_always_equal<A, typename std::enable_if<std::allocator_traits<A>::is_always_equal::value>::type> : std::true_type {};
 #endif
 
+// Forward declarations — specialisations are defined after indirect is complete.
+template <bool Pocs>        struct swap_ops;
+template <bool Pocca>       struct copy_assign_ops;
+template <bool Pocma>       struct move_assign_ops;
+template <bool AlwaysEqual> struct move_assign_ne_ops;  // POCMA=false path
+template <bool AlwaysEqual> struct move_ctor_ops;       // extended-alloc move ctor
+
 }  // namespace indirect_detail
 
 template <class T, class A = std::allocator<T>>
@@ -46,6 +53,8 @@ class indirect {
 
   T* ptr_;
   YK_POLYFILL_NO_UNIQUE_ADDRESS A alloc_;
+
+  // --- Private helpers (called by ops specialisations via friendship) --------
 
   template <class... Ts>
   YK_POLYFILL_CXX20_CONSTEXPR void allocate_and_construct(Ts&&... ts)
@@ -69,25 +78,6 @@ class indirect {
     }
   }
 
-  // --- Tag-dispatch helpers for compile-time allocator traits ---
-
-  // Extended-alloc move ctor: is_always_equal dispatch
-  YK_POLYFILL_CXX20_CONSTEXPR void move_with_alloc(indirect&& other, std::true_type) noexcept
-  {
-    ptr_ = other.ptr_;
-    other.ptr_ = nullptr;
-  }
-  YK_POLYFILL_CXX20_CONSTEXPR void move_with_alloc(indirect&& other, std::false_type)
-  {
-    if (alloc_ == other.alloc_) {
-      ptr_ = other.ptr_;
-      other.ptr_ = nullptr;
-    } else if (other.ptr_ != nullptr) {
-      allocate_and_construct(static_cast<T&&>(*other.ptr_));
-    }
-  }
-
-  // Copy assignment content (allocator already propagated)
   YK_POLYFILL_CXX20_CONSTEXPR void copy_assign_content(const indirect& other)
   {
     if (other.ptr_ == nullptr) {
@@ -99,78 +89,13 @@ class indirect {
     }
   }
 
-  // Copy assignment: POCCA dispatch
-  YK_POLYFILL_CXX20_CONSTEXPR indirect& copy_assign_impl(const indirect& other, std::true_type /*pocca*/)
-  {
-    if (alloc_ != other.alloc_) {
-      destroy_owned();
-      alloc_ = other.alloc_;
-      if (other.ptr_ != nullptr) allocate_and_construct(*other.ptr_);
-      return *this;
-    }
-    alloc_ = other.alloc_;
-    copy_assign_content(other);
-    return *this;
-  }
-  YK_POLYFILL_CXX20_CONSTEXPR indirect& copy_assign_impl(const indirect& other, std::false_type /*pocca*/)
-  {
-    copy_assign_content(other);
-    return *this;
-  }
+  // --- Friends: ops specialisations need access to private members -----------
 
-  // Move assignment: is_always_equal dispatch (called when POCMA = false)
-  YK_POLYFILL_CXX20_CONSTEXPR indirect& move_assign_no_pocma(indirect&& other, std::true_type) noexcept
-  {
-    destroy_owned();
-    ptr_ = other.ptr_;
-    other.ptr_ = nullptr;
-    return *this;
-  }
-  YK_POLYFILL_CXX20_CONSTEXPR indirect& move_assign_no_pocma(indirect&& other, std::false_type)
-  {
-    if (alloc_ == other.alloc_) {
-      destroy_owned();
-      ptr_ = other.ptr_;
-      other.ptr_ = nullptr;
-    } else if (other.ptr_ != nullptr) {
-      if (ptr_ != nullptr) {
-        *ptr_ = static_cast<T&&>(*other.ptr_);
-      } else {
-        allocate_and_construct(static_cast<T&&>(*other.ptr_));
-      }
-    } else {
-      destroy_owned();
-    }
-    return *this;
-  }
-
-  // Move assignment: POCMA dispatch
-  YK_POLYFILL_CXX20_CONSTEXPR indirect& move_assign_impl(indirect&& other, std::true_type /*pocma*/) noexcept
-  {
-    destroy_owned();
-    alloc_ = static_cast<A&&>(other.alloc_);
-    ptr_ = other.ptr_;
-    other.ptr_ = nullptr;
-    return *this;
-  }
-  YK_POLYFILL_CXX20_CONSTEXPR indirect& move_assign_impl(indirect&& other, std::false_type /*pocma*/)
-      noexcept(indirect_detail::is_always_equal<A>::value)
-  {
-    return move_assign_no_pocma(static_cast<indirect&&>(other), indirect_detail::is_always_equal<A>{});
-  }
-
-  // Swap: POCS dispatch
-  YK_POLYFILL_CXX20_CONSTEXPR void swap_impl(indirect& other, std::true_type /*pocs*/) noexcept
-  {
-    using std::swap;
-    swap(alloc_, other.alloc_);
-    swap(ptr_, other.ptr_);
-  }
-  YK_POLYFILL_CXX20_CONSTEXPR void swap_impl(indirect& other, std::false_type /*pocs*/) noexcept
-  {
-    using std::swap;
-    swap(ptr_, other.ptr_);
-  }
+  template <bool> friend struct indirect_detail::swap_ops;
+  template <bool> friend struct indirect_detail::copy_assign_ops;
+  template <bool> friend struct indirect_detail::move_assign_ops;
+  template <bool> friend struct indirect_detail::move_assign_ne_ops;
+  template <bool> friend struct indirect_detail::move_ctor_ops;
 
  public:
   using value_type = T;
@@ -226,7 +151,7 @@ class indirect {
       noexcept(indirect_detail::is_always_equal<A>::value)
       : ptr_(nullptr), alloc_(a)
   {
-    move_with_alloc(static_cast<indirect&&>(other), indirect_detail::is_always_equal<A>{});
+    indirect_detail::move_ctor_ops<indirect_detail::is_always_equal<A>::value>::apply(*this, static_cast<indirect&&>(other));
   }
 
   // --- Destructor ---
@@ -238,7 +163,8 @@ class indirect {
   YK_POLYFILL_CXX20_CONSTEXPR indirect& operator=(const indirect& other)
   {
     if (this == &other) return *this;
-    return copy_assign_impl(other, typename alloc_traits::propagate_on_container_copy_assignment{});
+    indirect_detail::copy_assign_ops<alloc_traits::propagate_on_container_copy_assignment::value>::apply(*this, other);
+    return *this;
   }
 
   YK_POLYFILL_CXX20_CONSTEXPR indirect& operator=(indirect&& other)
@@ -246,7 +172,8 @@ class indirect {
                || indirect_detail::is_always_equal<A>::value)
   {
     if (this == &other) return *this;
-    return move_assign_impl(static_cast<indirect&&>(other), typename alloc_traits::propagate_on_container_move_assignment{});
+    indirect_detail::move_assign_ops<alloc_traits::propagate_on_container_move_assignment::value>::apply(*this, static_cast<indirect&&>(other));
+    return *this;
   }
 
   // --- Observers ---
@@ -269,7 +196,7 @@ class indirect {
       noexcept(alloc_traits::propagate_on_container_swap::value
                || indirect_detail::is_always_equal<A>::value)
   {
-    swap_impl(other, typename alloc_traits::propagate_on_container_swap{});
+    indirect_detail::swap_ops<alloc_traits::propagate_on_container_swap::value>::apply(*this, other);
   }
 
   friend YK_POLYFILL_CXX20_CONSTEXPR void swap(indirect& a, indirect& b) noexcept(noexcept(a.swap(b))) { a.swap(b); }
@@ -338,6 +265,136 @@ class indirect {
 // Deduction guide
 template <class T>
 indirect(T) -> indirect<T>;
+
+// ---- ops specialisations (indirect is now complete) -------------------------
+
+namespace indirect_detail {
+
+template <>
+struct swap_ops<true> {
+  template <class T, class A>
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(indirect<T, A>& a, indirect<T, A>& b) noexcept
+  {
+    using std::swap;
+    swap(a.alloc_, b.alloc_);
+    swap(a.ptr_, b.ptr_);
+  }
+};
+
+template <>
+struct swap_ops<false> {
+  template <class T, class A>
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(indirect<T, A>& a, indirect<T, A>& b) noexcept
+  {
+    using std::swap;
+    swap(a.ptr_, b.ptr_);
+  }
+};
+
+template <>
+struct copy_assign_ops<true> {
+  template <class T, class A>
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(indirect<T, A>& self, const indirect<T, A>& other)
+  {
+    if (self.alloc_ != other.alloc_) {
+      self.destroy_owned();
+      self.alloc_ = other.alloc_;
+      if (other.ptr_ != nullptr) self.allocate_and_construct(*other.ptr_);
+    } else {
+      self.alloc_ = other.alloc_;
+      self.copy_assign_content(other);
+    }
+  }
+};
+
+template <>
+struct copy_assign_ops<false> {
+  template <class T, class A>
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(indirect<T, A>& self, const indirect<T, A>& other)
+  {
+    self.copy_assign_content(other);
+  }
+};
+
+template <>
+struct move_assign_ops<true> {
+  template <class T, class A>
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(indirect<T, A>& self, indirect<T, A>&& other) noexcept
+  {
+    self.destroy_owned();
+    self.alloc_ = static_cast<A&&>(other.alloc_);
+    self.ptr_ = other.ptr_;
+    other.ptr_ = nullptr;
+  }
+};
+
+template <>
+struct move_assign_ops<false> {
+  template <class T, class A>
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(indirect<T, A>& self, indirect<T, A>&& other)
+      noexcept(is_always_equal<A>::value)
+  {
+    move_assign_ne_ops<is_always_equal<A>::value>::apply(self, static_cast<indirect<T, A>&&>(other));
+  }
+};
+
+template <>
+struct move_assign_ne_ops<true> {  // always-equal: steal unconditionally
+  template <class T, class A>
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(indirect<T, A>& self, indirect<T, A>&& other) noexcept
+  {
+    self.destroy_owned();
+    self.ptr_ = other.ptr_;
+    other.ptr_ = nullptr;
+  }
+};
+
+template <>
+struct move_assign_ne_ops<false> {  // may differ: check at runtime
+  template <class T, class A>
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(indirect<T, A>& self, indirect<T, A>&& other)
+  {
+    if (self.alloc_ == other.alloc_) {
+      self.destroy_owned();
+      self.ptr_ = other.ptr_;
+      other.ptr_ = nullptr;
+    } else if (other.ptr_ != nullptr) {
+      if (self.ptr_ != nullptr) {
+        *self.ptr_ = static_cast<T&&>(*other.ptr_);
+      } else {
+        self.allocate_and_construct(static_cast<T&&>(*other.ptr_));
+      }
+    } else {
+      self.destroy_owned();
+    }
+  }
+};
+
+template <>
+struct move_ctor_ops<true> {  // always-equal: steal unconditionally
+  template <class T, class A>
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(indirect<T, A>& self, indirect<T, A>&& other) noexcept
+  {
+    self.ptr_ = other.ptr_;
+    other.ptr_ = nullptr;
+  }
+};
+
+template <>
+struct move_ctor_ops<false> {  // may differ: check at runtime
+  template <class T, class A>
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(indirect<T, A>& self, indirect<T, A>&& other)
+  {
+    if (self.alloc_ == other.alloc_) {
+      self.ptr_ = other.ptr_;
+      other.ptr_ = nullptr;
+    } else if (other.ptr_ != nullptr) {
+      self.allocate_and_construct(static_cast<T&&>(*other.ptr_));
+    }
+  }
+};
+
+}  // namespace indirect_detail
 
 }  // namespace polyfill
 
