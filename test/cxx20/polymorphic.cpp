@@ -5,6 +5,14 @@
 
 #include <compare>
 
+// VS2022 (MSVC < 19.50) cannot evaluate polymorphic in a constant expression
+// because destroy() is not constexpr there (compiler bug workaround).
+#if defined(_MSC_VER) && _MSC_VER < 1950
+#define POLYMORPHIC_STATIC_REQUIRE(x) REQUIRE(x)
+#else
+#define POLYMORPHIC_STATIC_REQUIRE(x) STATIC_REQUIRE(x)
+#endif
+
 namespace pf = yk::polyfill;
 
 // ---- simple constexpr hierarchy for derived-type tests ----
@@ -92,47 +100,47 @@ constexpr bool polymorphic_valueless_eq()
 
 TEST_CASE("polymorphic constexpr: default construction")
 {
-  STATIC_REQUIRE(polymorphic_default_construct() == 0);
+  POLYMORPHIC_STATIC_REQUIRE(polymorphic_default_construct() == 0);
 }
 
 TEST_CASE("polymorphic constexpr: in_place construction")
 {
-  STATIC_REQUIRE(polymorphic_in_place_construct() == 42);
+  POLYMORPHIC_STATIC_REQUIRE(polymorphic_in_place_construct() == 42);
 }
 
 TEST_CASE("polymorphic constexpr: copy is independent")
 {
-  STATIC_REQUIRE(polymorphic_copy_is_independent());
+  POLYMORPHIC_STATIC_REQUIRE(polymorphic_copy_is_independent());
 }
 
 TEST_CASE("polymorphic constexpr: move transfers ownership")
 {
-  STATIC_REQUIRE(polymorphic_move_transfers_ownership());
+  POLYMORPHIC_STATIC_REQUIRE(polymorphic_move_transfers_ownership());
 }
 
 TEST_CASE("polymorphic constexpr: copy assignment")
 {
-  STATIC_REQUIRE(polymorphic_copy_assign() == 3);
+  POLYMORPHIC_STATIC_REQUIRE(polymorphic_copy_assign() == 3);
 }
 
 TEST_CASE("polymorphic constexpr: move assignment")
 {
-  STATIC_REQUIRE(polymorphic_move_assign());
+  POLYMORPHIC_STATIC_REQUIRE(polymorphic_move_assign());
 }
 
 TEST_CASE("polymorphic constexpr: swap")
 {
-  STATIC_REQUIRE(polymorphic_swap());
+  POLYMORPHIC_STATIC_REQUIRE(polymorphic_swap());
 }
 
 TEST_CASE("polymorphic constexpr: equality comparison")
 {
-  STATIC_REQUIRE(polymorphic_eq());
+  POLYMORPHIC_STATIC_REQUIRE(polymorphic_eq());
 }
 
 TEST_CASE("polymorphic constexpr: valueless equality")
 {
-  STATIC_REQUIRE(polymorphic_valueless_eq());
+  POLYMORPHIC_STATIC_REQUIRE(polymorphic_valueless_eq());
 }
 
 constexpr bool polymorphic_in_place_type_stores_derived()
@@ -150,12 +158,12 @@ constexpr bool polymorphic_copy_preserves_dynamic_type()
 
 TEST_CASE("polymorphic constexpr: in_place_type stores derived")
 {
-  STATIC_REQUIRE(polymorphic_in_place_type_stores_derived());
+  POLYMORPHIC_STATIC_REQUIRE(polymorphic_in_place_type_stores_derived());
 }
 
 TEST_CASE("polymorphic constexpr: copy preserves dynamic type")
 {
-  STATIC_REQUIRE(polymorphic_copy_preserves_dynamic_type());
+  POLYMORPHIC_STATIC_REQUIRE(polymorphic_copy_preserves_dynamic_type());
 }
 
 TEST_CASE("polymorphic: spaceship comparison between two polymorphics")
