@@ -147,7 +147,7 @@ class indirect {
 
   // --- Destructor ---
 
-  YK_POLYFILL_CXX20_CONSTEXPR ~indirect() { destroy_owned(); }
+  YK_POLYFILL_CXX20_CONSTEXPR ~indirect() noexcept { destroy_owned(); }
 
   // --- Assignment ---
 
