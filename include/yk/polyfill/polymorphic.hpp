@@ -141,6 +141,7 @@ class polymorphic {
 
   YK_POLYFILL_CXX20_CONSTEXPR polymorphic() : holder_(nullptr), alloc_()
   {
+    static_assert(std::is_default_constructible<T>::value, "polymorphic: T must be default-constructible");
     allocate_holder<T>();
   }
 
@@ -163,14 +164,16 @@ class polymorphic {
   }
 
   template <class U, class... Ts,
-            typename std::enable_if<std::is_base_of<T, U>::value, std::nullptr_t>::type = nullptr>
+            typename std::enable_if<std::is_base_of<T, U>::value, std::nullptr_t>::type = nullptr,
+            typename std::enable_if<std::is_constructible<U, Ts...>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR explicit polymorphic(in_place_type_t<U>, Ts&&... ts) : holder_(nullptr), alloc_()
   {
     allocate_holder<U>(static_cast<Ts&&>(ts)...);
   }
 
   template <class U, class... Ts,
-            typename std::enable_if<std::is_base_of<T, U>::value, std::nullptr_t>::type = nullptr>
+            typename std::enable_if<std::is_base_of<T, U>::value, std::nullptr_t>::type = nullptr,
+            typename std::enable_if<std::is_constructible<U, Ts...>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR explicit polymorphic(std::allocator_arg_t, const A& a, in_place_type_t<U>, Ts&&... ts)
       : holder_(nullptr), alloc_(a)
   {
@@ -263,6 +266,7 @@ class polymorphic {
 
 #if __cpp_lib_three_way_comparison >= 201907L
   friend constexpr auto operator<=>(const polymorphic& lhs, const polymorphic& rhs)
+      -> std::common_comparison_category_t<std::strong_ordering, decltype(*lhs <=> *rhs)>
   {
     if (lhs.valueless_after_move() && rhs.valueless_after_move()) return std::strong_ordering::equal;
     if (lhs.valueless_after_move()) return std::strong_ordering::less;
@@ -464,6 +468,7 @@ YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const polymorphic<T, A>& lhs, const 
 template <class T, class A, class U, class AA,
     typename std::enable_if<!std::is_same<T, U>::value || !std::is_same<A, AA>::value, std::nullptr_t>::type = nullptr>
 constexpr auto operator<=>(const polymorphic<T, A>& lhs, const polymorphic<U, AA>& rhs)
+    -> std::common_comparison_category_t<std::strong_ordering, decltype(*lhs <=> *rhs)>
 {
   if (lhs.valueless_after_move() && rhs.valueless_after_move()) return std::strong_ordering::equal;
   if (lhs.valueless_after_move()) return std::strong_ordering::less;

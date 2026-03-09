@@ -45,8 +45,9 @@
 #define YK_POLYFILL_NO_UNIQUE_ADDRESS
 #endif
 
-// MSVC < 19.50 (VS2022) has a bug where a constexpr virtual function that
-// destroys/deallocates `this` fails to compile.  Drop constexpr for those.
+// All MSVC toolsets < 19.50 (i.e. all VS2022 and earlier) have a bug where a
+// constexpr virtual function that destroys/deallocates `this` fails to compile.
+// Drop constexpr for those.
 #if defined(_MSC_VER) && _MSC_VER < 1950
 #define YK_POLYFILL_CXX20_CONSTEXPR_VDESTROY
 #else

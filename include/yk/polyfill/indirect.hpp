@@ -272,6 +272,7 @@ class indirect {
 
 #if __cpp_lib_three_way_comparison >= 201907L
   friend constexpr auto operator<=>(const indirect& lhs, const indirect& rhs)
+      -> std::common_comparison_category_t<std::strong_ordering, decltype(*lhs <=> *rhs)>
   {
     if (lhs.valueless_after_move() && rhs.valueless_after_move()) return std::strong_ordering::equal;
     if (lhs.valueless_after_move()) return std::strong_ordering::less;
@@ -282,6 +283,7 @@ class indirect {
   template <class U>
   friend constexpr auto operator<=>(const indirect& lhs, const U& rhs)
       noexcept(noexcept(*lhs <=> rhs))
+      -> std::common_comparison_category_t<std::strong_ordering, decltype(*lhs <=> rhs)>
   {
     if (lhs.valueless_after_move()) return std::strong_ordering::less;
     return *lhs <=> rhs;
@@ -353,6 +355,7 @@ YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const indirect<T, A>& lhs, const ind
 template <class T, class A, class U, class AA,
     typename std::enable_if<!std::is_same<T, U>::value || !std::is_same<A, AA>::value, std::nullptr_t>::type = nullptr>
 constexpr auto operator<=>(const indirect<T, A>& lhs, const indirect<U, AA>& rhs)
+    -> std::common_comparison_category_t<std::strong_ordering, decltype(*lhs <=> *rhs)>
 {
   if (lhs.valueless_after_move() && rhs.valueless_after_move()) return std::strong_ordering::equal;
   if (lhs.valueless_after_move()) return std::strong_ordering::less;
@@ -403,7 +406,6 @@ struct copy_assign_ops</*Pocca = */ true> {
       self.alloc_ = other.alloc_;
       if (other.ptr_ != nullptr) self.allocate_and_construct(*other.ptr_);
     } else {
-      self.alloc_ = other.alloc_;
       self.copy_assign_content(other);
     }
   }
