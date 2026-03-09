@@ -37,44 +37,42 @@ class polymorphic {
 
   struct cb_base {
     T* ptr_;  // pointer to the owned T (actually U) object
-    virtual cb_base* clone(A& alloc) const = 0;
-    virtual void destroy(A& alloc) noexcept = 0;
-
-   protected:
-    ~cb_base() = default;  // not public: destroyed via destroy(), not delete
+    virtual YK_POLYFILL_CXX20_CONSTEXPR cb_base* clone(A& alloc) const = 0;
+    virtual YK_POLYFILL_CXX20_CONSTEXPR void destroy(A& alloc) noexcept = 0;
+    // Public virtual destructor: used by delete cb_ in the constexpr path.
+    virtual YK_POLYFILL_CXX20_CONSTEXPR ~cb_base() = default;
   };
 
   template <class U>
   struct cb : cb_base {
-    // Store U in-place after the cb header using aligned raw storage.
-    // This avoids a second allocation (no separate U* heap block).
-    alignas(U) unsigned char storage_[sizeof(U)];
-
-    U* u_ptr() noexcept { return reinterpret_cast<U*>(storage_); }
-    const U* u_ptr() const noexcept { return reinterpret_cast<const U*>(storage_); }
+    // Store U as a direct typed member so std::construct_at can be used in
+    // constexpr contexts (placement new on void* is not constexpr).
+    U obj_;
 
     template <class... Ts>
-    explicit cb(Ts&&... ts)
+    YK_POLYFILL_CXX20_CONSTEXPR explicit cb(Ts&&... ts) : obj_(static_cast<Ts&&>(ts)...)
     {
-      ::new (static_cast<void*>(storage_)) U(static_cast<Ts&&>(ts)...);
-      this->ptr_ = u_ptr();
+      this->ptr_ = &obj_;
     }
 
     // Copy-construct from another cb<U> (used in clone())
-    cb(const cb& other)
+    YK_POLYFILL_CXX20_CONSTEXPR cb(const cb& other) : obj_(other.obj_)
     {
-      ::new (static_cast<void*>(storage_)) U(*other.u_ptr());
-      this->ptr_ = u_ptr();
+      this->ptr_ = &obj_;
     }
 
-    // Not used directly; destroy() manages lifetime
-    ~cb() = default;
+    YK_POLYFILL_CXX20_CONSTEXPR ~cb() override = default;
 
     using cb_alloc_t = typename std::allocator_traits<A>::template rebind_alloc<cb<U>>;
     using cb_traits_t = std::allocator_traits<cb_alloc_t>;
 
-    cb_base* clone(A& alloc) const override
+    YK_POLYFILL_CXX20_CONSTEXPR cb_base* clone(A& alloc) const override
     {
+#if __cpp_lib_is_constant_evaluated >= 201811L
+      if (std::is_constant_evaluated()) {
+        return new cb<U>(*this);
+      }
+#endif
       cb_alloc_t cb_alloc(alloc);
       cb<U>* new_cb = cb_traits_t::allocate(cb_alloc, 1);
       try {
@@ -86,10 +84,10 @@ class polymorphic {
       return new_cb;
     }
 
-    void destroy(A& alloc) noexcept override
+    YK_POLYFILL_CXX20_CONSTEXPR void destroy(A& alloc) noexcept override
     {
-      u_ptr()->~U();
       cb_alloc_t cb_alloc(alloc);
+      cb_traits_t::destroy(cb_alloc, this);
       cb_traits_t::deallocate(cb_alloc, this, 1);
     }
   };
@@ -104,6 +102,12 @@ class polymorphic {
   template <class U, class... Ts>
   YK_POLYFILL_CXX20_CONSTEXPR void allocate_cb(Ts&&... ts)
   {
+#if __cpp_lib_is_constant_evaluated >= 201811L
+    if (std::is_constant_evaluated()) {
+      cb_ = new cb<U>(static_cast<Ts&&>(ts)...);
+      return;
+    }
+#endif
     using cb_alloc_t = typename std::allocator_traits<A>::template rebind_alloc<cb<U>>;
     using cb_traits_t = std::allocator_traits<cb_alloc_t>;
     cb_alloc_t cb_alloc(alloc_);
@@ -119,10 +123,16 @@ class polymorphic {
 
   YK_POLYFILL_CXX20_CONSTEXPR void destroy_owned() noexcept
   {
-    if (cb_ != nullptr) {
-      cb_->destroy(alloc_);
+    if (cb_ == nullptr) return;
+#if __cpp_lib_is_constant_evaluated >= 201811L
+    if (std::is_constant_evaluated()) {
+      delete cb_;
       cb_ = nullptr;
+      return;
     }
+#endif
+    cb_->destroy(alloc_);
+    cb_ = nullptr;
   }
 
  public:
