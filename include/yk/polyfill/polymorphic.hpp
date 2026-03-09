@@ -27,6 +27,87 @@ struct is_polymorphic_wrapper : std::false_type {};
 template <class T, class A>
 struct is_polymorphic_wrapper<polymorphic<T, A>> : std::true_type {};
 
+// --- Compile-time dispatch between constexpr and runtime allocation ---
+//
+// In constexpr contexts (C++20+) allocator_traits::construct cannot be used
+// because its noexcept specifier (via std::construct_at) is not
+// constexpr-evaluable on GCC 13.  We therefore need new/delete in constexpr
+// and allocator_traits at runtime.
+//
+// The selection is compile-time: either C++20 constexpr allocation is
+// available or it is not.  Since we cannot use `if constexpr` (C++11
+// compatibility), we express this via template specialisation:
+//
+//   cb_ops<false>  — pre-C++20: always use allocator_traits
+//   cb_ops<true>   — C++20+  : use is_constant_evaluated() to branch
+//
+// The <true> specialisation is only ever instantiated when C++20 is active
+// (has_constexpr_dynamic_alloc == true), so std::is_constant_evaluated() is
+// always available in its bodies.
+
+namespace polymorphic_detail {
+
+#if __cpp_lib_is_constant_evaluated >= 201811L
+static constexpr bool has_constexpr_dynamic_alloc = true;
+#else
+static constexpr bool has_constexpr_dynamic_alloc = false;
+#endif
+
+// Pre-C++20: only allocator path, no constexpr dynamic allocation.
+template <bool HasConstexpr>
+struct cb_ops {
+  template <class Cb, class CbAlloc, class CbTraits, class... Args>
+  static Cb* construct(CbAlloc& a, Args&&... args) {
+    Cb* p = CbTraits::allocate(a, 1);
+    try {
+      CbTraits::construct(a, p, static_cast<Args&&>(args)...);
+    } catch (...) {
+      CbTraits::deallocate(a, p, 1);
+      throw;
+    }
+    return p;
+  }
+
+  template <class CbBase, class Alloc>
+  static void destroy_cb(CbBase*& cb, Alloc& alloc) noexcept {
+    cb->destroy(alloc);
+    cb = nullptr;
+  }
+};
+
+// C++20+: constexpr path uses new/delete; runtime path uses allocator_traits.
+template <>
+struct cb_ops<true> {
+  template <class Cb, class CbAlloc, class CbTraits, class... Args>
+  static YK_POLYFILL_CXX20_CONSTEXPR Cb* construct(CbAlloc& a, Args&&... args) {
+    if (std::is_constant_evaluated()) {
+      return new Cb(static_cast<Args&&>(args)...);
+    }
+    Cb* p = CbTraits::allocate(a, 1);
+    try {
+      CbTraits::construct(a, p, static_cast<Args&&>(args)...);
+    } catch (...) {
+      CbTraits::deallocate(a, p, 1);
+      throw;
+    }
+    return p;
+  }
+
+  template <class CbBase, class Alloc>
+  static YK_POLYFILL_CXX20_CONSTEXPR void destroy_cb(CbBase*& cb, Alloc& alloc) noexcept {
+    if (std::is_constant_evaluated()) {
+      delete cb;
+    } else {
+      cb->destroy(alloc);
+    }
+    cb = nullptr;
+  }
+};
+
+using ops = cb_ops<has_constexpr_dynamic_alloc>;
+
+}  // namespace polymorphic_detail
+
 template <class T, class A = std::allocator<T>>
 class polymorphic {
   static_assert(!std::is_array<T>::value, "polymorphic: T must not be an array type");
@@ -68,20 +149,8 @@ class polymorphic {
 
     YK_POLYFILL_CXX20_CONSTEXPR cb_base* clone(A& alloc) const override
     {
-#if __cpp_lib_is_constant_evaluated >= 201811L
-      if (std::is_constant_evaluated()) {
-        return new cb<U>(*this);
-      }
-#endif
       cb_alloc_t cb_alloc(alloc);
-      cb<U>* new_cb = cb_traits_t::allocate(cb_alloc, 1);
-      try {
-        cb_traits_t::construct(cb_alloc, new_cb, *this);
-      } catch (...) {
-        cb_traits_t::deallocate(cb_alloc, new_cb, 1);
-        throw;
-      }
-      return new_cb;
+      return polymorphic_detail::ops::construct<cb<U>, cb_alloc_t, cb_traits_t>(cb_alloc, *this);
     }
 
     YK_POLYFILL_CXX20_CONSTEXPR void destroy(A& alloc) noexcept override
@@ -102,37 +171,16 @@ class polymorphic {
   template <class U, class... Ts>
   YK_POLYFILL_CXX20_CONSTEXPR void allocate_cb(Ts&&... ts)
   {
-#if __cpp_lib_is_constant_evaluated >= 201811L
-    if (std::is_constant_evaluated()) {
-      cb_ = new cb<U>(static_cast<Ts&&>(ts)...);
-      return;
-    }
-#endif
     using cb_alloc_t = typename std::allocator_traits<A>::template rebind_alloc<cb<U>>;
     using cb_traits_t = std::allocator_traits<cb_alloc_t>;
     cb_alloc_t cb_alloc(alloc_);
-    cb<U>* new_cb = cb_traits_t::allocate(cb_alloc, 1);
-    try {
-      cb_traits_t::construct(cb_alloc, new_cb, static_cast<Ts&&>(ts)...);
-    } catch (...) {
-      cb_traits_t::deallocate(cb_alloc, new_cb, 1);
-      throw;
-    }
-    cb_ = new_cb;
+    cb_ = polymorphic_detail::ops::construct<cb<U>, cb_alloc_t, cb_traits_t>(cb_alloc, static_cast<Ts&&>(ts)...);
   }
 
   YK_POLYFILL_CXX20_CONSTEXPR void destroy_owned() noexcept
   {
     if (cb_ == nullptr) return;
-#if __cpp_lib_is_constant_evaluated >= 201811L
-    if (std::is_constant_evaluated()) {
-      delete cb_;
-      cb_ = nullptr;
-      return;
-    }
-#endif
-    cb_->destroy(alloc_);
-    cb_ = nullptr;
+    polymorphic_detail::ops::destroy_cb(cb_, alloc_);
   }
 
  public:
