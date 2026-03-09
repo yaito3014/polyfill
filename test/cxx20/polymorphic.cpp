@@ -3,7 +3,23 @@
 #include <yk/polyfill/polymorphic.hpp>
 #include <yk/polyfill/utility.hpp>
 
+#include <compare>
+
 namespace pf = yk::polyfill;
+
+// ---- simple constexpr hierarchy for derived-type tests ----
+
+struct ConstBase {
+  constexpr virtual ~ConstBase() = default;
+  constexpr virtual int value() const = 0;
+  constexpr bool operator==(const ConstBase& o) const { return value() == o.value(); }
+};
+
+struct ConstDerived : ConstBase {
+  int val;
+  constexpr explicit ConstDerived(int v) : val(v) {}
+  constexpr int value() const override { return val; }
+};
 
 // ---- constexpr helpers ----
 
@@ -121,4 +137,63 @@ TEST_CASE("polymorphic constexpr: equality comparison")
 TEST_CASE("polymorphic constexpr: valueless equality")
 {
   STATIC_REQUIRE(polymorphic_valueless_eq());
+}
+
+// ---- constexpr derived-type helpers ----
+
+constexpr bool polymorphic_in_place_type_stores_derived()
+{
+  pf::polymorphic<ConstBase> p(pf::in_place_type<ConstDerived>, 42);
+  return p->value() == 42;
+}
+
+constexpr bool polymorphic_copy_preserves_dynamic_type()
+{
+  pf::polymorphic<ConstBase> p1(pf::in_place_type<ConstDerived>, 7);
+  pf::polymorphic<ConstBase> p2 = p1;
+  return p2->value() == 7;
+}
+
+TEST_CASE("polymorphic constexpr: in_place_type stores derived")
+{
+  STATIC_REQUIRE(polymorphic_in_place_type_stores_derived());
+}
+
+TEST_CASE("polymorphic constexpr: copy preserves dynamic type")
+{
+  STATIC_REQUIRE(polymorphic_copy_preserves_dynamic_type());
+}
+
+// ---- spaceship comparison tests ----
+
+TEST_CASE("polymorphic: spaceship comparison between two polymorphics")
+{
+  pf::polymorphic<int> a(pf::in_place, 1);
+  pf::polymorphic<int> b(pf::in_place, 2);
+  pf::polymorphic<int> c(pf::in_place, 1);
+
+  REQUIRE((a <=> c) == std::strong_ordering::equal);
+  REQUIRE((a <=> b) == std::strong_ordering::less);
+  REQUIRE((b <=> a) == std::strong_ordering::greater);
+}
+
+TEST_CASE("polymorphic: spaceship comparison with raw value")
+{
+  pf::polymorphic<int> p(pf::in_place, 5);
+
+  REQUIRE((p <=> 5) == std::strong_ordering::equal);
+  REQUIRE((p <=> 6) == std::strong_ordering::less);
+  REQUIRE((p <=> 4) == std::strong_ordering::greater);
+}
+
+TEST_CASE("polymorphic: valueless spaceship comparison")
+{
+  pf::polymorphic<int> a(pf::in_place, 1);
+  pf::polymorphic<int> b = std::move(a);  // a is now valueless
+
+  REQUIRE((a <=> b) == std::strong_ordering::less);    // valueless < non-valueless
+  REQUIRE((b <=> a) == std::strong_ordering::greater);
+
+  pf::polymorphic<int> c = std::move(b);  // b is now valueless too
+  REQUIRE((a <=> b) == std::strong_ordering::equal);   // valueless == valueless
 }

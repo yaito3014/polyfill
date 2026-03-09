@@ -174,6 +174,30 @@ TEST_CASE("polymorphic: in_place_type_t construction with derived type")
   CHECK(p->sound() == "woof");
 }
 
+TEST_CASE("polymorphic: in_place_type_t construction with U == T (class type)")
+{
+  // in_place_type<T> where U == T must work (P3019R14 only requires is_base_of, not strict derived).
+  // Note: is_base_of requires class types; tested with Point, not int.
+  pf::polymorphic<Point> p(pf::in_place_type<Point>, 1, 2);
+  CHECK(p->x == 1);
+  CHECK(p->y == 2);
+}
+
+TEST_CASE("polymorphic: self copy-assignment is safe")
+{
+  pf::polymorphic<int> p(pf::in_place, 42);
+  p = p;
+  CHECK(*p == 42);
+}
+
+TEST_CASE("polymorphic: self move-assignment is safe")
+{
+  pf::polymorphic<int> p(pf::in_place, 42);
+  p = std::move(p);
+  // After self-move-assign the guard (this == &other) fires; p is unchanged.
+  CHECK(*p == 42);
+}
+
 TEST_CASE("polymorphic: copy preserves dynamic type (the key feature)")
 {
   // p1 holds a Dog (derived from Animal)

@@ -12,6 +12,9 @@
 #include <memory>
 #include <type_traits>
 #include <utility>
+#if __cpp_lib_three_way_comparison >= 201907L
+#include <compare>
+#endif
 
 namespace yk {
 
@@ -45,7 +48,7 @@ class polymorphic {
   // ---- Value holder --------------------------------------------------------
 
   struct holder_base {
-    T* ptr_;
+    T* ptr_ = nullptr;
     virtual YK_POLYFILL_CXX20_CONSTEXPR holder_base* clone(A& alloc) const = 0;
     virtual YK_POLYFILL_CXX20_CONSTEXPR void destroy(A& alloc) noexcept = 0;
     virtual YK_POLYFILL_CXX20_CONSTEXPR ~holder_base() noexcept = default;
@@ -168,14 +171,14 @@ class polymorphic {
   }
 
   template <class U, class... Ts,
-            typename std::enable_if<std::is_base_of<T, U>::value && !std::is_same<T, U>::value, std::nullptr_t>::type = nullptr>
+            typename std::enable_if<std::is_base_of<T, U>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR explicit polymorphic(in_place_type_t<U>, Ts&&... ts) : holder_(nullptr), alloc_()
   {
     allocate_holder<U>(static_cast<Ts&&>(ts)...);
   }
 
   template <class U, class... Ts,
-            typename std::enable_if<std::is_base_of<T, U>::value && !std::is_same<T, U>::value, std::nullptr_t>::type = nullptr>
+            typename std::enable_if<std::is_base_of<T, U>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR explicit polymorphic(std::allocator_arg_t, const A& a, in_place_type_t<U>, Ts&&... ts)
       : holder_(nullptr), alloc_(a)
   {
@@ -312,6 +315,7 @@ class polymorphic {
   template <class U, class AA>
   friend constexpr auto operator<=>(const polymorphic& lhs, const polymorphic<U, AA>& rhs)
       noexcept(noexcept(*lhs <=> *rhs))
+      -> std::common_comparison_category_t<std::strong_ordering, decltype(*lhs <=> *rhs)>
   {
     if (lhs.valueless_after_move() && rhs.valueless_after_move()) return std::strong_ordering::equal;
     if (lhs.valueless_after_move()) return std::strong_ordering::less;
@@ -322,6 +326,7 @@ class polymorphic {
   template <class U>
   friend constexpr auto operator<=>(const polymorphic& lhs, const U& rhs)
       noexcept(noexcept(*lhs <=> rhs))
+      -> std::common_comparison_category_t<std::strong_ordering, decltype(*lhs <=> rhs)>
   {
     if (lhs.valueless_after_move()) return std::strong_ordering::less;
     return *lhs <=> rhs;
