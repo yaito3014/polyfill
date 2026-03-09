@@ -58,18 +58,18 @@ TEST_CASE("variant constexpr comparison")
   constexpr pf::variant<int, double> d = 3.14;
 
   // same index, same value
-  STATIC_REQUIRE(a == b);
-  STATIC_REQUIRE(!(a != b));
+  STATIC_REQUIRE((a == b));
+  STATIC_REQUIRE((!(a != b)));
 
   // same index, different value
-  STATIC_REQUIRE(a != c);
-  STATIC_REQUIRE(a < c);
-  STATIC_REQUIRE(a <= c);
-  STATIC_REQUIRE(c > a);
-  STATIC_REQUIRE(c >= a);
+  STATIC_REQUIRE((a != c));
+  STATIC_REQUIRE((a < c));
+  STATIC_REQUIRE((a <= c));
+  STATIC_REQUIRE((c > a));
+  STATIC_REQUIRE((c >= a));
 
   // different index
-  STATIC_REQUIRE(a != d);
-  STATIC_REQUIRE(a < d);
-  STATIC_REQUIRE(!(a > d));
+  STATIC_REQUIRE((a != d));
+  STATIC_REQUIRE((a < d));
+  STATIC_REQUIRE((!(a > d)));
 }
