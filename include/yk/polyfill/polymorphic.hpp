@@ -221,7 +221,7 @@ class polymorphic {
 
   // --- Destructor ---
 
-  YK_POLYFILL_CXX20_CONSTEXPR ~polymorphic() { destroy_owned(); }
+  YK_POLYFILL_CXX20_CONSTEXPR ~polymorphic() noexcept { destroy_owned(); }
 
   // --- Assignment ---
 
