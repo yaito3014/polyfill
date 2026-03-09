@@ -42,43 +42,43 @@ template <class T, class A = std::allocator<T>>
 class polymorphic {
   static_assert(!std::is_array<T>::value, "polymorphic: T must not be an array type");
 
-  // ---- Control block -------------------------------------------------------
+  // ---- Value holder --------------------------------------------------------
 
-  struct cb_base {
+  struct holder_base {
     T* ptr_;
-    virtual YK_POLYFILL_CXX20_CONSTEXPR cb_base* clone(A& alloc) const = 0;
+    virtual YK_POLYFILL_CXX20_CONSTEXPR holder_base* clone(A& alloc) const = 0;
     virtual YK_POLYFILL_CXX20_CONSTEXPR void destroy(A& alloc) noexcept = 0;
-    virtual YK_POLYFILL_CXX20_CONSTEXPR ~cb_base() = default;
+    virtual YK_POLYFILL_CXX20_CONSTEXPR ~holder_base() = default;
   };
 
   template <class U>
-  struct cb : cb_base {
+  struct holder : holder_base {
     U obj_;
 
     template <class... Ts>
-    YK_POLYFILL_CXX20_CONSTEXPR explicit cb(Ts&&... ts) : obj_(static_cast<Ts&&>(ts)...)
+    YK_POLYFILL_CXX20_CONSTEXPR explicit holder(Ts&&... ts) : obj_(static_cast<Ts&&>(ts)...)
     {
       this->ptr_ = std::addressof(obj_);
     }
 
-    YK_POLYFILL_CXX20_CONSTEXPR cb(const cb& other) : obj_(other.obj_)
+    YK_POLYFILL_CXX20_CONSTEXPR holder(const holder& other) : obj_(other.obj_)
     {
       this->ptr_ = std::addressof(obj_);
     }
 
-    YK_POLYFILL_CXX20_CONSTEXPR ~cb() override = default;
+    YK_POLYFILL_CXX20_CONSTEXPR ~holder() override = default;
 
-    using cb_alloc_t = typename std::allocator_traits<A>::template rebind_alloc<cb<U>>;
-    using cb_traits_t = std::allocator_traits<cb_alloc_t>;
+    using holder_alloc_t = typename std::allocator_traits<A>::template rebind_alloc<holder<U>>;
+    using holder_traits_t = std::allocator_traits<holder_alloc_t>;
 
-    YK_POLYFILL_CXX20_CONSTEXPR cb_base* clone(A& alloc) const override
+    YK_POLYFILL_CXX20_CONSTEXPR holder_base* clone(A& alloc) const override
     {
-      cb_alloc_t cb_alloc(alloc);
-      cb<U>* p = cb_traits_t::allocate(cb_alloc, 1);
+      holder_alloc_t holder_alloc(alloc);
+      holder<U>* p = holder_traits_t::allocate(holder_alloc, 1);
       try {
-        cb_traits_t::construct(cb_alloc, p, *this);
+        holder_traits_t::construct(holder_alloc, p, *this);
       } catch (...) {
-        cb_traits_t::deallocate(cb_alloc, p, 1);
+        holder_traits_t::deallocate(holder_alloc, p, 1);
         throw;
       }
       return p;
@@ -86,45 +86,45 @@ class polymorphic {
 
     YK_POLYFILL_CXX20_CONSTEXPR void destroy(A& alloc) noexcept override
     {
-      cb_alloc_t cb_alloc(alloc);
-      cb_traits_t::destroy(cb_alloc, this);
-      cb_traits_t::deallocate(cb_alloc, this, 1);
+      holder_alloc_t holder_alloc(alloc);
+      holder_traits_t::destroy(holder_alloc, this);
+      holder_traits_t::deallocate(holder_alloc, this, 1);
     }
   };
 
   // ---- Data members --------------------------------------------------------
 
-  cb_base* cb_;
+  holder_base* holder_;
   YK_POLYFILL_NO_UNIQUE_ADDRESS A alloc_;
 
   template <class U, class... Ts>
-  YK_POLYFILL_CXX20_CONSTEXPR void allocate_cb(Ts&&... ts)
+  YK_POLYFILL_CXX20_CONSTEXPR void allocate_holder(Ts&&... ts)
   {
-    using cb_alloc_t = typename std::allocator_traits<A>::template rebind_alloc<cb<U>>;
-    using cb_traits_t = std::allocator_traits<cb_alloc_t>;
-    cb_alloc_t cb_alloc(alloc_);
-    cb<U>* p = cb_traits_t::allocate(cb_alloc, 1);
+    using holder_alloc_t = typename std::allocator_traits<A>::template rebind_alloc<holder<U>>;
+    using holder_traits_t = std::allocator_traits<holder_alloc_t>;
+    holder_alloc_t holder_alloc(alloc_);
+    holder<U>* p = holder_traits_t::allocate(holder_alloc, 1);
     try {
-      cb_traits_t::construct(cb_alloc, p, static_cast<Ts&&>(ts)...);
+      holder_traits_t::construct(holder_alloc, p, static_cast<Ts&&>(ts)...);
     } catch (...) {
-      cb_traits_t::deallocate(cb_alloc, p, 1);
+      holder_traits_t::deallocate(holder_alloc, p, 1);
       throw;
     }
-    cb_ = p;
+    holder_ = p;
   }
 
   YK_POLYFILL_CXX20_CONSTEXPR void destroy_owned() noexcept
   {
-    if (cb_ == nullptr) return;
-    cb_->destroy(alloc_);
-    cb_ = nullptr;
+    if (holder_ == nullptr) return;
+    holder_->destroy(alloc_);
+    holder_ = nullptr;
   }
 
   YK_POLYFILL_CXX20_CONSTEXPR void copy_assign_content(const polymorphic& other)
   {
     destroy_owned();
-    if (other.cb_ != nullptr) {
-      cb_ = other.cb_->clone(alloc_);
+    if (other.holder_ != nullptr) {
+      holder_ = other.holder_->clone(alloc_);
     }
   }
 
@@ -140,71 +140,71 @@ class polymorphic {
 
   // --- Constructors ---
 
-  YK_POLYFILL_CXX20_CONSTEXPR polymorphic() : cb_(nullptr), alloc_()
+  YK_POLYFILL_CXX20_CONSTEXPR polymorphic() : holder_(nullptr), alloc_()
   {
-    allocate_cb<T>();
+    allocate_holder<T>();
   }
 
-  YK_POLYFILL_CXX20_CONSTEXPR explicit polymorphic(std::allocator_arg_t, const A& a) : cb_(nullptr), alloc_(a)
+  YK_POLYFILL_CXX20_CONSTEXPR explicit polymorphic(std::allocator_arg_t, const A& a) : holder_(nullptr), alloc_(a)
   {
-    allocate_cb<T>();
+    allocate_holder<T>();
   }
 
   template <class... Ts>
-  YK_POLYFILL_CXX20_CONSTEXPR explicit polymorphic(in_place_t, Ts&&... ts) : cb_(nullptr), alloc_()
+  YK_POLYFILL_CXX20_CONSTEXPR explicit polymorphic(in_place_t, Ts&&... ts) : holder_(nullptr), alloc_()
   {
-    allocate_cb<T>(static_cast<Ts&&>(ts)...);
+    allocate_holder<T>(static_cast<Ts&&>(ts)...);
   }
 
   template <class... Ts>
   YK_POLYFILL_CXX20_CONSTEXPR explicit polymorphic(std::allocator_arg_t, const A& a, in_place_t, Ts&&... ts)
-      : cb_(nullptr), alloc_(a)
+      : holder_(nullptr), alloc_(a)
   {
-    allocate_cb<T>(static_cast<Ts&&>(ts)...);
+    allocate_holder<T>(static_cast<Ts&&>(ts)...);
   }
 
   template <class U, class... Ts,
             typename std::enable_if<std::is_base_of<T, U>::value && !std::is_same<T, U>::value, std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX20_CONSTEXPR explicit polymorphic(in_place_type_t<U>, Ts&&... ts) : cb_(nullptr), alloc_()
+  YK_POLYFILL_CXX20_CONSTEXPR explicit polymorphic(in_place_type_t<U>, Ts&&... ts) : holder_(nullptr), alloc_()
   {
-    allocate_cb<U>(static_cast<Ts&&>(ts)...);
+    allocate_holder<U>(static_cast<Ts&&>(ts)...);
   }
 
   template <class U, class... Ts,
             typename std::enable_if<std::is_base_of<T, U>::value && !std::is_same<T, U>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR explicit polymorphic(std::allocator_arg_t, const A& a, in_place_type_t<U>, Ts&&... ts)
-      : cb_(nullptr), alloc_(a)
+      : holder_(nullptr), alloc_(a)
   {
-    allocate_cb<U>(static_cast<Ts&&>(ts)...);
+    allocate_holder<U>(static_cast<Ts&&>(ts)...);
   }
 
   // Copy constructor
   YK_POLYFILL_CXX20_CONSTEXPR polymorphic(const polymorphic& other)
-      : cb_(nullptr), alloc_(std::allocator_traits<A>::select_on_container_copy_construction(other.alloc_))
+      : holder_(nullptr), alloc_(std::allocator_traits<A>::select_on_container_copy_construction(other.alloc_))
   {
-    if (other.cb_ != nullptr) {
-      cb_ = other.cb_->clone(alloc_);
+    if (other.holder_ != nullptr) {
+      holder_ = other.holder_->clone(alloc_);
     }
   }
 
   YK_POLYFILL_CXX20_CONSTEXPR polymorphic(const polymorphic& other, std::allocator_arg_t, const A& a)
-      : cb_(nullptr), alloc_(a)
+      : holder_(nullptr), alloc_(a)
   {
-    if (other.cb_ != nullptr) {
-      cb_ = other.cb_->clone(alloc_);
+    if (other.holder_ != nullptr) {
+      holder_ = other.holder_->clone(alloc_);
     }
   }
 
   // Move constructor
   YK_POLYFILL_CXX14_CONSTEXPR polymorphic(polymorphic&& other) noexcept
-      : cb_(other.cb_), alloc_(static_cast<A&&>(other.alloc_))
+      : holder_(other.holder_), alloc_(static_cast<A&&>(other.alloc_))
   {
-    other.cb_ = nullptr;
+    other.holder_ = nullptr;
   }
 
   YK_POLYFILL_CXX20_CONSTEXPR polymorphic(polymorphic&& other, std::allocator_arg_t, const A& a)
       noexcept(indirect_detail::is_always_equal<A>::value)
-      : cb_(nullptr), alloc_(a)
+      : holder_(nullptr), alloc_(a)
   {
     polymorphic_detail::move_ctor_ops<indirect_detail::is_always_equal<A>::value>::apply(*this, static_cast<polymorphic&&>(other));
   }
@@ -233,15 +233,15 @@ class polymorphic {
 
   // --- Observers ---
 
-  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR T& operator*() & noexcept { return *cb_->ptr_; }
-  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR const T& operator*() const& noexcept { return *cb_->ptr_; }
-  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR T&& operator*() && noexcept { return static_cast<T&&>(*cb_->ptr_); }
-  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR const T&& operator*() const&& noexcept { return static_cast<const T&&>(*cb_->ptr_); }
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR T& operator*() & noexcept { return *holder_->ptr_; }
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR const T& operator*() const& noexcept { return *holder_->ptr_; }
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR T&& operator*() && noexcept { return static_cast<T&&>(*holder_->ptr_); }
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR const T&& operator*() const&& noexcept { return static_cast<const T&&>(*holder_->ptr_); }
 
-  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR T* operator->() noexcept { return cb_->ptr_; }
-  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR const T* operator->() const noexcept { return cb_->ptr_; }
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR T* operator->() noexcept { return holder_->ptr_; }
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR const T* operator->() const noexcept { return holder_->ptr_; }
 
-  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR bool valueless_after_move() const noexcept { return cb_ == nullptr; }
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR bool valueless_after_move() const noexcept { return holder_ == nullptr; }
 
   [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR A get_allocator() const noexcept { return alloc_; }
 
@@ -335,7 +335,7 @@ struct swap_ops</*Pocs = */ true> {
   static YK_POLYFILL_CXX14_CONSTEXPR void apply(polymorphic<T, A>& a, polymorphic<T, A>& b) noexcept
   {
     indirect_detail::cswap(a.alloc_, b.alloc_);
-    indirect_detail::cswap(a.cb_, b.cb_);
+    indirect_detail::cswap(a.holder_, b.holder_);
   }
 };
 
@@ -344,7 +344,7 @@ struct swap_ops</*Pocs = */ false> {
   template <class T, class A>
   static YK_POLYFILL_CXX14_CONSTEXPR void apply(polymorphic<T, A>& a, polymorphic<T, A>& b) noexcept
   {
-    indirect_detail::cswap(a.cb_, b.cb_);
+    indirect_detail::cswap(a.holder_, b.holder_);
   }
 };
 
@@ -357,7 +357,7 @@ struct copy_assign_ops</*Pocca = */ true> {
     // branches reduce to the same sequence: destroy, propagate alloc, clone.
     self.destroy_owned();
     self.alloc_ = other.alloc_;
-    if (other.cb_ != nullptr) self.cb_ = other.cb_->clone(self.alloc_);
+    if (other.holder_ != nullptr) self.holder_ = other.holder_->clone(self.alloc_);
   }
 };
 
@@ -377,8 +377,8 @@ struct move_assign_ops</*Pocma = */ true> {
   {
     self.destroy_owned();
     self.alloc_ = static_cast<A&&>(other.alloc_);
-    self.cb_ = other.cb_;
-    other.cb_ = nullptr;
+    self.holder_ = other.holder_;
+    other.holder_ = nullptr;
   }
 };
 
@@ -398,8 +398,8 @@ struct move_assign_ne_ops</*AlwaysEqual = */ true> {
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, polymorphic<T, A>&& other) noexcept
   {
     self.destroy_owned();
-    self.cb_ = other.cb_;
-    other.cb_ = nullptr;
+    self.holder_ = other.holder_;
+    other.holder_ = nullptr;
   }
 };
 
@@ -410,10 +410,10 @@ struct move_assign_ne_ops</*AlwaysEqual = */ false> {
   {
     self.destroy_owned();
     if (self.alloc_ == other.alloc_) {
-      self.cb_ = other.cb_;
-      other.cb_ = nullptr;
-    } else if (other.cb_ != nullptr) {
-      self.cb_ = other.cb_->clone(self.alloc_);
+      self.holder_ = other.holder_;
+      other.holder_ = nullptr;
+    } else if (other.holder_ != nullptr) {
+      self.holder_ = other.holder_->clone(self.alloc_);
     }
   }
 };
@@ -423,8 +423,8 @@ struct move_ctor_ops</*AlwaysEqual = */ true> {
   template <class T, class A>
   static YK_POLYFILL_CXX14_CONSTEXPR void apply(polymorphic<T, A>& self, polymorphic<T, A>&& other) noexcept
   {
-    self.cb_ = other.cb_;
-    other.cb_ = nullptr;
+    self.holder_ = other.holder_;
+    other.holder_ = nullptr;
   }
 };
 
@@ -434,10 +434,10 @@ struct move_ctor_ops</*AlwaysEqual = */ false> {
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, polymorphic<T, A>&& other)
   {
     if (self.alloc_ == other.alloc_) {
-      self.cb_ = other.cb_;
-      other.cb_ = nullptr;
-    } else if (other.cb_ != nullptr) {
-      self.cb_ = other.cb_->clone(self.alloc_);
+      self.holder_ = other.holder_;
+      other.holder_ = nullptr;
+    } else if (other.holder_ != nullptr) {
+      self.holder_ = other.holder_->clone(self.alloc_);
     }
   }
 };
