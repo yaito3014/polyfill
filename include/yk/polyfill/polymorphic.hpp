@@ -376,7 +376,7 @@ class polymorphic {
 namespace polymorphic_detail {
 
 template <>
-struct swap_ops<true> {
+struct swap_ops</*Pocs = */ true> {
   template <class T, class A>
   static YK_POLYFILL_CXX14_CONSTEXPR void apply(polymorphic<T, A>& a, polymorphic<T, A>& b) noexcept
   {
@@ -386,7 +386,7 @@ struct swap_ops<true> {
 };
 
 template <>
-struct swap_ops<false> {
+struct swap_ops</*Pocs = */ false> {
   template <class T, class A>
   static YK_POLYFILL_CXX14_CONSTEXPR void apply(polymorphic<T, A>& a, polymorphic<T, A>& b) noexcept
   {
@@ -395,7 +395,7 @@ struct swap_ops<false> {
 };
 
 template <>
-struct copy_assign_ops<true> {
+struct copy_assign_ops</*Pocca = */ true> {
   template <class T, class A>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, const polymorphic<T, A>& other)
   {
@@ -408,7 +408,7 @@ struct copy_assign_ops<true> {
 };
 
 template <>
-struct copy_assign_ops<false> {
+struct copy_assign_ops</*Pocca = */ false> {
   template <class T, class A>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, const polymorphic<T, A>& other)
   {
@@ -417,7 +417,7 @@ struct copy_assign_ops<false> {
 };
 
 template <>
-struct move_assign_ops<true> {
+struct move_assign_ops</*Pocma = */ true> {
   template <class T, class A>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, polymorphic<T, A>&& other) noexcept
   {
@@ -429,7 +429,7 @@ struct move_assign_ops<true> {
 };
 
 template <>
-struct move_assign_ops<false> {
+struct move_assign_ops</*Pocma = */ false> {
   template <class T, class A>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, polymorphic<T, A>&& other)
       noexcept(indirect_detail::is_always_equal<A>::value)
@@ -439,7 +439,7 @@ struct move_assign_ops<false> {
 };
 
 template <>
-struct move_assign_ne_ops<true> {  // always-equal: steal unconditionally
+struct move_assign_ne_ops</*AlwaysEqual = */ true> {
   template <class T, class A>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, polymorphic<T, A>&& other) noexcept
   {
@@ -450,7 +450,7 @@ struct move_assign_ne_ops<true> {  // always-equal: steal unconditionally
 };
 
 template <>
-struct move_assign_ne_ops<false> {  // may differ: check at runtime
+struct move_assign_ne_ops</*AlwaysEqual = */ false> {
   template <class T, class A>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, polymorphic<T, A>&& other)
   {
@@ -465,7 +465,7 @@ struct move_assign_ne_ops<false> {  // may differ: check at runtime
 };
 
 template <>
-struct move_ctor_ops<true> {  // always-equal: steal unconditionally
+struct move_ctor_ops</*AlwaysEqual = */ true> {
   template <class T, class A>
   static YK_POLYFILL_CXX14_CONSTEXPR void apply(polymorphic<T, A>& self, polymorphic<T, A>&& other) noexcept
   {
@@ -475,7 +475,7 @@ struct move_ctor_ops<true> {  // always-equal: steal unconditionally
 };
 
 template <>
-struct move_ctor_ops<false> {  // may differ: check at runtime
+struct move_ctor_ops</*AlwaysEqual = */ false> {
   template <class T, class A>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, polymorphic<T, A>&& other)
   {
