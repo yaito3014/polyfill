@@ -277,6 +277,39 @@ TEST_CASE("indirect: move-only T — basic move ctor and move assign work")
   CHECK(b.valueless_after_move());
 }
 
+// --- Generic (converting) constructor ---
+
+TEST_CASE("indirect: generic ctor — constructs from value")
+{
+  pf::indirect<std::string> s(std::string("hello"));
+  CHECK(*s == "hello");
+}
+
+TEST_CASE("indirect: generic ctor — constructs from compatible type")
+{
+  // const char* is constructible to std::string
+  pf::indirect<std::string> s("world");
+  CHECK(*s == "world");
+}
+
+TEST_CASE("indirect: generic ctor — Constraint: not selected when U is incompatible")
+{
+  // int is not constructible from std::string
+  STATIC_REQUIRE(!std::is_constructible<pf::indirect<int>, std::string>::value);
+}
+
+TEST_CASE("indirect: generic ctor — Constraint: not in overload set when A has no default ctor")
+{
+  STATIC_REQUIRE(!std::is_constructible<pf::indirect<int, NoDefaultAlloc<int>>, int>::value);
+}
+
+TEST_CASE("indirect: alloc-extended generic ctor — constructs from value with allocator")
+{
+  std::allocator<std::string> a;
+  pf::indirect<std::string> s(std::allocator_arg, a, std::string("hi"));
+  CHECK(*s == "hi");
+}
+
 // ---- allocator-propagation tests ------------------------------------------
 //
 // TestAlloc<T, Pocs, Pocca, Pocma> is a minimal stateful allocator with

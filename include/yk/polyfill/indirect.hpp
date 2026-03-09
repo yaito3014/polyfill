@@ -129,8 +129,31 @@ class indirect {
     allocate_and_construct();
   }
 
+  // Constraints: U not indirect, U not in_place_t, T constructible from U, A default-constructible (enable_if)
+  template <class U, typename AllocDummy = A,
+            typename std::enable_if<!std::is_same<typename remove_cvref<U>::type, indirect>::value, std::nullptr_t>::type = nullptr,
+            typename std::enable_if<!std::is_same<typename remove_cvref<U>::type, in_place_t>::value, std::nullptr_t>::type = nullptr,
+            typename std::enable_if<std::is_constructible<T, U>::value, std::nullptr_t>::type = nullptr,
+            typename std::enable_if<std::is_default_constructible<AllocDummy>::value, std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX20_CONSTEXPR explicit indirect(U&& u) : ptr_(nullptr), alloc_()
+  {
+    allocate_and_construct(static_cast<U&&>(u));
+  }
+
+  // Constraints: U not indirect, U not in_place_t, T constructible from U (enable_if)
+  template <class U,
+            typename std::enable_if<!std::is_same<typename remove_cvref<U>::type, indirect>::value, std::nullptr_t>::type = nullptr,
+            typename std::enable_if<!std::is_same<typename remove_cvref<U>::type, in_place_t>::value, std::nullptr_t>::type = nullptr,
+            typename std::enable_if<std::is_constructible<T, U>::value, std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX20_CONSTEXPR explicit indirect(std::allocator_arg_t, const A& a, U&& u) : ptr_(nullptr), alloc_(a)
+  {
+    allocate_and_construct(static_cast<U&&>(u));
+  }
+
   // Constraints: T constructible from Ts...; A must be default-constructible (enable_if)
-  template <class... Ts, typename std::enable_if<std::is_constructible<T, Ts...>::value && std::is_default_constructible<A>::value, std::nullptr_t>::type = nullptr>
+  template <class... Ts, typename AllocDummy2 = A,
+            typename std::enable_if<std::is_constructible<T, Ts...>::value, std::nullptr_t>::type = nullptr,
+            typename std::enable_if<std::is_default_constructible<AllocDummy2>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR explicit indirect(in_place_t, Ts&&... ts) : ptr_(nullptr), alloc_()
   {
     allocate_and_construct(static_cast<Ts&&>(ts)...);
@@ -289,9 +312,12 @@ class indirect {
 #endif  // __cpp_lib_three_way_comparison
 };
 
-// Deduction guide
+// Deduction guides
 template <class T>
 indirect(T) -> indirect<T>;
+
+template <class A, class T>
+indirect(std::allocator_arg_t, A, T) -> indirect<T, typename std::allocator_traits<A>::template rebind_alloc<T>>;
 
 // ---- ops specialisations (indirect is now complete) -------------------------
 
