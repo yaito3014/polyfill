@@ -49,10 +49,8 @@ TEST_CASE("polymorphic: type traits")
   STATIC_REQUIRE(std::is_copy_assignable<pf::polymorphic<int>>::value);
   STATIC_REQUIRE(std::is_move_assignable<pf::polymorphic<int>>::value);
 
-  // Move constructor is noexcept
   STATIC_REQUIRE(std::is_nothrow_move_constructible<pf::polymorphic<int>>::value);
 
-  // Dereference value categories
   STATIC_REQUIRE(std::is_same<decltype(*std::declval<pf::polymorphic<int>&>()), int&>::value);
   STATIC_REQUIRE(std::is_same<decltype(*std::declval<const pf::polymorphic<int>&>()), const int&>::value);
   STATIC_REQUIRE(std::is_same<decltype(*std::declval<pf::polymorphic<int>&&>()), int&&>::value);
@@ -157,27 +155,24 @@ TEST_CASE("polymorphic: operator== between two polymorphics")
 TEST_CASE("polymorphic: valueless comparison")
 {
   pf::polymorphic<int> a(pf::in_place, 1);
-  pf::polymorphic<int> b = std::move(a);  // a is now valueless
+  pf::polymorphic<int> b = std::move(a);
 
   CHECK(a.valueless_after_move());
 
-  pf::polymorphic<int> c = std::move(b);  // b is now valueless too
-  CHECK(a == b);   // both valueless -> equal
+  pf::polymorphic<int> c = std::move(b);
+  CHECK(a == b);
   CHECK(!(a == c));
   CHECK(a != c);
 }
 
 TEST_CASE("polymorphic: in_place_type_t construction with derived type")
 {
-  // Construct a polymorphic<Animal> holding a Dog
   pf::polymorphic<Animal> p(pf::in_place_type<Dog>);
   CHECK(p->sound() == "woof");
 }
 
 TEST_CASE("polymorphic: in_place_type_t construction with U == T (class type)")
 {
-  // in_place_type<T> where U == T must work (P3019R14 only requires is_base_of, not strict derived).
-  // Note: is_base_of requires class types; tested with Point, not int.
   pf::polymorphic<Point> p(pf::in_place_type<Point>, 1, 2);
   CHECK(p->x == 1);
   CHECK(p->y == 2);
@@ -194,22 +189,13 @@ TEST_CASE("polymorphic: self move-assignment is safe")
 {
   pf::polymorphic<int> p(pf::in_place, 42);
   p = std::move(p);
-  // After self-move-assign the guard (this == &other) fires; p is unchanged.
   CHECK(*p == 42);
 }
 
 TEST_CASE("polymorphic: copy preserves dynamic type (the key feature)")
 {
-  // p1 holds a Dog (derived from Animal)
   pf::polymorphic<Animal> p1(pf::in_place_type<Dog>);
-  CHECK(p1->sound() == "woof");
-
-  // Copying p1 should produce a polymorphic<Animal> that still holds a Dog
   pf::polymorphic<Animal> p2 = p1;
-  CHECK(p2->sound() == "woof");
-
-  // Mutating p2 should not affect p1 (they are independent objects)
-  // We verify independence by checking both still exist
   CHECK(p1->sound() == "woof");
   CHECK(p2->sound() == "woof");
 }
@@ -222,15 +208,12 @@ TEST_CASE("polymorphic: two different derived types are independent")
   CHECK(dog->sound() == "woof");
   CHECK(cat->sound() == "meow");
 
-  // Copy dog into a new polymorphic
   pf::polymorphic<Animal> dog2 = dog;
   CHECK(dog2->sound() == "woof");
 
-  // Assign cat to dog2: should now hold a Cat
   dog2 = cat;
   CHECK(dog2->sound() == "meow");
 
-  // Original dog and cat are unchanged
   CHECK(dog->sound() == "woof");
   CHECK(cat->sound() == "meow");
 }
@@ -251,9 +234,6 @@ TEST_CASE("polymorphic: get_allocator")
 }
 
 // ---- allocator-propagation tests ------------------------------------------
-//
-// Same TestAlloc as in the indirect tests; duplicated here to keep each test
-// file self-contained.
 
 template <class T, bool Pocs, bool Pocca, bool Pocma>
 struct TestAlloc {
@@ -368,7 +348,6 @@ TEST_CASE("polymorphic alloc: move assign POCMA=false same alloc steals value")
 
 TEST_CASE("polymorphic alloc: move assign POCMA=false different alloc clones with own allocator")
 {
-  // Allocs differ: cannot steal; polymorphic clones using y's existing allocator.
   StaticAlloc<int> a1(1), a2(2);
   pf::polymorphic<int, StaticAlloc<int>> x(std::allocator_arg, a1, pf::in_place, 42);
   pf::polymorphic<int, StaticAlloc<int>> y(std::allocator_arg, a2, pf::in_place, 0);

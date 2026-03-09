@@ -21,8 +21,6 @@ struct ConstDerived : ConstBase {
   constexpr int value() const override { return val; }
 };
 
-// ---- constexpr helpers ----
-
 constexpr int polymorphic_default_construct()
 {
   pf::polymorphic<int> a;
@@ -92,8 +90,6 @@ constexpr bool polymorphic_valueless_eq()
       && !(a == c);
 }
 
-// ---- test cases ----
-
 TEST_CASE("polymorphic constexpr: default construction")
 {
   STATIC_REQUIRE(polymorphic_default_construct() == 0);
@@ -139,8 +135,6 @@ TEST_CASE("polymorphic constexpr: valueless equality")
   STATIC_REQUIRE(polymorphic_valueless_eq());
 }
 
-// ---- constexpr derived-type helpers ----
-
 constexpr bool polymorphic_in_place_type_stores_derived()
 {
   pf::polymorphic<ConstBase> p(pf::in_place_type<ConstDerived>, 42);
@@ -163,8 +157,6 @@ TEST_CASE("polymorphic constexpr: copy preserves dynamic type")
 {
   STATIC_REQUIRE(polymorphic_copy_preserves_dynamic_type());
 }
-
-// ---- spaceship comparison tests ----
 
 TEST_CASE("polymorphic: spaceship comparison between two polymorphics")
 {
@@ -189,11 +181,11 @@ TEST_CASE("polymorphic: spaceship comparison with raw value")
 TEST_CASE("polymorphic: valueless spaceship comparison")
 {
   pf::polymorphic<int> a(pf::in_place, 1);
-  pf::polymorphic<int> b = std::move(a);  // a is now valueless
+  pf::polymorphic<int> b = std::move(a);
 
-  REQUIRE((a <=> b) == std::strong_ordering::less);    // valueless < non-valueless
+  REQUIRE((a <=> b) == std::strong_ordering::less);
   REQUIRE((b <=> a) == std::strong_ordering::greater);
 
-  pf::polymorphic<int> c = std::move(b);  // b is now valueless too
-  REQUIRE((a <=> b) == std::strong_ordering::equal);   // valueless == valueless
+  pf::polymorphic<int> c = std::move(b);
+  REQUIRE((a <=> b) == std::strong_ordering::equal);
 }
