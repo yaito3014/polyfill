@@ -116,6 +116,41 @@ jobs:
         working-directory: build/test
         run: |
           ctest -C ${{ matrix.build-type }}
+  msvc-no-comparison:
+    needs: check-changes
+    if: needs.check-changes.outputs.need_build == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        cxx-version: [14, 17, 20]
+        build-type:
+          - Debug
+    name: C++${{ matrix.cxx-version }} ${{ matrix.build-type }} (MSVC 2022 no-comparison verify)
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v6
+      - name: Restore deps from cache
+        id: cache-restore
+        uses: actions/cache/restore@v5
+        with:
+          path: build/_deps
+          key: ${{ matrix.cxx-version }}-${{ matrix.build-type }}-MSVC-2022-windows-2022-no-cmp
+      - name: Configure
+        run: |
+          cmake -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_STANDARD=${{ matrix.cxx-version }} -DCMAKE_CXX_COMPILER=cl -DYK_POLYFILL_CI=ON "-DCMAKE_CXX_FLAGS=/DYK_POLYFILL_DISABLE_COMPARISON_OPS" -Bbuild .
+      - name: Build tests
+        run: |
+          cmake --build build --config ${{ matrix.build-type }}
+      - name: Save deps to cache
+        if: steps.cache-restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: build/_deps
+          key: ${{ steps.cache-restore.outputs.cache-primary-key }}
+      - name: Run tests
+        working-directory: build/test
+        run: |
+          ctest -C ${{ matrix.build-type }}
   run-notifier:
     needs: build
     runs-on: ubuntu-latest

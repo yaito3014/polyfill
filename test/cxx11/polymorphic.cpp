@@ -141,6 +141,7 @@ TEST_CASE("polymorphic: swap")
   CHECK(*b == 2);
 }
 
+#ifndef YK_POLYFILL_DISABLE_COMPARISON_OPS
 TEST_CASE("polymorphic: operator== between two polymorphics")
 {
   pf::polymorphic<Point> a(pf::in_place, 1, 2);
@@ -164,6 +165,7 @@ TEST_CASE("polymorphic: valueless comparison")
   CHECK(!(a == c));
   CHECK(a != c);
 }
+#endif  // YK_POLYFILL_DISABLE_COMPARISON_OPS
 
 TEST_CASE("polymorphic: in_place_type_t construction with derived type")
 {

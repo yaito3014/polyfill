@@ -58,6 +58,7 @@ constexpr bool indirect_swap()
   return *a == 2 && *b == 1;
 }
 
+#ifndef YK_POLYFILL_DISABLE_COMPARISON_OPS
 constexpr bool indirect_eq()
 {
   pf::indirect<int> a(pf::in_place, 4);
@@ -76,6 +77,7 @@ constexpr bool indirect_valueless_eq()
       && a == b       // valueless == valueless
       && !(a == c);   // valueless != non-valueless
 }
+#endif  // YK_POLYFILL_DISABLE_COMPARISON_OPS
 
 // ---- test cases ----
 
@@ -114,6 +116,7 @@ TEST_CASE("indirect constexpr: swap")
   STATIC_REQUIRE(indirect_swap());
 }
 
+#ifndef YK_POLYFILL_DISABLE_COMPARISON_OPS
 TEST_CASE("indirect constexpr: equality comparison")
 {
   STATIC_REQUIRE(indirect_eq());
@@ -123,3 +126,4 @@ TEST_CASE("indirect constexpr: valueless equality")
 {
   STATIC_REQUIRE(indirect_valueless_eq());
 }
+#endif  // YK_POLYFILL_DISABLE_COMPARISON_OPS
