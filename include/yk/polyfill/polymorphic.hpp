@@ -256,7 +256,7 @@ class polymorphic {
 
   template <class U, class AA>
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const polymorphic& lhs, const polymorphic<U, AA>& rhs)
-      noexcept(noexcept(lhs == rhs))
+      noexcept(noexcept(*lhs == *rhs))
   {
     return !(lhs == rhs);
   }
@@ -279,14 +279,14 @@ class polymorphic {
 
   template <class U, typename std::enable_if<!polymorphic_detail::is_polymorphic_wrapper<U>::value, std::nullptr_t>::type = nullptr>
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const polymorphic& lhs, const U& rhs)
-      noexcept(noexcept(lhs == rhs))
+      noexcept(noexcept(*lhs == rhs))
   {
     return !(lhs == rhs);
   }
 
   template <class U, typename std::enable_if<!polymorphic_detail::is_polymorphic_wrapper<U>::value, std::nullptr_t>::type = nullptr>
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const U& lhs, const polymorphic& rhs)
-      noexcept(noexcept(lhs == rhs))
+      noexcept(noexcept(lhs == *rhs))
   {
     return !(lhs == rhs);
   }
