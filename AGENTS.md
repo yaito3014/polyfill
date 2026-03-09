@@ -30,6 +30,20 @@ ctest --test-dir build --output-on-failure
 | `test/cxx17/`      | C++17    | C++17-specific utilities |
 | `test/cxx20/`      | C++20    | `STATIC_REQUIRE` constexpr tests for `indirect` and `polymorphic` |
 
+## After making changes
+
+For any non-trivial change, add a test that would fail if the change were reverted:
+
+- **Runtime behavior change** → add a `TEST_CASE` to the appropriate `test/cxx11/`
+  file (or `cxx17/` if it uses C++17 features).
+- **New `constexpr` guarantee** (e.g. lowering `YK_POLYFILL_CXX20_CONSTEXPR` to
+  `YK_POLYFILL_CXX14_CONSTEXPR`) → add or extend a `STATIC_REQUIRE` helper in
+  `test/cxx20/` to exercise the operation at compile time.
+- **Allocator-propagation path** → use `TestAlloc<T, Pocs, Pocca, Pocma>` (already
+  defined in `test/cxx11/indirect.cpp` and `test/cxx11/polymorphic.cpp`) to
+  construct objects with distinct allocator IDs and assert the expected post-state.
+- Always run `ctest --test-dir build` and confirm all tests pass before committing.
+
 ## Guidance for indirect / polymorphic changes
 
 - **Allocator-propagation behavior** (POCS / POCCA / POCMA / `is_always_equal`) is
