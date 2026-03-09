@@ -58,9 +58,11 @@ jobs:
           - name: MSVC
             version: 2022
             executable: cl
+            toolset: '14.3'
           - name: MSVC
             version: 2026
             executable: cl
+            toolset: '14.4'
         cxx-version: [11, 14, 17, 20, 23, 26]
         exclude:
           - os:
@@ -115,6 +117,7 @@ jobs:
         uses: TheMrMilchmann/setup-msvc-dev@v3
         with:
           arch: x64
+          toolset: ${{ matrix.compiler.toolset }}
       - name: Restore deps from cache
         id: cache-restore
         uses: actions/cache/restore@v5
