@@ -321,12 +321,14 @@ class indirect {
 #endif  // __cpp_lib_three_way_comparison
 };
 
+#if __cplusplus >= 201703L
 // Deduction guides
 template <class T>
 indirect(T) -> indirect<T>;
 
 template <class A, class T>
 indirect(std::allocator_arg_t, A, T) -> indirect<T, typename std::allocator_traits<A>::template rebind_alloc<T>>;
+#endif  // __cplusplus >= 201703L
 
 // ---- ops specialisations (indirect is now complete) -------------------------
 
