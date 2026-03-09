@@ -245,6 +245,7 @@ class polymorphic {
 
   friend YK_POLYFILL_CXX14_CONSTEXPR void swap(polymorphic& a, polymorphic& b) noexcept(noexcept(a.swap(b))) { a.swap(b); }
 
+#ifndef YK_POLYFILL_DISABLE_COMPARISON_OPS
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator==(const polymorphic& lhs, const polymorphic& rhs)
       noexcept(noexcept(*lhs == *rhs))
   {
@@ -311,6 +312,7 @@ class polymorphic {
     return *lhs <=> rhs;
   }
 #endif  // __cpp_lib_three_way_comparison
+#endif  // YK_POLYFILL_DISABLE_COMPARISON_OPS
 };
 
 // ---- Allocator-aware operations (defined after polymorphic is complete) -----
@@ -432,6 +434,7 @@ struct move_ctor_ops</*AlwaysEqual = */ false> {
 
 }  // namespace polymorphic_detail
 
+#ifndef YK_POLYFILL_DISABLE_COMPARISON_OPS
 // ---- Cross-type wrapper comparisons (outside class to avoid MSVC ADL recursion) ----
 
 template <class T, class A, class U, class AA,
@@ -465,6 +468,7 @@ constexpr auto operator<=>(const polymorphic<T, A>& lhs, const polymorphic<U, AA
   return *lhs <=> *rhs;
 }
 #endif  // __cpp_lib_three_way_comparison
+#endif  // YK_POLYFILL_DISABLE_COMPARISON_OPS
 
 }  // namespace polyfill
 
