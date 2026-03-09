@@ -130,7 +130,7 @@ class indirect {
   }
 
   // Constraints: U not indirect, U not in_place_t, T constructible from U, A default-constructible (enable_if)
-  template <class U, typename AllocDummy = A,
+  template <class U = T, typename AllocDummy = A,
             typename std::enable_if<!std::is_same<typename remove_cvref<U>::type, indirect>::value, std::nullptr_t>::type = nullptr,
             typename std::enable_if<!std::is_same<typename remove_cvref<U>::type, in_place_t>::value, std::nullptr_t>::type = nullptr,
             typename std::enable_if<std::is_constructible<T, U>::value, std::nullptr_t>::type = nullptr,
@@ -141,7 +141,7 @@ class indirect {
   }
 
   // Constraints: U not indirect, U not in_place_t, T constructible from U (enable_if)
-  template <class U,
+  template <class U = T,
             typename std::enable_if<!std::is_same<typename remove_cvref<U>::type, indirect>::value, std::nullptr_t>::type = nullptr,
             typename std::enable_if<!std::is_same<typename remove_cvref<U>::type, in_place_t>::value, std::nullptr_t>::type = nullptr,
             typename std::enable_if<std::is_constructible<T, U>::value, std::nullptr_t>::type = nullptr>
