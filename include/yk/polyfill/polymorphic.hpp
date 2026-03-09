@@ -58,14 +58,11 @@ struct cb_ops {
   }
 };
 
-#if __cpp_constexpr_dynamic_alloc >= 201907L && __cpp_lib_is_constant_evaluated >= 201811L
+#if __cpp_constexpr_dynamic_alloc >= 201907L
 template <>
 struct cb_ops<true> {
   template <class Cb, class CbAlloc, class CbTraits, class... Args>
   static constexpr Cb* construct(CbAlloc& a, Args&&... args) {
-    if (std::is_constant_evaluated()) {
-      return new Cb(static_cast<Args&&>(args)...);
-    }
     Cb* p = CbTraits::allocate(a, 1);
     try {
       CbTraits::construct(a, p, static_cast<Args&&>(args)...);
@@ -78,17 +75,13 @@ struct cb_ops<true> {
 
   template <class CbBase, class Alloc>
   static constexpr void destroy_cb(CbBase*& cb, Alloc& alloc) noexcept {
-    if (std::is_constant_evaluated()) {
-      delete cb;
-    } else {
-      cb->destroy(alloc);
-    }
+    cb->destroy(alloc);
     cb = nullptr;
   }
 };
-#endif  // __cpp_constexpr_dynamic_alloc && __cpp_lib_is_constant_evaluated
+#endif  // __cpp_constexpr_dynamic_alloc
 
-#if __cpp_constexpr_dynamic_alloc >= 201907L && __cpp_lib_is_constant_evaluated >= 201811L
+#if __cpp_constexpr_dynamic_alloc >= 201907L
 static constexpr bool has_constexpr_dynamic_alloc = true;
 #else
 static constexpr bool has_constexpr_dynamic_alloc = false;
