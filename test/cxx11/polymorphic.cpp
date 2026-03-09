@@ -141,30 +141,6 @@ TEST_CASE("polymorphic: swap")
   CHECK(*b == 2);
 }
 
-TEST_CASE("polymorphic: operator== between two polymorphics")
-{
-  pf::polymorphic<Point> a(pf::in_place, 1, 2);
-  pf::polymorphic<Point> b(pf::in_place, 1, 2);
-  pf::polymorphic<Point> c(pf::in_place, 3, 4);
-
-  CHECK(a == b);
-  CHECK(!(a == c));
-  CHECK(a != c);
-}
-
-TEST_CASE("polymorphic: valueless comparison")
-{
-  pf::polymorphic<int> a(pf::in_place, 1);
-  pf::polymorphic<int> b = std::move(a);
-
-  CHECK(a.valueless_after_move());
-
-  pf::polymorphic<int> c = std::move(b);
-  CHECK(a == b);
-  CHECK(!(a == c));
-  CHECK(a != c);
-}
-
 TEST_CASE("polymorphic: in_place_type_t construction with derived type")
 {
   pf::polymorphic<Animal> p(pf::in_place_type_t<Dog>{});

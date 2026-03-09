@@ -46,6 +46,25 @@ YK_POLYFILL_CXX14_CONSTEXPR void cswap(T& a, T& b)
   b = static_cast<T&&>(tmp);
 }
 
+// synth_three_way: like <=> but falls back to synthesising weak_ordering from
+// < and == when the type has no <=> (mirrors the standard's synth-three-way).
+#if __cpp_lib_three_way_comparison >= 201907L
+template <class T, class U = T>
+constexpr auto synth_three_way(const T& t, const U& u)
+{
+  if constexpr (std::three_way_comparable_with<T, U>) {
+    return t <=> u;
+  } else {
+    if (t < u) return std::weak_ordering::less;
+    if (u < t) return std::weak_ordering::greater;
+    return std::weak_ordering::equivalent;
+  }
+}
+
+template <class T, class U = T>
+using synth_three_way_result = decltype(synth_three_way(std::declval<const T&>(), std::declval<const U&>()));
+#endif  // __cpp_lib_three_way_comparison
+
 // Forward declarations — specialisations are defined after indirect is complete.
 template <bool Pocs>        struct swap_ops;
 template <bool Pocca>       struct copy_assign_ops;
@@ -227,6 +246,21 @@ class indirect {
     return *this;
   }
 
+  // Constraints: U not indirect; T constructible from U and assignable from U
+  template <class U,
+            typename std::enable_if<!std::is_same<typename remove_cvref<U>::type, indirect>::value, std::nullptr_t>::type = nullptr,
+            typename std::enable_if<std::is_constructible<T, U>::value, std::nullptr_t>::type = nullptr,
+            typename std::enable_if<std::is_assignable<T&, U>::value, std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX20_CONSTEXPR indirect& operator=(U&& u)
+  {
+    if (ptr_ != nullptr) {
+      *ptr_ = static_cast<U&&>(u);
+    } else {
+      allocate_and_construct(static_cast<U&&>(u));
+    }
+    return *this;
+  }
+
   // --- Observers ---
 
   [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR T& operator*() & noexcept { return *ptr_; }
@@ -272,21 +306,20 @@ class indirect {
 
 #if __cpp_lib_three_way_comparison >= 201907L
   friend constexpr auto operator<=>(const indirect& lhs, const indirect& rhs)
-      -> std::common_comparison_category_t<std::strong_ordering, decltype(*lhs <=> *rhs)>
+      -> indirect_detail::synth_three_way_result<T>
   {
-    if (lhs.valueless_after_move() && rhs.valueless_after_move()) return std::strong_ordering::equal;
-    if (lhs.valueless_after_move()) return std::strong_ordering::less;
-    if (rhs.valueless_after_move()) return std::strong_ordering::greater;
-    return *lhs <=> *rhs;
+    if (lhs.valueless_after_move() || rhs.valueless_after_move()) {
+      return !lhs.valueless_after_move() <=> !rhs.valueless_after_move();
+    }
+    return indirect_detail::synth_three_way(*lhs, *rhs);
   }
 
   template <class U>
   friend constexpr auto operator<=>(const indirect& lhs, const U& rhs)
-      noexcept(noexcept(*lhs <=> rhs))
-      -> std::common_comparison_category_t<std::strong_ordering, decltype(*lhs <=> rhs)>
+      -> indirect_detail::synth_three_way_result<T, U>
   {
     if (lhs.valueless_after_move()) return std::strong_ordering::less;
-    return *lhs <=> rhs;
+    return indirect_detail::synth_three_way(*lhs, rhs);
   }
 #endif  // __cpp_lib_three_way_comparison
 };
@@ -355,12 +388,12 @@ YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const indirect<T, A>& lhs, const ind
 template <class T, class A, class U, class AA,
     typename std::enable_if<!std::is_same<T, U>::value || !std::is_same<A, AA>::value, std::nullptr_t>::type = nullptr>
 constexpr auto operator<=>(const indirect<T, A>& lhs, const indirect<U, AA>& rhs)
-    -> std::common_comparison_category_t<std::strong_ordering, decltype(*lhs <=> *rhs)>
+    -> indirect_detail::synth_three_way_result<T, U>
 {
-  if (lhs.valueless_after_move() && rhs.valueless_after_move()) return std::strong_ordering::equal;
-  if (lhs.valueless_after_move()) return std::strong_ordering::less;
-  if (rhs.valueless_after_move()) return std::strong_ordering::greater;
-  return *lhs <=> *rhs;
+  if (lhs.valueless_after_move() || rhs.valueless_after_move()) {
+    return !lhs.valueless_after_move() <=> !rhs.valueless_after_move();
+  }
+  return indirect_detail::synth_three_way(*lhs, *rhs);
 }
 #endif  // __cpp_lib_three_way_comparison
 

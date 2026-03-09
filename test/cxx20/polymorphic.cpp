@@ -166,34 +166,4 @@ TEST_CASE("polymorphic constexpr: copy preserves dynamic type")
   POLYMORPHIC_STATIC_REQUIRE(polymorphic_copy_preserves_dynamic_type());
 }
 
-TEST_CASE("polymorphic: spaceship comparison between two polymorphics")
-{
-  pf::polymorphic<int> a(pf::in_place, 1);
-  pf::polymorphic<int> b(pf::in_place, 2);
-  pf::polymorphic<int> c(pf::in_place, 1);
 
-  REQUIRE((a <=> c) == std::strong_ordering::equal);
-  REQUIRE((a <=> b) == std::strong_ordering::less);
-  REQUIRE((b <=> a) == std::strong_ordering::greater);
-}
-
-TEST_CASE("polymorphic: spaceship comparison with raw value")
-{
-  pf::polymorphic<int> p(pf::in_place, 5);
-
-  REQUIRE((p <=> 5) == std::strong_ordering::equal);
-  REQUIRE((p <=> 6) == std::strong_ordering::less);
-  REQUIRE((p <=> 4) == std::strong_ordering::greater);
-}
-
-TEST_CASE("polymorphic: valueless spaceship comparison")
-{
-  pf::polymorphic<int> a(pf::in_place, 1);
-  pf::polymorphic<int> b = std::move(a);
-
-  REQUIRE((a <=> b) == std::strong_ordering::less);
-  REQUIRE((b <=> a) == std::strong_ordering::greater);
-
-  pf::polymorphic<int> c = std::move(b);
-  REQUIRE((a <=> b) == std::strong_ordering::equal);
-}

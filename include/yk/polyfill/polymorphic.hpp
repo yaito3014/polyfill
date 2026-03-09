@@ -25,12 +25,6 @@ class polymorphic;
 
 namespace polymorphic_detail {
 
-template <class T>
-struct is_polymorphic_wrapper : std::false_type {};
-
-template <class T, class A>
-struct is_polymorphic_wrapper<polymorphic<T, A>> : std::true_type {};
-
 template <bool Pocs>        struct swap_ops;
 template <bool Pocca>       struct copy_assign_ops;
 template <bool Pocma>       struct move_assign_ops;
@@ -142,11 +136,14 @@ class polymorphic {
   YK_POLYFILL_CXX20_CONSTEXPR polymorphic() : holder_(nullptr), alloc_()
   {
     static_assert(std::is_default_constructible<T>::value, "polymorphic: T must be default-constructible");
+    static_assert(std::is_copy_constructible<T>::value, "polymorphic: T must be copy-constructible");
     allocate_holder<T>();
   }
 
   YK_POLYFILL_CXX20_CONSTEXPR explicit polymorphic(std::allocator_arg_t, const A& a) : holder_(nullptr), alloc_(a)
   {
+    static_assert(std::is_default_constructible<T>::value, "polymorphic: T must be default-constructible");
+    static_assert(std::is_copy_constructible<T>::value, "polymorphic: T must be copy-constructible");
     allocate_holder<T>();
   }
 
@@ -165,7 +162,8 @@ class polymorphic {
 
   template <class U, class... Ts,
             typename std::enable_if<std::is_base_of<T, U>::value, std::nullptr_t>::type = nullptr,
-            typename std::enable_if<std::is_constructible<U, Ts...>::value, std::nullptr_t>::type = nullptr>
+            typename std::enable_if<std::is_constructible<U, Ts...>::value, std::nullptr_t>::type = nullptr,
+            typename std::enable_if<std::is_copy_constructible<U>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR explicit polymorphic(in_place_type_t<U>, Ts&&... ts) : holder_(nullptr), alloc_()
   {
     allocate_holder<U>(static_cast<Ts&&>(ts)...);
@@ -173,7 +171,8 @@ class polymorphic {
 
   template <class U, class... Ts,
             typename std::enable_if<std::is_base_of<T, U>::value, std::nullptr_t>::type = nullptr,
-            typename std::enable_if<std::is_constructible<U, Ts...>::value, std::nullptr_t>::type = nullptr>
+            typename std::enable_if<std::is_constructible<U, Ts...>::value, std::nullptr_t>::type = nullptr,
+            typename std::enable_if<std::is_copy_constructible<U>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR explicit polymorphic(std::allocator_arg_t, const A& a, in_place_type_t<U>, Ts&&... ts)
       : holder_(nullptr), alloc_(a)
   {
@@ -247,81 +246,7 @@ class polymorphic {
   }
 
   friend YK_POLYFILL_CXX14_CONSTEXPR void swap(polymorphic& a, polymorphic& b) noexcept(noexcept(a.swap(b))) { a.swap(b); }
-
-  friend YK_POLYFILL_CXX14_CONSTEXPR bool operator==(const polymorphic& lhs, const polymorphic& rhs)
-      noexcept(noexcept(*lhs == *rhs))
-  {
-    if (lhs.valueless_after_move()) return rhs.valueless_after_move();
-    if (rhs.valueless_after_move()) return false;
-    return *lhs == *rhs;
-  }
-
-  friend YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const polymorphic& lhs, const polymorphic& rhs)
-      noexcept(noexcept(*lhs != *rhs))
-  {
-    if (lhs.valueless_after_move()) return !rhs.valueless_after_move();
-    if (rhs.valueless_after_move()) return true;
-    return *lhs != *rhs;
-  }
-
-#if __cpp_lib_three_way_comparison >= 201907L
-  friend constexpr auto operator<=>(const polymorphic& lhs, const polymorphic& rhs)
-      -> std::common_comparison_category_t<std::strong_ordering, decltype(*lhs <=> *rhs)>
-  {
-    if (lhs.valueless_after_move() && rhs.valueless_after_move()) return std::strong_ordering::equal;
-    if (lhs.valueless_after_move()) return std::strong_ordering::less;
-    if (rhs.valueless_after_move()) return std::strong_ordering::greater;
-    return *lhs <=> *rhs;
-  }
-
-  template <class U>
-  friend constexpr auto operator<=>(const polymorphic& lhs, const U& rhs)
-      noexcept(noexcept(*lhs <=> rhs))
-      -> std::common_comparison_category_t<std::strong_ordering, decltype(*lhs <=> rhs)>
-  {
-    if (lhs.valueless_after_move()) return std::strong_ordering::less;
-    return *lhs <=> rhs;
-  }
-#endif  // __cpp_lib_three_way_comparison
 };
-
-// ---- Heterogeneous comparisons (outside class to avoid MSVC ADL recursion) ----
-
-template <class T, class A, class U,
-    typename std::enable_if<!polymorphic_detail::is_polymorphic_wrapper<U>::value, std::nullptr_t>::type = nullptr>
-YK_POLYFILL_CXX14_CONSTEXPR bool operator==(const polymorphic<T, A>& lhs, const U& rhs)
-    noexcept(noexcept(std::declval<const T&>() == std::declval<const U&>()))
-{
-  if (lhs.valueless_after_move()) return false;
-  return *lhs == rhs;
-}
-
-template <class T, class A, class U,
-    typename std::enable_if<!polymorphic_detail::is_polymorphic_wrapper<U>::value, std::nullptr_t>::type = nullptr>
-YK_POLYFILL_CXX14_CONSTEXPR bool operator==(const U& lhs, const polymorphic<T, A>& rhs)
-    noexcept(noexcept(std::declval<const U&>() == std::declval<const T&>()))
-{
-  if (rhs.valueless_after_move()) return false;
-  return lhs == *rhs;
-}
-
-template <class T, class A, class U,
-    typename std::enable_if<!polymorphic_detail::is_polymorphic_wrapper<U>::value, std::nullptr_t>::type = nullptr>
-YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const polymorphic<T, A>& lhs, const U& rhs)
-    noexcept(noexcept(std::declval<const T&>() != std::declval<const U&>()))
-{
-  if (lhs.valueless_after_move()) return true;
-  return *lhs != rhs;
-}
-
-template <class T, class A, class U,
-    typename std::enable_if<!polymorphic_detail::is_polymorphic_wrapper<U>::value, std::nullptr_t>::type = nullptr>
-YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const U& lhs, const polymorphic<T, A>& rhs)
-    noexcept(noexcept(std::declval<const U&>() != std::declval<const T&>()))
-{
-  if (rhs.valueless_after_move()) return true;
-  return lhs != *rhs;
-}
 
 // ---- Allocator-aware operations (defined after polymorphic is complete) -----
 
@@ -441,41 +366,6 @@ struct move_ctor_ops</*AlwaysEqual = */ false> {
 };
 
 }  // namespace polymorphic_detail
-
-// ---- Cross-type wrapper comparisons (outside class to avoid MSVC ADL recursion) ----
-
-template <class T, class A, class U, class AA,
-    typename std::enable_if<!std::is_same<T, U>::value || !std::is_same<A, AA>::value, std::nullptr_t>::type = nullptr>
-YK_POLYFILL_CXX14_CONSTEXPR bool operator==(const polymorphic<T, A>& lhs, const polymorphic<U, AA>& rhs)
-    noexcept(noexcept(std::declval<const T&>() == std::declval<const U&>()))
-{
-  if (lhs.valueless_after_move()) return rhs.valueless_after_move();
-  if (rhs.valueless_after_move()) return false;
-  return *lhs == *rhs;
-}
-
-template <class T, class A, class U, class AA,
-    typename std::enable_if<!std::is_same<T, U>::value || !std::is_same<A, AA>::value, std::nullptr_t>::type = nullptr>
-YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const polymorphic<T, A>& lhs, const polymorphic<U, AA>& rhs)
-    noexcept(noexcept(std::declval<const T&>() != std::declval<const U&>()))
-{
-  if (lhs.valueless_after_move()) return !rhs.valueless_after_move();
-  if (rhs.valueless_after_move()) return true;
-  return *lhs != *rhs;
-}
-
-#if __cpp_lib_three_way_comparison >= 201907L
-template <class T, class A, class U, class AA,
-    typename std::enable_if<!std::is_same<T, U>::value || !std::is_same<A, AA>::value, std::nullptr_t>::type = nullptr>
-constexpr auto operator<=>(const polymorphic<T, A>& lhs, const polymorphic<U, AA>& rhs)
-    -> std::common_comparison_category_t<std::strong_ordering, decltype(*lhs <=> *rhs)>
-{
-  if (lhs.valueless_after_move() && rhs.valueless_after_move()) return std::strong_ordering::equal;
-  if (lhs.valueless_after_move()) return std::strong_ordering::less;
-  if (rhs.valueless_after_move()) return std::strong_ordering::greater;
-  return *lhs <=> *rhs;
-}
-#endif  // __cpp_lib_three_way_comparison
 
 }  // namespace polyfill
 
