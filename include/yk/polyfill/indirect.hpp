@@ -45,7 +45,7 @@ class indirect {
   using alloc_traits = std::allocator_traits<A>;
 
   T* ptr_;
-  A alloc_;
+  YK_POLYFILL_NO_UNIQUE_ADDRESS A alloc_;
 
   YK_POLYFILL_CXX20_CONSTEXPR void allocate_and_construct_default()
   {

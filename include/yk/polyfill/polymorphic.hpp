@@ -95,7 +95,7 @@ class polymorphic {
   // ---- Data members --------------------------------------------------------
 
   cb_base* cb_;
-  A alloc_;
+  YK_POLYFILL_NO_UNIQUE_ADDRESS A alloc_;
 
   // ---- Private helpers -----------------------------------------------------
 

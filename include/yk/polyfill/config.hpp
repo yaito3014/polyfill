@@ -37,4 +37,12 @@
 #define YK_POLYFILL_CXX17_NOEXCEPT(...)
 #endif
 
+#if defined(_MSC_VER)
+#define YK_POLYFILL_NO_UNIQUE_ADDRESS [[msvc::no_unique_address]]
+#elif __cpp_attributes >= 200809L && __cplusplus >= 202002L
+#define YK_POLYFILL_NO_UNIQUE_ADDRESS [[no_unique_address]]
+#else
+#define YK_POLYFILL_NO_UNIQUE_ADDRESS
+#endif
+
 #endif  // YK_POLYFILL_CONFIG_HPP
