@@ -47,7 +47,7 @@ class indirect {
   T* ptr_;
   A alloc_;
 
-  void allocate_and_construct_default()
+  YK_POLYFILL_CXX20_CONSTEXPR void allocate_and_construct_default()
   {
     ptr_ = alloc_traits::allocate(alloc_, 1);
     try {
@@ -60,7 +60,7 @@ class indirect {
   }
 
   template <class... Ts>
-  void allocate_and_construct(Ts&&... ts)
+  YK_POLYFILL_CXX20_CONSTEXPR void allocate_and_construct(Ts&&... ts)
   {
     ptr_ = alloc_traits::allocate(alloc_, 1);
     try {
@@ -72,7 +72,7 @@ class indirect {
     }
   }
 
-  void destroy_owned() noexcept
+  YK_POLYFILL_CXX20_CONSTEXPR void destroy_owned() noexcept
   {
     if (ptr_ != nullptr) {
       alloc_traits::destroy(alloc_, ptr_);

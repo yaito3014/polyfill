@@ -102,7 +102,7 @@ class polymorphic {
   // ---- Private helpers -----------------------------------------------------
 
   template <class U, class... Ts>
-  void allocate_cb(Ts&&... ts)
+  YK_POLYFILL_CXX20_CONSTEXPR void allocate_cb(Ts&&... ts)
   {
     using cb_alloc_t = typename std::allocator_traits<A>::template rebind_alloc<cb<U>>;
     using cb_traits_t = std::allocator_traits<cb_alloc_t>;
@@ -117,7 +117,7 @@ class polymorphic {
     cb_ = new_cb;
   }
 
-  void destroy_owned() noexcept
+  YK_POLYFILL_CXX20_CONSTEXPR void destroy_owned() noexcept
   {
     if (cb_ != nullptr) {
       cb_->destroy(alloc_);
