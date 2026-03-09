@@ -72,7 +72,6 @@ constexpr bool polymorphic_swap()
   return *a == 2 && *b == 1;
 }
 
-#ifndef YK_POLYFILL_DISABLE_COMPARISON_OPS
 constexpr bool polymorphic_eq()
 {
   pf::polymorphic<int> a(pf::in_place, 4);
@@ -90,7 +89,6 @@ constexpr bool polymorphic_valueless_eq()
       && a == b
       && !(a == c);
 }
-#endif  // YK_POLYFILL_DISABLE_COMPARISON_OPS
 
 TEST_CASE("polymorphic constexpr: default construction")
 {
@@ -127,7 +125,6 @@ TEST_CASE("polymorphic constexpr: swap")
   STATIC_REQUIRE(polymorphic_swap());
 }
 
-#ifndef YK_POLYFILL_DISABLE_COMPARISON_OPS
 TEST_CASE("polymorphic constexpr: equality comparison")
 {
   STATIC_REQUIRE(polymorphic_eq());
@@ -137,7 +134,6 @@ TEST_CASE("polymorphic constexpr: valueless equality")
 {
   STATIC_REQUIRE(polymorphic_valueless_eq());
 }
-#endif  // YK_POLYFILL_DISABLE_COMPARISON_OPS
 
 constexpr bool polymorphic_in_place_type_stores_derived()
 {
@@ -162,7 +158,6 @@ TEST_CASE("polymorphic constexpr: copy preserves dynamic type")
   STATIC_REQUIRE(polymorphic_copy_preserves_dynamic_type());
 }
 
-#ifndef YK_POLYFILL_DISABLE_COMPARISON_OPS
 TEST_CASE("polymorphic: spaceship comparison between two polymorphics")
 {
   pf::polymorphic<int> a(pf::in_place, 1);
@@ -194,4 +189,3 @@ TEST_CASE("polymorphic: valueless spaceship comparison")
   pf::polymorphic<int> c = std::move(b);
   REQUIRE((a <=> b) == std::strong_ordering::equal);
 }
-#endif  // YK_POLYFILL_DISABLE_COMPARISON_OPS

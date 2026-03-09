@@ -252,7 +252,6 @@ class indirect {
 
   friend YK_POLYFILL_CXX14_CONSTEXPR void swap(indirect& a, indirect& b) noexcept(noexcept(a.swap(b))) { a.swap(b); }
 
-#ifndef YK_POLYFILL_DISABLE_COMPARISON_OPS
   // --- Comparison ---
 
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator==(const indirect& lhs, const indirect& rhs)
@@ -320,10 +319,8 @@ class indirect {
     return *lhs <=> rhs;
   }
 #endif  // __cpp_lib_three_way_comparison
-#endif  // YK_POLYFILL_DISABLE_COMPARISON_OPS
 };
 
-#ifndef YK_POLYFILL_DISABLE_COMPARISON_OPS
 // ---- Cross-type wrapper comparisons (outside class to avoid MSVC ADL recursion) ----
 
 template <class T, class A, class U, class AA,
@@ -357,7 +354,6 @@ constexpr auto operator<=>(const indirect<T, A>& lhs, const indirect<U, AA>& rhs
   return *lhs <=> *rhs;
 }
 #endif  // __cpp_lib_three_way_comparison
-#endif  // YK_POLYFILL_DISABLE_COMPARISON_OPS
 
 #if __cplusplus >= 201703L
 // Deduction guides

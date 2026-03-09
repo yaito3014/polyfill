@@ -144,7 +144,6 @@ TEST_CASE("indirect: swap")
   CHECK(*b == 2);
 }
 
-#ifndef YK_POLYFILL_DISABLE_COMPARISON_OPS
 TEST_CASE("indirect: operator== between two indirects")
 {
   pf::indirect<int> a(pf::in_place, 3);
@@ -182,7 +181,6 @@ TEST_CASE("indirect: valueless comparison")
   CHECK(!(a == c));
   CHECK(a != c);
 }
-#endif  // YK_POLYFILL_DISABLE_COMPARISON_OPS
 
 TEST_CASE("indirect: copy uses value copy not extra allocs")
 {
