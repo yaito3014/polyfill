@@ -115,21 +115,23 @@ class indirect {
 
   YK_POLYFILL_CXX20_CONSTEXPR indirect() : ptr_(nullptr), alloc_()
   {
+    static_assert(std::is_default_constructible<T>::value, "indirect: T must be default-constructible");
     allocate_and_construct();
   }
 
   YK_POLYFILL_CXX20_CONSTEXPR explicit indirect(std::allocator_arg_t, const A& a) : ptr_(nullptr), alloc_(a)
   {
+    static_assert(std::is_default_constructible<T>::value, "indirect: T must be default-constructible");
     allocate_and_construct();
   }
 
-  template <class... Ts>
+  template <class... Ts, typename std::enable_if<std::is_constructible<T, Ts...>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR explicit indirect(in_place_t, Ts&&... ts) : ptr_(nullptr), alloc_()
   {
     allocate_and_construct(static_cast<Ts&&>(ts)...);
   }
 
-  template <class... Ts>
+  template <class... Ts, typename std::enable_if<std::is_constructible<T, Ts...>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR explicit indirect(std::allocator_arg_t, const A& a, in_place_t, Ts&&... ts) : ptr_(nullptr), alloc_(a)
   {
     allocate_and_construct(static_cast<Ts&&>(ts)...);
@@ -139,6 +141,7 @@ class indirect {
   YK_POLYFILL_CXX20_CONSTEXPR indirect(const indirect& other)
       : ptr_(nullptr), alloc_(alloc_traits::select_on_container_copy_construction(other.alloc_))
   {
+    static_assert(std::is_copy_constructible<T>::value, "indirect: T must be copy-constructible");
     if (other.ptr_ != nullptr) {
       allocate_and_construct(*other.ptr_);
     }
@@ -146,6 +149,7 @@ class indirect {
 
   YK_POLYFILL_CXX20_CONSTEXPR indirect(const indirect& other, std::allocator_arg_t, const A& a) : ptr_(nullptr), alloc_(a)
   {
+    static_assert(std::is_copy_constructible<T>::value, "indirect: T must be copy-constructible");
     if (other.ptr_ != nullptr) {
       allocate_and_construct(*other.ptr_);
     }
@@ -172,6 +176,7 @@ class indirect {
 
   YK_POLYFILL_CXX20_CONSTEXPR indirect& operator=(const indirect& other)
   {
+    static_assert(std::is_copy_constructible<T>::value, "indirect: T must be copy-constructible");
     if (this == &other) return *this;
     indirect_detail::copy_assign_ops<alloc_traits::propagate_on_container_copy_assignment::value>::apply(*this, other);
     return *this;
