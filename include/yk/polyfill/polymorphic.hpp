@@ -58,7 +58,7 @@ struct cb_ops {
   }
 };
 
-#if __cpp_constexpr_dynamic_alloc >= 201907L
+#if __cpp_constexpr_dynamic_alloc >= 201907L && __cpp_lib_is_constant_evaluated >= 201811L
 template <>
 struct cb_ops<true> {
   template <class Cb, class CbAlloc, class CbTraits, class... Args>
@@ -86,9 +86,9 @@ struct cb_ops<true> {
     cb = nullptr;
   }
 };
-#endif  // __cpp_constexpr_dynamic_alloc
+#endif  // __cpp_constexpr_dynamic_alloc && __cpp_lib_is_constant_evaluated
 
-#if __cpp_constexpr_dynamic_alloc >= 201907L
+#if __cpp_constexpr_dynamic_alloc >= 201907L && __cpp_lib_is_constant_evaluated >= 201811L
 static constexpr bool has_constexpr_dynamic_alloc = true;
 #else
 static constexpr bool has_constexpr_dynamic_alloc = false;
