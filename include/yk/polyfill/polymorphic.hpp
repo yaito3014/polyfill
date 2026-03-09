@@ -48,7 +48,7 @@ class polymorphic {
     T* ptr_;
     virtual YK_POLYFILL_CXX20_CONSTEXPR holder_base* clone(A& alloc) const = 0;
     virtual YK_POLYFILL_CXX20_CONSTEXPR void destroy(A& alloc) noexcept = 0;
-    virtual YK_POLYFILL_CXX20_CONSTEXPR ~holder_base() = default;
+    virtual YK_POLYFILL_CXX20_CONSTEXPR ~holder_base() noexcept = default;
   };
 
   template <class U>
@@ -56,17 +56,21 @@ class polymorphic {
     U obj_;
 
     template <class... Ts>
-    YK_POLYFILL_CXX20_CONSTEXPR explicit holder(Ts&&... ts) : obj_(static_cast<Ts&&>(ts)...)
+    YK_POLYFILL_CXX20_CONSTEXPR explicit holder(Ts&&... ts)
+        noexcept(std::is_nothrow_constructible<U, Ts&&...>::value)
+        : obj_(static_cast<Ts&&>(ts)...)
     {
       this->ptr_ = std::addressof(obj_);
     }
 
-    YK_POLYFILL_CXX20_CONSTEXPR holder(const holder& other) : obj_(other.obj_)
+    YK_POLYFILL_CXX20_CONSTEXPR holder(const holder& other)
+        noexcept(std::is_nothrow_copy_constructible<U>::value)
+        : obj_(other.obj_)
     {
       this->ptr_ = std::addressof(obj_);
     }
 
-    YK_POLYFILL_CXX20_CONSTEXPR ~holder() override = default;
+    YK_POLYFILL_CXX20_CONSTEXPR ~holder() noexcept override = default;
 
     using holder_alloc_t = typename std::allocator_traits<A>::template rebind_alloc<holder<U>>;
     using holder_traits_t = std::allocator_traits<holder_alloc_t>;
