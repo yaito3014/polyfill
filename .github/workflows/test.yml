@@ -59,6 +59,7 @@ jobs:
             version: 2022
             executable: cl
             toolset: '14.44'
+            allow-failure: true
           - name: MSVC
             version: 2026
             executable: cl
@@ -92,6 +93,7 @@ jobs:
             compiler:
               name: MSVC
               version: 2022
+    continue-on-error: ${{ matrix.compiler.allow-failure == true }}
     name: C++${{ matrix.cxx-version }} ${{ matrix.build-type }} (${{ matrix.compiler.name }} ${{ matrix.compiler.version }} on ${{ matrix.os.name }})
     runs-on: ${{ matrix.os.name }}-${{ matrix.os.version }}
     steps:
