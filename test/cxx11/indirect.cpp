@@ -201,3 +201,145 @@ TEST_CASE("indirect: get_allocator")
   (void)i.get_allocator();  // should compile and return std::allocator<int>
   STATIC_REQUIRE(std::is_same<decltype(i.get_allocator()), std::allocator<int>>::value);
 }
+
+// ---- allocator-propagation tests ------------------------------------------
+//
+// TestAlloc<T, Pocs, Pocca, Pocma> is a minimal stateful allocator with
+// selectable propagation traits.  Two instances with different ids compare
+// unequal, letting us distinguish allocator-propagation from value-copying.
+
+template <class T, bool Pocs, bool Pocca, bool Pocma>
+struct TestAlloc {
+  using value_type = T;
+  int id;
+
+  template <class U>
+  struct rebind { using other = TestAlloc<U, Pocs, Pocca, Pocma>; };
+
+  using propagate_on_container_swap             = std::integral_constant<bool, Pocs>;
+  using propagate_on_container_copy_assignment  = std::integral_constant<bool, Pocca>;
+  using propagate_on_container_move_assignment  = std::integral_constant<bool, Pocma>;
+
+  explicit TestAlloc(int i = 0) : id(i) {}
+
+  template <class U>
+  TestAlloc(const TestAlloc<U, Pocs, Pocca, Pocma>& o) : id(o.id) {}
+
+  T* allocate(std::size_t n) { return std::allocator<T>{}.allocate(n); }
+  void deallocate(T* p, std::size_t n) { std::allocator<T>{}.deallocate(p, n); }
+
+  bool operator==(const TestAlloc& o) const { return id == o.id; }
+  bool operator!=(const TestAlloc& o) const { return id != o.id; }
+};
+
+// Convenience aliases: only the relevant propagation flag is true.
+template <class T> using PocswapAlloc = TestAlloc<T, /*Pocs*/true,  false, false>;
+template <class T> using PoccaAlloc   = TestAlloc<T, false, /*Pocca*/true,  false>;
+template <class T> using PocmaAlloc   = TestAlloc<T, false, false, /*Pocma*/true>;
+template <class T> using StaticAlloc  = TestAlloc<T, false, false, false>;
+
+// --- swap ---
+
+TEST_CASE("indirect alloc: swap POCS=false only swaps values")
+{
+  StaticAlloc<int> a1(1), a2(2);
+  pf::indirect<int, StaticAlloc<int>> x(std::allocator_arg, a1, pf::in_place, 10);
+  pf::indirect<int, StaticAlloc<int>> y(std::allocator_arg, a2, pf::in_place, 20);
+  x.swap(y);
+  CHECK(*x == 20);
+  CHECK(*y == 10);
+  CHECK(x.get_allocator() == a1);  // allocator NOT propagated
+  CHECK(y.get_allocator() == a2);
+}
+
+TEST_CASE("indirect alloc: swap POCS=true swaps values and allocators")
+{
+  PocswapAlloc<int> a1(1), a2(2);
+  pf::indirect<int, PocswapAlloc<int>> x(std::allocator_arg, a1, pf::in_place, 10);
+  pf::indirect<int, PocswapAlloc<int>> y(std::allocator_arg, a2, pf::in_place, 20);
+  x.swap(y);
+  CHECK(*x == 20);
+  CHECK(*y == 10);
+  CHECK(x.get_allocator() == a2);  // allocator WAS propagated
+  CHECK(y.get_allocator() == a1);
+}
+
+// --- copy assignment ---
+
+TEST_CASE("indirect alloc: copy assign POCCA=false leaves allocator unchanged")
+{
+  StaticAlloc<int> a1(1), a2(2);
+  pf::indirect<int, StaticAlloc<int>> x(std::allocator_arg, a1, pf::in_place, 10);
+  pf::indirect<int, StaticAlloc<int>> y(std::allocator_arg, a2, pf::in_place, 20);
+  y = x;
+  CHECK(*y == 10);
+  CHECK(y.get_allocator() == a2);  // allocator NOT propagated
+}
+
+TEST_CASE("indirect alloc: copy assign POCCA=true propagates allocator")
+{
+  PoccaAlloc<int> a1(1), a2(2);
+  pf::indirect<int, PoccaAlloc<int>> x(std::allocator_arg, a1, pf::in_place, 10);
+  pf::indirect<int, PoccaAlloc<int>> y(std::allocator_arg, a2, pf::in_place, 20);
+  y = x;
+  CHECK(*y == 10);
+  CHECK(y.get_allocator() == a1);  // allocator WAS propagated
+}
+
+// --- move assignment ---
+
+TEST_CASE("indirect alloc: move assign POCMA=true steals both value and allocator")
+{
+  PocmaAlloc<int> a1(1), a2(2);
+  pf::indirect<int, PocmaAlloc<int>> x(std::allocator_arg, a1, pf::in_place, 42);
+  pf::indirect<int, PocmaAlloc<int>> y(std::allocator_arg, a2, pf::in_place, 0);
+  y = std::move(x);
+  CHECK(*y == 42);
+  CHECK(x.valueless_after_move());
+  CHECK(y.get_allocator() == a1);  // allocator WAS propagated (stolen)
+}
+
+TEST_CASE("indirect alloc: move assign POCMA=false same alloc steals value")
+{
+  StaticAlloc<int> a1(1);
+  pf::indirect<int, StaticAlloc<int>> x(std::allocator_arg, a1, pf::in_place, 42);
+  pf::indirect<int, StaticAlloc<int>> y(std::allocator_arg, a1, pf::in_place, 0);
+  y = std::move(x);
+  CHECK(*y == 42);
+  CHECK(x.valueless_after_move());   // pointer was stolen
+  CHECK(y.get_allocator() == a1);
+}
+
+TEST_CASE("indirect alloc: move assign POCMA=false different alloc does in-place move")
+{
+  // Allocs differ and POCMA=false: indirect reuses the destination's allocation
+  // and move-assigns through it rather than stealing the pointer.
+  StaticAlloc<int> a1(1), a2(2);
+  pf::indirect<int, StaticAlloc<int>> x(std::allocator_arg, a1, pf::in_place, 42);
+  pf::indirect<int, StaticAlloc<int>> y(std::allocator_arg, a2, pf::in_place, 0);
+  y = std::move(x);
+  CHECK(*y == 42);
+  CHECK(!x.valueless_after_move());  // x keeps its allocation (in-place move, no steal)
+  CHECK(y.get_allocator() == a2);    // allocator unchanged
+}
+
+// --- extended-allocator move constructor ---
+
+TEST_CASE("indirect alloc: move ctor with same allocator steals pointer")
+{
+  StaticAlloc<int> a1(1);
+  pf::indirect<int, StaticAlloc<int>> x(std::allocator_arg, a1, pf::in_place, 7);
+  pf::indirect<int, StaticAlloc<int>> y(std::move(x), std::allocator_arg, a1);
+  CHECK(*y == 7);
+  CHECK(x.valueless_after_move());
+}
+
+TEST_CASE("indirect alloc: move ctor with different allocator copies value")
+{
+  StaticAlloc<int> a1(1), a2(2);
+  pf::indirect<int, StaticAlloc<int>> x(std::allocator_arg, a1, pf::in_place, 7);
+  pf::indirect<int, StaticAlloc<int>> y(std::move(x), std::allocator_arg, a2);
+  CHECK(*y == 7);
+  CHECK(!x.valueless_after_move());  // x was not stolen from
+  CHECK(y.get_allocator() == a2);
+}

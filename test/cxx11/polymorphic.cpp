@@ -225,3 +225,161 @@ TEST_CASE("polymorphic: get_allocator")
   pf::polymorphic<int> p;
   STATIC_REQUIRE(std::is_same<decltype(p.get_allocator()), std::allocator<int>>::value);
 }
+
+// ---- allocator-propagation tests ------------------------------------------
+//
+// Same TestAlloc as in the indirect tests; duplicated here to keep each test
+// file self-contained.
+
+template <class T, bool Pocs, bool Pocca, bool Pocma>
+struct TestAlloc {
+  using value_type = T;
+  int id;
+
+  template <class U>
+  struct rebind { using other = TestAlloc<U, Pocs, Pocca, Pocma>; };
+
+  using propagate_on_container_swap             = std::integral_constant<bool, Pocs>;
+  using propagate_on_container_copy_assignment  = std::integral_constant<bool, Pocca>;
+  using propagate_on_container_move_assignment  = std::integral_constant<bool, Pocma>;
+
+  explicit TestAlloc(int i = 0) : id(i) {}
+
+  template <class U>
+  TestAlloc(const TestAlloc<U, Pocs, Pocca, Pocma>& o) : id(o.id) {}
+
+  T* allocate(std::size_t n) { return std::allocator<T>{}.allocate(n); }
+  void deallocate(T* p, std::size_t n) { std::allocator<T>{}.deallocate(p, n); }
+
+  bool operator==(const TestAlloc& o) const { return id == o.id; }
+  bool operator!=(const TestAlloc& o) const { return id != o.id; }
+};
+
+template <class T> using PocswapAlloc = TestAlloc<T, /*Pocs*/true,  false, false>;
+template <class T> using PoccaAlloc   = TestAlloc<T, false, /*Pocca*/true,  false>;
+template <class T> using PocmaAlloc   = TestAlloc<T, false, false, /*Pocma*/true>;
+template <class T> using StaticAlloc  = TestAlloc<T, false, false, false>;
+
+// --- swap ---
+
+TEST_CASE("polymorphic alloc: swap POCS=false only swaps values")
+{
+  StaticAlloc<int> a1(1), a2(2);
+  pf::polymorphic<int, StaticAlloc<int>> x(std::allocator_arg, a1, pf::in_place, 10);
+  pf::polymorphic<int, StaticAlloc<int>> y(std::allocator_arg, a2, pf::in_place, 20);
+  x.swap(y);
+  CHECK(*x == 20);
+  CHECK(*y == 10);
+  CHECK(x.get_allocator() == a1);  // allocator NOT propagated
+  CHECK(y.get_allocator() == a2);
+}
+
+TEST_CASE("polymorphic alloc: swap POCS=true swaps values and allocators")
+{
+  PocswapAlloc<int> a1(1), a2(2);
+  pf::polymorphic<int, PocswapAlloc<int>> x(std::allocator_arg, a1, pf::in_place, 10);
+  pf::polymorphic<int, PocswapAlloc<int>> y(std::allocator_arg, a2, pf::in_place, 20);
+  x.swap(y);
+  CHECK(*x == 20);
+  CHECK(*y == 10);
+  CHECK(x.get_allocator() == a2);  // allocator WAS propagated
+  CHECK(y.get_allocator() == a1);
+}
+
+// --- copy assignment ---
+
+TEST_CASE("polymorphic alloc: copy assign POCCA=false leaves allocator unchanged")
+{
+  StaticAlloc<int> a1(1), a2(2);
+  pf::polymorphic<int, StaticAlloc<int>> x(std::allocator_arg, a1, pf::in_place, 10);
+  pf::polymorphic<int, StaticAlloc<int>> y(std::allocator_arg, a2, pf::in_place, 20);
+  y = x;
+  CHECK(*y == 10);
+  CHECK(y.get_allocator() == a2);  // allocator NOT propagated
+}
+
+TEST_CASE("polymorphic alloc: copy assign POCCA=true propagates allocator")
+{
+  PoccaAlloc<int> a1(1), a2(2);
+  pf::polymorphic<int, PoccaAlloc<int>> x(std::allocator_arg, a1, pf::in_place, 10);
+  pf::polymorphic<int, PoccaAlloc<int>> y(std::allocator_arg, a2, pf::in_place, 20);
+  y = x;
+  CHECK(*y == 10);
+  CHECK(y.get_allocator() == a1);  // allocator WAS propagated
+}
+
+TEST_CASE("polymorphic alloc: copy assign POCCA=true preserves dynamic type")
+{
+  PoccaAlloc<Animal> a1(1), a2(2);
+  pf::polymorphic<Animal, PoccaAlloc<Animal>> dog(std::allocator_arg, a1, pf::in_place_type<Dog>);
+  pf::polymorphic<Animal, PoccaAlloc<Animal>> dst(std::allocator_arg, a2, pf::in_place_type<Cat>);
+  dst = dog;
+  CHECK(dst->sound() == "woof");   // dynamic type (Dog) preserved after clone
+  CHECK(dst.get_allocator() == a1);
+}
+
+// --- move assignment ---
+
+TEST_CASE("polymorphic alloc: move assign POCMA=true steals both value and allocator")
+{
+  PocmaAlloc<int> a1(1), a2(2);
+  pf::polymorphic<int, PocmaAlloc<int>> x(std::allocator_arg, a1, pf::in_place, 42);
+  pf::polymorphic<int, PocmaAlloc<int>> y(std::allocator_arg, a2, pf::in_place, 0);
+  y = std::move(x);
+  CHECK(*y == 42);
+  CHECK(x.valueless_after_move());
+  CHECK(y.get_allocator() == a1);  // allocator WAS propagated (stolen)
+}
+
+TEST_CASE("polymorphic alloc: move assign POCMA=false same alloc steals value")
+{
+  StaticAlloc<int> a1(1);
+  pf::polymorphic<int, StaticAlloc<int>> x(std::allocator_arg, a1, pf::in_place, 42);
+  pf::polymorphic<int, StaticAlloc<int>> y(std::allocator_arg, a1, pf::in_place, 0);
+  y = std::move(x);
+  CHECK(*y == 42);
+  CHECK(x.valueless_after_move());
+  CHECK(y.get_allocator() == a1);
+}
+
+TEST_CASE("polymorphic alloc: move assign POCMA=false different alloc clones with own allocator")
+{
+  // Allocs differ: cannot steal; polymorphic clones using y's existing allocator.
+  StaticAlloc<int> a1(1), a2(2);
+  pf::polymorphic<int, StaticAlloc<int>> x(std::allocator_arg, a1, pf::in_place, 42);
+  pf::polymorphic<int, StaticAlloc<int>> y(std::allocator_arg, a2, pf::in_place, 0);
+  y = std::move(x);
+  CHECK(*y == 42);
+  CHECK(y.get_allocator() == a2);  // allocator unchanged
+}
+
+TEST_CASE("polymorphic alloc: move assign POCMA=false different alloc preserves dynamic type")
+{
+  StaticAlloc<Animal> a1(1), a2(2);
+  pf::polymorphic<Animal, StaticAlloc<Animal>> src(std::allocator_arg, a1, pf::in_place_type<Dog>);
+  pf::polymorphic<Animal, StaticAlloc<Animal>> dst(std::allocator_arg, a2, pf::in_place_type<Cat>);
+  dst = std::move(src);
+  CHECK(dst->sound() == "woof");  // Dog cloned into dst's allocator
+  CHECK(dst.get_allocator() == a2);
+}
+
+// --- extended-allocator move constructor ---
+
+TEST_CASE("polymorphic alloc: move ctor with same allocator steals control block")
+{
+  StaticAlloc<int> a1(1);
+  pf::polymorphic<int, StaticAlloc<int>> x(std::allocator_arg, a1, pf::in_place, 7);
+  pf::polymorphic<int, StaticAlloc<int>> y(std::move(x), std::allocator_arg, a1);
+  CHECK(*y == 7);
+  CHECK(x.valueless_after_move());
+}
+
+TEST_CASE("polymorphic alloc: move ctor with different allocator clones")
+{
+  StaticAlloc<int> a1(1), a2(2);
+  pf::polymorphic<int, StaticAlloc<int>> x(std::allocator_arg, a1, pf::in_place, 7);
+  pf::polymorphic<int, StaticAlloc<int>> y(std::move(x), std::allocator_arg, a2);
+  CHECK(*y == 7);
+  CHECK(!x.valueless_after_move());  // x was cloned, not stolen
+  CHECK(y.get_allocator() == a2);
+}
