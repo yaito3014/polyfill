@@ -29,66 +29,6 @@ struct is_polymorphic_wrapper : std::false_type {};
 template <class T, class A>
 struct is_polymorphic_wrapper<polymorphic<T, A>> : std::true_type {};
 
-// --- Compile-time dispatch between constexpr and runtime allocation ---------
-//
-// cb_ops<false>  — pre-C++20: always use allocator_traits
-// cb_ops<true>   — C++20+  : use is_constant_evaluated() to branch
-//
-// The <true> specialisation is only ever instantiated when C++20 is active,
-// so std::is_constant_evaluated() is always available in its bodies.
-
-template <bool HasConstexprDynamicAlloc>
-struct cb_ops {
-  template <class Cb, class CbAlloc, class CbTraits, class... Args>
-  static Cb* construct(CbAlloc& a, Args&&... args) {
-    Cb* p = CbTraits::allocate(a, 1);
-    try {
-      CbTraits::construct(a, p, static_cast<Args&&>(args)...);
-    } catch (...) {
-      CbTraits::deallocate(a, p, 1);
-      throw;
-    }
-    return p;
-  }
-
-  template <class CbBase, class Alloc>
-  static void destroy_cb(CbBase*& cb, Alloc& alloc) noexcept {
-    cb->destroy(alloc);
-    cb = nullptr;
-  }
-};
-
-#if __cpp_constexpr_dynamic_alloc >= 201907L
-template <>
-struct cb_ops<true> {
-  template <class Cb, class CbAlloc, class CbTraits, class... Args>
-  static constexpr Cb* construct(CbAlloc& a, Args&&... args) {
-    Cb* p = CbTraits::allocate(a, 1);
-    try {
-      CbTraits::construct(a, p, static_cast<Args&&>(args)...);
-    } catch (...) {
-      CbTraits::deallocate(a, p, 1);
-      throw;
-    }
-    return p;
-  }
-
-  template <class CbBase, class Alloc>
-  static constexpr void destroy_cb(CbBase*& cb, Alloc& alloc) noexcept {
-    cb->destroy(alloc);
-    cb = nullptr;
-  }
-};
-#endif  // __cpp_constexpr_dynamic_alloc
-
-#if __cpp_constexpr_dynamic_alloc >= 201907L
-static constexpr bool has_constexpr_dynamic_alloc = true;
-#else
-static constexpr bool has_constexpr_dynamic_alloc = false;
-#endif
-
-using ops = cb_ops<has_constexpr_dynamic_alloc>;
-
 // Forward declarations — specialisations are defined after polymorphic is complete.
 template <bool Pocs>        struct swap_ops;
 template <bool Pocca>       struct copy_assign_ops;
@@ -134,7 +74,14 @@ class polymorphic {
     YK_POLYFILL_CXX20_CONSTEXPR cb_base* clone(A& alloc) const override
     {
       cb_alloc_t cb_alloc(alloc);
-      return polymorphic_detail::ops::construct<cb<U>, cb_alloc_t, cb_traits_t>(cb_alloc, *this);
+      cb<U>* p = cb_traits_t::allocate(cb_alloc, 1);
+      try {
+        cb_traits_t::construct(cb_alloc, p, *this);
+      } catch (...) {
+        cb_traits_t::deallocate(cb_alloc, p, 1);
+        throw;
+      }
+      return p;
     }
 
     YK_POLYFILL_CXX20_CONSTEXPR void destroy(A& alloc) noexcept override
@@ -150,21 +97,27 @@ class polymorphic {
   cb_base* cb_;
   YK_POLYFILL_NO_UNIQUE_ADDRESS A alloc_;
 
-  // --- Private helpers (called by ops specialisations via friendship) --------
-
   template <class U, class... Ts>
   YK_POLYFILL_CXX20_CONSTEXPR void allocate_cb(Ts&&... ts)
   {
     using cb_alloc_t = typename std::allocator_traits<A>::template rebind_alloc<cb<U>>;
     using cb_traits_t = std::allocator_traits<cb_alloc_t>;
     cb_alloc_t cb_alloc(alloc_);
-    cb_ = polymorphic_detail::ops::construct<cb<U>, cb_alloc_t, cb_traits_t>(cb_alloc, static_cast<Ts&&>(ts)...);
+    cb<U>* p = cb_traits_t::allocate(cb_alloc, 1);
+    try {
+      cb_traits_t::construct(cb_alloc, p, static_cast<Ts&&>(ts)...);
+    } catch (...) {
+      cb_traits_t::deallocate(cb_alloc, p, 1);
+      throw;
+    }
+    cb_ = p;
   }
 
   YK_POLYFILL_CXX20_CONSTEXPR void destroy_owned() noexcept
   {
     if (cb_ == nullptr) return;
-    polymorphic_detail::ops::destroy_cb(cb_, alloc_);
+    cb_->destroy(alloc_);
+    cb_ = nullptr;
   }
 
   YK_POLYFILL_CXX20_CONSTEXPR void copy_assign_content(const polymorphic& other)
@@ -174,8 +127,6 @@ class polymorphic {
       cb_ = other.cb_->clone(alloc_);
     }
   }
-
-  // --- Friends: ops specialisations need access to private members -----------
 
   template <bool> friend struct polymorphic_detail::swap_ops;
   template <bool> friend struct polymorphic_detail::copy_assign_ops;
@@ -374,7 +325,7 @@ class polymorphic {
 #endif  // __cpp_lib_three_way_comparison
 };
 
-// ---- ops specialisations (polymorphic is now complete) ----------------------
+// ---- Allocator-aware operations (defined after polymorphic is complete) -----
 
 namespace polymorphic_detail {
 
