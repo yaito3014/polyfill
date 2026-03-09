@@ -58,7 +58,7 @@ jobs:
           - name: MSVC
             version: 2022
             executable: cl
-            toolset: '14.3'
+            toolset: '14.44'
           - name: MSVC
             version: 2026
             executable: cl
