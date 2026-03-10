@@ -46,6 +46,47 @@ YK_POLYFILL_CXX14_CONSTEXPR void cswap(T& a, T& b)
   b = static_cast<T&&>(tmp);
 }
 
+// EBO helper: inherit from A when possible (empty + non-final) to eliminate
+// the allocator's storage entirely, matching [[no_unique_address]] semantics
+// while being compatible with all C++ standards from C++11.
+template <class A>
+struct can_ebo : std::integral_constant<bool,
+    std::is_empty<A>::value
+#if __cplusplus >= 201402L
+    && !std::is_final<A>::value
+#endif
+> {};
+
+template <class A, bool = can_ebo<A>::value>
+struct ebo_alloc;
+
+template <class A>
+struct ebo_alloc<A, /*EBO=*/false> {
+  A alloc_;
+  ebo_alloc() = default;
+  constexpr explicit ebo_alloc(const A& a)
+      noexcept(std::is_nothrow_copy_constructible<A>::value)
+      : alloc_(a) {}
+  constexpr explicit ebo_alloc(A&& a)
+      noexcept(std::is_nothrow_move_constructible<A>::value)
+      : alloc_(static_cast<A&&>(a)) {}
+  YK_POLYFILL_CXX14_CONSTEXPR A& get() noexcept { return alloc_; }
+  constexpr const A& get() const noexcept { return alloc_; }
+};
+
+template <class A>
+struct ebo_alloc<A, /*EBO=*/true> : private A {
+  ebo_alloc() = default;
+  constexpr explicit ebo_alloc(const A& a)
+      noexcept(std::is_nothrow_copy_constructible<A>::value)
+      : A(a) {}
+  constexpr explicit ebo_alloc(A&& a)
+      noexcept(std::is_nothrow_move_constructible<A>::value)
+      : A(static_cast<A&&>(a)) {}
+  YK_POLYFILL_CXX14_CONSTEXPR A& get() noexcept { return static_cast<A&>(*this); }
+  constexpr const A& get() const noexcept { return static_cast<const A&>(*this); }
+};
+
 // synth_three_way: like <=> but falls back to synthesising weak_ordering from
 // < and == when the type has no <=> (mirrors the standard's synth-three-way).
 #if __cpp_lib_three_way_comparison >= 201907L
@@ -85,18 +126,18 @@ class indirect {
   using alloc_traits = std::allocator_traits<A>;
 
   T* ptr_;
-  YK_POLYFILL_NO_UNIQUE_ADDRESS A alloc_;
+  indirect_detail::ebo_alloc<A> alloc_;
 
   // --- Private helpers (called by ops specialisations via friendship) --------
 
   template <class... Ts>
   YK_POLYFILL_CXX20_CONSTEXPR void allocate_and_construct(Ts&&... ts)
   {
-    ptr_ = alloc_traits::allocate(alloc_, 1);
+    ptr_ = alloc_traits::allocate(alloc_.get(), 1);
     try {
-      alloc_traits::construct(alloc_, ptr_, static_cast<Ts&&>(ts)...);
+      alloc_traits::construct(alloc_.get(), ptr_, static_cast<Ts&&>(ts)...);
     } catch (...) {
-      alloc_traits::deallocate(alloc_, ptr_, 1);
+      alloc_traits::deallocate(alloc_.get(), ptr_, 1);
       ptr_ = nullptr;
       throw;
     }
@@ -105,8 +146,8 @@ class indirect {
   YK_POLYFILL_CXX20_CONSTEXPR void destroy_owned() noexcept
   {
     if (ptr_ != nullptr) {
-      alloc_traits::destroy(alloc_, ptr_);
-      alloc_traits::deallocate(alloc_, ptr_, 1);
+      alloc_traits::destroy(alloc_.get(), ptr_);
+      alloc_traits::deallocate(alloc_.get(), ptr_, 1);
       ptr_ = nullptr;
     }
   }
@@ -191,7 +232,7 @@ class indirect {
 
   // Mandate: T must be copy-constructible (static_assert)
   YK_POLYFILL_CXX20_CONSTEXPR indirect(const indirect& other)
-      : ptr_(nullptr), alloc_(alloc_traits::select_on_container_copy_construction(other.alloc_))
+      : ptr_(nullptr), alloc_(alloc_traits::select_on_container_copy_construction(other.alloc_.get()))
   {
     static_assert(std::is_copy_constructible<T>::value, "indirect: T must be copy-constructible");
     if (other.ptr_ != nullptr) {
@@ -209,7 +250,7 @@ class indirect {
   }
 
   // (no constraint on T: move always works)
-  YK_POLYFILL_CXX14_CONSTEXPR indirect(indirect&& other) noexcept : ptr_(other.ptr_), alloc_(static_cast<A&&>(other.alloc_))
+  YK_POLYFILL_CXX14_CONSTEXPR indirect(indirect&& other) noexcept : ptr_(other.ptr_), alloc_(static_cast<A&&>(other.alloc_.get()))
   {
     other.ptr_ = nullptr;
   }
@@ -277,7 +318,7 @@ class indirect {
 
   [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR bool valueless_after_move() const noexcept { return ptr_ == nullptr; }
 
-  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR A get_allocator() const noexcept { return alloc_; }
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR A get_allocator() const noexcept { return alloc_.get(); }
 
   // --- Swap ---
 
@@ -412,7 +453,7 @@ struct swap_ops</*Pocs = */ true> {
   template <class T, class A>
   static YK_POLYFILL_CXX14_CONSTEXPR void apply(indirect<T, A>& a, indirect<T, A>& b) noexcept
   {
-    cswap(a.alloc_, b.alloc_);
+    cswap(a.alloc_.get(), b.alloc_.get());
     cswap(a.ptr_, b.ptr_);
   }
 };
@@ -431,9 +472,9 @@ struct copy_assign_ops</*Pocca = */ true> {
   template <class T, class A>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(indirect<T, A>& self, const indirect<T, A>& other)
   {
-    if (self.alloc_ != other.alloc_) {
+    if (self.alloc_.get() != other.alloc_.get()) {
       self.destroy_owned();
-      self.alloc_ = other.alloc_;
+      self.alloc_.get() = other.alloc_.get();
       if (other.ptr_ != nullptr) self.allocate_and_construct(*other.ptr_);
     } else {
       self.copy_assign_content(other);
@@ -456,7 +497,7 @@ struct move_assign_ops</*Pocma = */ true> {
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(indirect<T, A>& self, indirect<T, A>&& other) noexcept
   {
     self.destroy_owned();
-    self.alloc_ = static_cast<A&&>(other.alloc_);
+    self.alloc_.get() = static_cast<A&&>(other.alloc_.get());
     self.ptr_ = other.ptr_;
     other.ptr_ = nullptr;
   }
@@ -488,7 +529,7 @@ struct move_assign_ne_ops</*AlwaysEqual = */ false> {
   template <class T, class A>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(indirect<T, A>& self, indirect<T, A>&& other)
   {
-    if (self.alloc_ == other.alloc_) {
+    if (self.alloc_.get() == other.alloc_.get()) {
       self.destroy_owned();
       self.ptr_ = other.ptr_;
       other.ptr_ = nullptr;
@@ -519,7 +560,7 @@ struct move_ctor_ops</*AlwaysEqual = */ false> {
   template <class T, class A>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(indirect<T, A>& self, indirect<T, A>&& other)
   {
-    if (self.alloc_ == other.alloc_) {
+    if (self.alloc_.get() == other.alloc_.get()) {
       self.ptr_ = other.ptr_;
       other.ptr_ = nullptr;
     } else if (other.ptr_ != nullptr) {

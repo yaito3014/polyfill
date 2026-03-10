@@ -37,14 +37,6 @@
 #define YK_POLYFILL_CXX17_NOEXCEPT(...)
 #endif
 
-#if defined(_MSC_VER)
-#define YK_POLYFILL_NO_UNIQUE_ADDRESS [[msvc::no_unique_address]]
-#elif defined(__has_attribute) && __has_attribute(no_unique_address)
-#define YK_POLYFILL_NO_UNIQUE_ADDRESS __attribute__((no_unique_address))
-#else
-#define YK_POLYFILL_NO_UNIQUE_ADDRESS
-#endif
-
 // All MSVC toolsets < 19.50 (i.e. all VS2022 and earlier) have a bug where a
 // constexpr virtual function that destroys/deallocates `this` fails to compile.
 // Drop constexpr for those.

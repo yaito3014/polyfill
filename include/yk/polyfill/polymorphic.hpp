@@ -111,14 +111,14 @@ class polymorphic {
   };
 
   holder_base* holder_;
-  YK_POLYFILL_NO_UNIQUE_ADDRESS A alloc_;
+  indirect_detail::ebo_alloc<A> alloc_;
 
   template <class U, class... Ts>
   YK_POLYFILL_CXX20_CONSTEXPR void allocate_holder(Ts&&... ts)
   {
     using holder_alloc_t = typename std::allocator_traits<A>::template rebind_alloc<holder<U>>;
     using holder_traits_t = std::allocator_traits<holder_alloc_t>;
-    holder_alloc_t holder_alloc(alloc_);
+    holder_alloc_t holder_alloc(alloc_.get());
     holder<U>* p = holder_traits_t::allocate(holder_alloc, 1);
     try {
       holder_traits_t::construct(holder_alloc, p, static_cast<Ts&&>(ts)...);
@@ -132,7 +132,7 @@ class polymorphic {
   YK_POLYFILL_CXX20_CONSTEXPR void destroy_owned() noexcept
   {
     if (holder_ == nullptr) return;
-    holder_->destroy(alloc_);
+    holder_->destroy(alloc_.get());
     holder_ = nullptr;
   }
 
@@ -140,7 +140,7 @@ class polymorphic {
   {
     destroy_owned();
     if (other.holder_ != nullptr) {
-      holder_ = other.holder_->clone(alloc_);
+      holder_ = other.holder_->clone(alloc_.get());
     }
   }
 
@@ -201,10 +201,10 @@ class polymorphic {
   }
 
   YK_POLYFILL_CXX20_CONSTEXPR polymorphic(const polymorphic& other)
-      : holder_(nullptr), alloc_(std::allocator_traits<A>::select_on_container_copy_construction(other.alloc_))
+      : holder_(nullptr), alloc_(std::allocator_traits<A>::select_on_container_copy_construction(other.alloc_.get()))
   {
     if (other.holder_ != nullptr) {
-      holder_ = other.holder_->clone(alloc_);
+      holder_ = other.holder_->clone(alloc_.get());
     }
   }
 
@@ -212,12 +212,12 @@ class polymorphic {
       : holder_(nullptr), alloc_(a)
   {
     if (other.holder_ != nullptr) {
-      holder_ = other.holder_->clone(alloc_);
+      holder_ = other.holder_->clone(alloc_.get());
     }
   }
 
   YK_POLYFILL_CXX14_CONSTEXPR polymorphic(polymorphic&& other) noexcept
-      : holder_(other.holder_), alloc_(static_cast<A&&>(other.alloc_))
+      : holder_(other.holder_), alloc_(static_cast<A&&>(other.alloc_.get()))
   {
     other.holder_ = nullptr;
   }
@@ -257,7 +257,7 @@ class polymorphic {
 
   [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR bool valueless_after_move() const noexcept { return holder_ == nullptr; }
 
-  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR A get_allocator() const noexcept { return alloc_; }
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR A get_allocator() const noexcept { return alloc_.get(); }
 
   YK_POLYFILL_CXX14_CONSTEXPR void swap(polymorphic& other)
       noexcept(std::allocator_traits<A>::propagate_on_container_swap::value
@@ -278,7 +278,7 @@ struct swap_ops</*Pocs = */ true> {
   template <class T, class A>
   static YK_POLYFILL_CXX14_CONSTEXPR void apply(polymorphic<T, A>& a, polymorphic<T, A>& b) noexcept
   {
-    indirect_detail::cswap(a.alloc_, b.alloc_);
+    indirect_detail::cswap(a.alloc_.get(), b.alloc_.get());
     indirect_detail::cswap(a.holder_, b.holder_);
   }
 };
@@ -300,8 +300,8 @@ struct copy_assign_ops</*Pocca = */ true> {
     // polymorphic always destroys before cloning (no in-place reuse), so both
     // branches reduce to the same sequence: destroy, propagate alloc, clone.
     self.destroy_owned();
-    self.alloc_ = other.alloc_;
-    if (other.holder_ != nullptr) self.holder_ = other.holder_->clone(self.alloc_);
+    self.alloc_.get() = other.alloc_.get();
+    if (other.holder_ != nullptr) self.holder_ = other.holder_->clone(self.alloc_.get());
   }
 };
 
@@ -320,7 +320,7 @@ struct move_assign_ops</*Pocma = */ true> {
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, polymorphic<T, A>&& other) noexcept
   {
     self.destroy_owned();
-    self.alloc_ = static_cast<A&&>(other.alloc_);
+    self.alloc_.get() = static_cast<A&&>(other.alloc_.get());
     self.holder_ = other.holder_;
     other.holder_ = nullptr;
   }
@@ -353,11 +353,11 @@ struct move_assign_ne_ops</*AlwaysEqual = */ false> {
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, polymorphic<T, A>&& other)
   {
     self.destroy_owned();
-    if (self.alloc_ == other.alloc_) {
+    if (self.alloc_.get() == other.alloc_.get()) {
       self.holder_ = other.holder_;
       other.holder_ = nullptr;
     } else if (other.holder_ != nullptr) {
-      self.holder_ = other.holder_->move_clone(self.alloc_);
+      self.holder_ = other.holder_->move_clone(self.alloc_.get());
     }
   }
 };
@@ -377,11 +377,11 @@ struct move_ctor_ops</*AlwaysEqual = */ false> {
   template <class T, class A>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, polymorphic<T, A>&& other)
   {
-    if (self.alloc_ == other.alloc_) {
+    if (self.alloc_.get() == other.alloc_.get()) {
       self.holder_ = other.holder_;
       other.holder_ = nullptr;
     } else if (other.holder_ != nullptr) {
-      self.holder_ = other.holder_->move_clone(self.alloc_);
+      self.holder_ = other.holder_->move_clone(self.alloc_.get());
     }
   }
 };
