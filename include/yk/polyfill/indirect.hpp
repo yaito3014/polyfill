@@ -49,12 +49,25 @@ YK_POLYFILL_CXX14_CONSTEXPR void cswap(T& a, T& b)
 // EBO helper: inherit from A when possible (empty + non-final) to eliminate
 // the allocator's storage entirely, matching [[no_unique_address]] semantics
 // while being compatible with all C++ standards from C++11.
+
+// is_final polyfill: std::is_final is C++14, but the __is_final() compiler
+// built-in is available in C++11 mode on GCC (4.7+), Clang, and MSVC.
+// Fall back to false_type (EBO disabled for that type) on unknown compilers.
+#if __cplusplus >= 201402L
+template <class T>
+using is_final_compat = std::is_final<T>;
+#elif defined(__GNUC__) || defined(_MSC_VER)
+// __GNUC__ is defined by both GCC and Clang; _MSC_VER covers MSVC.
+template <class T>
+struct is_final_compat : std::integral_constant<bool, __is_final(T)> {};
+#else
+template <class T>
+struct is_final_compat : std::false_type {};
+#endif
+
 template <class A>
 struct can_ebo : std::integral_constant<bool,
-    std::is_empty<A>::value
-#if __cplusplus >= 201402L
-    && !std::is_final<A>::value
-#endif
+    std::is_empty<A>::value && !is_final_compat<A>::value
 > {};
 
 template <class A, bool = can_ebo<A>::value>
