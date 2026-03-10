@@ -39,8 +39,8 @@
 
 #if defined(_MSC_VER)
 #define YK_POLYFILL_NO_UNIQUE_ADDRESS [[msvc::no_unique_address]]
-#elif __cpp_attributes >= 200809L && __cplusplus >= 202002L
-#define YK_POLYFILL_NO_UNIQUE_ADDRESS [[no_unique_address]]
+#elif defined(__has_attribute) && __has_attribute(no_unique_address)
+#define YK_POLYFILL_NO_UNIQUE_ADDRESS __attribute__((no_unique_address))
 #else
 #define YK_POLYFILL_NO_UNIQUE_ADDRESS
 #endif
