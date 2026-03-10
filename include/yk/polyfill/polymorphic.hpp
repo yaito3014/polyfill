@@ -40,6 +40,7 @@ class polymorphic {
   struct holder_base {
     T* ptr_ = nullptr;
     virtual YK_POLYFILL_CXX20_CONSTEXPR holder_base* clone(A& alloc) const = 0;
+    virtual YK_POLYFILL_CXX20_CONSTEXPR holder_base* move_clone(A& alloc) = 0;
     virtual YK_POLYFILL_CXX20_CONSTEXPR_VDESTROY void destroy(A& alloc) noexcept = 0;
     virtual YK_POLYFILL_CXX20_CONSTEXPR ~holder_base() noexcept = default;
   };
@@ -74,6 +75,19 @@ class polymorphic {
       holder<U>* p = holder_traits_t::allocate(holder_alloc, 1);
       try {
         holder_traits_t::construct(holder_alloc, p, *this);
+      } catch (...) {
+        holder_traits_t::deallocate(holder_alloc, p, 1);
+        throw;
+      }
+      return p;
+    }
+
+    YK_POLYFILL_CXX20_CONSTEXPR holder_base* move_clone(A& alloc) override
+    {
+      holder_alloc_t holder_alloc(alloc);
+      holder<U>* p = holder_traits_t::allocate(holder_alloc, 1);
+      try {
+        holder_traits_t::construct(holder_alloc, p, static_cast<U&&>(obj_));
       } catch (...) {
         holder_traits_t::deallocate(holder_alloc, p, 1);
         throw;
@@ -336,7 +350,7 @@ struct move_assign_ne_ops</*AlwaysEqual = */ false> {
       self.holder_ = other.holder_;
       other.holder_ = nullptr;
     } else if (other.holder_ != nullptr) {
-      self.holder_ = other.holder_->clone(self.alloc_);
+      self.holder_ = other.holder_->move_clone(self.alloc_);
     }
   }
 };
@@ -360,7 +374,7 @@ struct move_ctor_ops</*AlwaysEqual = */ false> {
       self.holder_ = other.holder_;
       other.holder_ = nullptr;
     } else if (other.holder_ != nullptr) {
-      self.holder_ = other.holder_->clone(self.alloc_);
+      self.holder_ = other.holder_->move_clone(self.alloc_);
     }
   }
 };
