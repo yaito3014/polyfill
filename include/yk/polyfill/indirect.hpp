@@ -47,9 +47,10 @@ YK_POLYFILL_CXX14_CONSTEXPR void cswap(T& a, T& b)
 }
 
 // EBO helper: inherit from A when possible (empty + non-final) to eliminate
-// the allocator's storage entirely, matching [[no_unique_address]] semantics
-// while being compatible with all C++ standards from C++11.
-
+// the allocator's storage entirely.  indirect<T,A> and polymorphic<T,A>
+// inherit from ebo_alloc<A> so the base-class zero-size optimisation fires;
+// holding ebo_alloc as a data member would still cost ≥1 byte even if empty.
+//
 // std::is_final is a C++14 library feature; there is no portable pure-C++11
 // substitute (inheriting from a final class is a hard error, not SFINAE-
 // friendly, so detection via type traits is impossible in C++11).
@@ -127,24 +128,24 @@ template <bool AlwaysEqual> struct move_ctor_ops;       // extended-alloc move c
 }  // namespace indirect_detail
 
 template <class T, class A = std::allocator<T>>
-class indirect {
+class indirect : private indirect_detail::ebo_alloc<A> {
   static_assert(!std::is_array<T>::value, "indirect: T must not be an array type");
 
+  using alloc_base   = indirect_detail::ebo_alloc<A>;
   using alloc_traits = std::allocator_traits<A>;
 
   T* ptr_;
-  indirect_detail::ebo_alloc<A> alloc_;
 
   // --- Private helpers (called by ops specialisations via friendship) --------
 
   template <class... Ts>
   YK_POLYFILL_CXX20_CONSTEXPR void allocate_and_construct(Ts&&... ts)
   {
-    ptr_ = alloc_traits::allocate(alloc_.get(), 1);
+    ptr_ = alloc_traits::allocate(this->get(), 1);
     try {
-      alloc_traits::construct(alloc_.get(), ptr_, static_cast<Ts&&>(ts)...);
+      alloc_traits::construct(this->get(), ptr_, static_cast<Ts&&>(ts)...);
     } catch (...) {
-      alloc_traits::deallocate(alloc_.get(), ptr_, 1);
+      alloc_traits::deallocate(this->get(), ptr_, 1);
       ptr_ = nullptr;
       throw;
     }
@@ -153,8 +154,8 @@ class indirect {
   YK_POLYFILL_CXX20_CONSTEXPR void destroy_owned() noexcept
   {
     if (ptr_ != nullptr) {
-      alloc_traits::destroy(alloc_.get(), ptr_);
-      alloc_traits::deallocate(alloc_.get(), ptr_, 1);
+      alloc_traits::destroy(this->get(), ptr_);
+      alloc_traits::deallocate(this->get(), ptr_, 1);
       ptr_ = nullptr;
     }
   }
@@ -187,14 +188,14 @@ class indirect {
   // Constraint: A must be default-constructible (enable_if)
   // Mandate:    T must be default-constructible (static_assert)
   template <typename AllocDummy = A, typename std::enable_if<std::is_default_constructible<AllocDummy>::value, std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX20_CONSTEXPR indirect() : ptr_(nullptr), alloc_()
+  YK_POLYFILL_CXX20_CONSTEXPR indirect() : alloc_base(), ptr_(nullptr)
   {
     static_assert(std::is_default_constructible<T>::value, "indirect: T must be default-constructible");
     allocate_and_construct();
   }
 
   // Mandate: T must be default-constructible (static_assert)
-  YK_POLYFILL_CXX20_CONSTEXPR explicit indirect(std::allocator_arg_t, const A& a) : ptr_(nullptr), alloc_(a)
+  YK_POLYFILL_CXX20_CONSTEXPR explicit indirect(std::allocator_arg_t, const A& a) : alloc_base(a), ptr_(nullptr)
   {
     static_assert(std::is_default_constructible<T>::value, "indirect: T must be default-constructible");
     allocate_and_construct();
@@ -206,7 +207,7 @@ class indirect {
             typename std::enable_if<!std::is_same<typename remove_cvref<U>::type, in_place_t>::value, std::nullptr_t>::type = nullptr,
             typename std::enable_if<std::is_constructible<T, U>::value, std::nullptr_t>::type = nullptr,
             typename std::enable_if<std::is_default_constructible<AllocDummy>::value, std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX20_CONSTEXPR explicit indirect(U&& u) : ptr_(nullptr), alloc_()
+  YK_POLYFILL_CXX20_CONSTEXPR explicit indirect(U&& u) : alloc_base(), ptr_(nullptr)
   {
     allocate_and_construct(static_cast<U&&>(u));
   }
@@ -216,7 +217,7 @@ class indirect {
             typename std::enable_if<!std::is_same<typename remove_cvref<U>::type, indirect>::value, std::nullptr_t>::type = nullptr,
             typename std::enable_if<!std::is_same<typename remove_cvref<U>::type, in_place_t>::value, std::nullptr_t>::type = nullptr,
             typename std::enable_if<std::is_constructible<T, U>::value, std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX20_CONSTEXPR explicit indirect(std::allocator_arg_t, const A& a, U&& u) : ptr_(nullptr), alloc_(a)
+  YK_POLYFILL_CXX20_CONSTEXPR explicit indirect(std::allocator_arg_t, const A& a, U&& u) : alloc_base(a), ptr_(nullptr)
   {
     allocate_and_construct(static_cast<U&&>(u));
   }
@@ -225,21 +226,21 @@ class indirect {
   template <class... Ts, typename AllocDummy2 = A,
             typename std::enable_if<std::is_constructible<T, Ts...>::value, std::nullptr_t>::type = nullptr,
             typename std::enable_if<std::is_default_constructible<AllocDummy2>::value, std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX20_CONSTEXPR explicit indirect(in_place_t, Ts&&... ts) : ptr_(nullptr), alloc_()
+  YK_POLYFILL_CXX20_CONSTEXPR explicit indirect(in_place_t, Ts&&... ts) : alloc_base(), ptr_(nullptr)
   {
     allocate_and_construct(static_cast<Ts&&>(ts)...);
   }
 
   // Constraint: T constructible from Ts... (enable_if)
   template <class... Ts, typename std::enable_if<std::is_constructible<T, Ts...>::value, std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX20_CONSTEXPR explicit indirect(std::allocator_arg_t, const A& a, in_place_t, Ts&&... ts) : ptr_(nullptr), alloc_(a)
+  YK_POLYFILL_CXX20_CONSTEXPR explicit indirect(std::allocator_arg_t, const A& a, in_place_t, Ts&&... ts) : alloc_base(a), ptr_(nullptr)
   {
     allocate_and_construct(static_cast<Ts&&>(ts)...);
   }
 
   // Mandate: T must be copy-constructible (static_assert)
   YK_POLYFILL_CXX20_CONSTEXPR indirect(const indirect& other)
-      : ptr_(nullptr), alloc_(alloc_traits::select_on_container_copy_construction(other.alloc_.get()))
+      : alloc_base(alloc_traits::select_on_container_copy_construction(other.get())), ptr_(nullptr)
   {
     static_assert(std::is_copy_constructible<T>::value, "indirect: T must be copy-constructible");
     if (other.ptr_ != nullptr) {
@@ -248,7 +249,7 @@ class indirect {
   }
 
   // Mandate: T must be copy-constructible (static_assert)
-  YK_POLYFILL_CXX20_CONSTEXPR indirect(const indirect& other, std::allocator_arg_t, const A& a) : ptr_(nullptr), alloc_(a)
+  YK_POLYFILL_CXX20_CONSTEXPR indirect(const indirect& other, std::allocator_arg_t, const A& a) : alloc_base(a), ptr_(nullptr)
   {
     static_assert(std::is_copy_constructible<T>::value, "indirect: T must be copy-constructible");
     if (other.ptr_ != nullptr) {
@@ -257,7 +258,8 @@ class indirect {
   }
 
   // (no constraint on T: move always works)
-  YK_POLYFILL_CXX14_CONSTEXPR indirect(indirect&& other) noexcept : ptr_(other.ptr_), alloc_(static_cast<A&&>(other.alloc_.get()))
+  YK_POLYFILL_CXX14_CONSTEXPR indirect(indirect&& other) noexcept
+      : alloc_base(static_cast<A&&>(other.get())), ptr_(other.ptr_)
   {
     other.ptr_ = nullptr;
   }
@@ -265,7 +267,7 @@ class indirect {
   // Mandate: T must be move-constructible (static_assert)
   YK_POLYFILL_CXX20_CONSTEXPR indirect(indirect&& other, std::allocator_arg_t, const A& a)
       noexcept(indirect_detail::is_always_equal<A>::value)
-      : ptr_(nullptr), alloc_(a)
+      : alloc_base(a), ptr_(nullptr)
   {
     static_assert(std::is_move_constructible<T>::value, "indirect: T must be move-constructible");
     indirect_detail::move_ctor_ops<indirect_detail::is_always_equal<A>::value>::apply(*this, static_cast<indirect&&>(other));
@@ -325,7 +327,7 @@ class indirect {
 
   [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR bool valueless_after_move() const noexcept { return ptr_ == nullptr; }
 
-  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR A get_allocator() const noexcept { return alloc_.get(); }
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR A get_allocator() const noexcept { return this->get(); }
 
   // --- Swap ---
 
@@ -460,7 +462,7 @@ struct swap_ops</*Pocs = */ true> {
   template <class T, class A>
   static YK_POLYFILL_CXX14_CONSTEXPR void apply(indirect<T, A>& a, indirect<T, A>& b) noexcept
   {
-    cswap(a.alloc_.get(), b.alloc_.get());
+    cswap(a.get(), b.get());
     cswap(a.ptr_, b.ptr_);
   }
 };
@@ -479,9 +481,9 @@ struct copy_assign_ops</*Pocca = */ true> {
   template <class T, class A>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(indirect<T, A>& self, const indirect<T, A>& other)
   {
-    if (self.alloc_.get() != other.alloc_.get()) {
+    if (self.get() != other.get()) {
       self.destroy_owned();
-      self.alloc_.get() = other.alloc_.get();
+      self.get() = other.get();
       if (other.ptr_ != nullptr) self.allocate_and_construct(*other.ptr_);
     } else {
       self.copy_assign_content(other);
@@ -504,7 +506,7 @@ struct move_assign_ops</*Pocma = */ true> {
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(indirect<T, A>& self, indirect<T, A>&& other) noexcept
   {
     self.destroy_owned();
-    self.alloc_.get() = static_cast<A&&>(other.alloc_.get());
+    self.get() = static_cast<A&&>(other.get());
     self.ptr_ = other.ptr_;
     other.ptr_ = nullptr;
   }
@@ -536,7 +538,7 @@ struct move_assign_ne_ops</*AlwaysEqual = */ false> {
   template <class T, class A>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(indirect<T, A>& self, indirect<T, A>&& other)
   {
-    if (self.alloc_.get() == other.alloc_.get()) {
+    if (self.get() == other.get()) {
       self.destroy_owned();
       self.ptr_ = other.ptr_;
       other.ptr_ = nullptr;
@@ -567,7 +569,7 @@ struct move_ctor_ops</*AlwaysEqual = */ false> {
   template <class T, class A>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(indirect<T, A>& self, indirect<T, A>&& other)
   {
-    if (self.alloc_.get() == other.alloc_.get()) {
+    if (self.get() == other.get()) {
       self.ptr_ = other.ptr_;
       other.ptr_ = nullptr;
     } else if (other.ptr_ != nullptr) {
