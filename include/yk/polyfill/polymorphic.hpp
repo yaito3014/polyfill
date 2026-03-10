@@ -64,6 +64,13 @@ class polymorphic {
       this->ptr_ = std::addressof(obj_);
     }
 
+    YK_POLYFILL_CXX20_CONSTEXPR holder(holder&& other)
+        noexcept(std::is_nothrow_move_constructible<U>::value)
+        : obj_(static_cast<U&&>(other.obj_))
+    {
+      this->ptr_ = std::addressof(obj_);
+    }
+
     YK_POLYFILL_CXX20_CONSTEXPR ~holder() noexcept override = default;
 
     using holder_alloc_t = typename std::allocator_traits<A>::template rebind_alloc<holder<U>>;
@@ -87,7 +94,7 @@ class polymorphic {
       holder_alloc_t holder_alloc(alloc);
       holder<U>* p = holder_traits_t::allocate(holder_alloc, 1);
       try {
-        holder_traits_t::construct(holder_alloc, p, static_cast<U&&>(obj_));
+        holder_traits_t::construct(holder_alloc, p, static_cast<holder<U>&&>(*this));
       } catch (...) {
         holder_traits_t::deallocate(holder_alloc, p, 1);
         throw;
