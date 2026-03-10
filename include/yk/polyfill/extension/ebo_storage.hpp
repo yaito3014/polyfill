@@ -29,44 +29,37 @@ namespace extension {
 // std::is_final is a C++14 library feature; in C++11 mode we omit the check —
 // a final empty T would cause a hard error at ebo_storage instantiation, but
 // such a type is essentially non-existent in practice.
-template <class T>
-struct can_ebo : std::integral_constant<bool,
-    std::is_empty<T>::value
+template<class T>
+struct can_ebo : std::integral_constant<
+                     bool, std::is_empty<T>::value
 #if __cplusplus >= 201402L
-    && !std::is_final<T>::value
+                               && !std::is_final<T>::value
 #endif
-> {};
+                     > {
+};
 
-template <class T, bool = can_ebo<T>::value>
+template<class T, bool = can_ebo<T>::value>
 struct ebo_storage;
 
 // Non-EBO path: T is stored as a data member.
-template <class T>
+template<class T>
 struct ebo_storage<T, /*EBO=*/false> {
   T value_;
   ebo_storage() = default;
-  constexpr explicit ebo_storage(const T& v)
-      noexcept(std::is_nothrow_copy_constructible<T>::value)
-      : value_(v) {}
-  constexpr explicit ebo_storage(T&& v)
-      noexcept(std::is_nothrow_move_constructible<T>::value)
-      : value_(static_cast<T&&>(v)) {}
+  constexpr explicit ebo_storage(T const& v) noexcept(std::is_nothrow_copy_constructible<T>::value) : value_(v) {}
+  constexpr explicit ebo_storage(T&& v) noexcept(std::is_nothrow_move_constructible<T>::value) : value_(static_cast<T&&>(v)) {}
   YK_POLYFILL_CXX14_CONSTEXPR T& stored_value() noexcept { return value_; }
-  constexpr const T& stored_value() const noexcept { return value_; }
+  constexpr T const& stored_value() const noexcept { return value_; }
 };
 
 // EBO path: T is an empty, non-final class — inherit from it privately.
-template <class T>
+template<class T>
 struct ebo_storage<T, /*EBO=*/true> : private T {
   ebo_storage() = default;
-  constexpr explicit ebo_storage(const T& v)
-      noexcept(std::is_nothrow_copy_constructible<T>::value)
-      : T(v) {}
-  constexpr explicit ebo_storage(T&& v)
-      noexcept(std::is_nothrow_move_constructible<T>::value)
-      : T(static_cast<T&&>(v)) {}
+  constexpr explicit ebo_storage(T const& v) noexcept(std::is_nothrow_copy_constructible<T>::value) : T(v) {}
+  constexpr explicit ebo_storage(T&& v) noexcept(std::is_nothrow_move_constructible<T>::value) : T(static_cast<T&&>(v)) {}
   YK_POLYFILL_CXX14_CONSTEXPR T& stored_value() noexcept { return static_cast<T&>(*this); }
-  constexpr const T& stored_value() const noexcept { return static_cast<const T&>(*this); }
+  constexpr T const& stored_value() const noexcept { return static_cast<T const&>(*this); }
 };
 
 }  // namespace extension

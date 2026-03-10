@@ -20,7 +20,7 @@ namespace pf = yk::polyfill;
 struct ConstBase {
   constexpr virtual ~ConstBase() = default;
   constexpr virtual int value() const = 0;
-  constexpr bool operator==(const ConstBase& o) const { return value() == o.value(); }
+  constexpr bool operator==(ConstBase const& o) const { return value() == o.value(); }
 };
 
 struct ConstDerived : ConstBase {
@@ -115,7 +115,6 @@ TEST_CASE("polymorphic constexpr: swap")
   POLYMORPHIC_STATIC_REQUIRE(polymorphic_swap());
 }
 
-
 constexpr bool polymorphic_in_place_type_stores_derived()
 {
   pf::polymorphic<ConstBase> p(pf::in_place_type<ConstDerived>, 42);
@@ -138,5 +137,3 @@ TEST_CASE("polymorphic constexpr: copy preserves dynamic type")
 {
   POLYMORPHIC_STATIC_REQUIRE(polymorphic_copy_preserves_dynamic_type());
 }
-
-

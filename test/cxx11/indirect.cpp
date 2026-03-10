@@ -20,9 +20,9 @@ struct Counter {
   static int moves;
 
   explicit Counter(int v = 0) : value(v) {}
-  Counter(const Counter& o) : value(o.value) { ++copies; }
+  Counter(Counter const& o) : value(o.value) { ++copies; }
   Counter(Counter&& o) : value(o.value) { ++moves; }
-  Counter& operator=(const Counter& o)
+  Counter& operator=(Counter const& o)
   {
     value = o.value;
     ++copies;
@@ -34,8 +34,8 @@ struct Counter {
     ++moves;
     return *this;
   }
-  bool operator==(const Counter& o) const { return value == o.value; }
-  bool operator!=(const Counter& o) const { return value != o.value; }
+  bool operator==(Counter const& o) const { return value == o.value; }
+  bool operator!=(Counter const& o) const { return value != o.value; }
 };
 int Counter::copies = 0;
 int Counter::moves = 0;
@@ -53,9 +53,9 @@ TEST_CASE("indirect: type traits")
 
   // Dereference value categories
   STATIC_REQUIRE(std::is_same<decltype(*std::declval<pf::indirect<int>&>()), int&>::value);
-  STATIC_REQUIRE(std::is_same<decltype(*std::declval<const pf::indirect<int>&>()), const int&>::value);
+  STATIC_REQUIRE(std::is_same<decltype(*std::declval<pf::indirect<int> const&>()), int const&>::value);
   STATIC_REQUIRE(std::is_same<decltype(*std::declval<pf::indirect<int>&&>()), int&&>::value);
-  STATIC_REQUIRE(std::is_same<decltype(*std::declval<const pf::indirect<int>&&>()), const int&&>::value);
+  STATIC_REQUIRE(std::is_same<decltype(*std::declval<pf::indirect<int> const&&>()), int const&&>::value);
 }
 
 TEST_CASE("indirect: default construction")
@@ -188,7 +188,7 @@ TEST_CASE("indirect: copy uses value copy not extra allocs")
   Counter::moves = 0;
 
   pf::indirect<Counter> a(pf::in_place, 10);
-  pf::indirect<Counter> b = a;   // one copy for the T object
+  pf::indirect<Counter> b = a;  // one copy for the T object
 
   CHECK((*b).value == 10);
   // At minimum one copy happened
@@ -209,29 +209,32 @@ TEST_CASE("indirect: get_allocator")
 
 struct MoveOnly {
   MoveOnly() = default;
-  MoveOnly(const MoveOnly&) = delete;
-  MoveOnly& operator=(const MoveOnly&) = delete;
+  MoveOnly(MoveOnly const&) = delete;
+  MoveOnly& operator=(MoveOnly const&) = delete;
   MoveOnly(MoveOnly&&) = default;
   MoveOnly& operator=(MoveOnly&&) = default;
 };
 
 struct NonDefault {
   explicit NonDefault(int v) : value(v) {}
-  NonDefault(const NonDefault&) = default;
+  NonDefault(NonDefault const&) = default;
   int value;
 };
 
 // Allocator with no default constructor — tests the Constraint on indirect().
-template <class T>
+template<class T>
 struct NoDefaultAlloc {
   using value_type = T;
   NoDefaultAlloc() = delete;
   explicit NoDefaultAlloc(int) {}
-  template <class U> NoDefaultAlloc(const NoDefaultAlloc<U>&) {}
+  template<class U>
+  NoDefaultAlloc(NoDefaultAlloc<U> const&)
+  {
+  }
   T* allocate(std::size_t n) { return std::allocator<T>{}.allocate(n); }
   void deallocate(T* p, std::size_t n) { std::allocator<T>{}.deallocate(p, n); }
-  bool operator==(const NoDefaultAlloc&) const { return true; }
-  bool operator!=(const NoDefaultAlloc&) const { return false; }
+  bool operator==(NoDefaultAlloc const&) const { return true; }
+  bool operator!=(NoDefaultAlloc const&) const { return false; }
 };
 
 // --- Constraint: default ctor requires default-constructible A ---
@@ -252,7 +255,7 @@ TEST_CASE("indirect: in_place_t Constraint — selected when args match")
 
 TEST_CASE("indirect: in_place_t Constraint — not in overload set when args don't match")
 {
-  STATIC_REQUIRE(!std::is_constructible<pf::indirect<int>, pf::in_place_t, const char*>::value);
+  STATIC_REQUIRE(!std::is_constructible<pf::indirect<int>, pf::in_place_t, char const*>::value);
 }
 
 // --- Mandate: T must be default-constructible (static_assert, not a type-trait effect) ---
@@ -316,35 +319,43 @@ TEST_CASE("indirect: alloc-extended generic ctor — constructs from value with 
 // selectable propagation traits.  Two instances with different ids compare
 // unequal, letting us distinguish allocator-propagation from value-copying.
 
-template <class T, bool Pocs, bool Pocca, bool Pocma>
+template<class T, bool Pocs, bool Pocca, bool Pocma>
 struct TestAlloc {
   using value_type = T;
   int id;
 
-  template <class U>
-  struct rebind { using other = TestAlloc<U, Pocs, Pocca, Pocma>; };
+  template<class U>
+  struct rebind {
+    using other = TestAlloc<U, Pocs, Pocca, Pocma>;
+  };
 
-  using propagate_on_container_swap             = std::integral_constant<bool, Pocs>;
-  using propagate_on_container_copy_assignment  = std::integral_constant<bool, Pocca>;
-  using propagate_on_container_move_assignment  = std::integral_constant<bool, Pocma>;
+  using propagate_on_container_swap = std::integral_constant<bool, Pocs>;
+  using propagate_on_container_copy_assignment = std::integral_constant<bool, Pocca>;
+  using propagate_on_container_move_assignment = std::integral_constant<bool, Pocma>;
 
   explicit TestAlloc(int i = 0) : id(i) {}
 
-  template <class U>
-  TestAlloc(const TestAlloc<U, Pocs, Pocca, Pocma>& o) : id(o.id) {}
+  template<class U>
+  TestAlloc(TestAlloc<U, Pocs, Pocca, Pocma> const& o) : id(o.id)
+  {
+  }
 
   T* allocate(std::size_t n) { return std::allocator<T>{}.allocate(n); }
   void deallocate(T* p, std::size_t n) { std::allocator<T>{}.deallocate(p, n); }
 
-  bool operator==(const TestAlloc& o) const { return id == o.id; }
-  bool operator!=(const TestAlloc& o) const { return id != o.id; }
+  bool operator==(TestAlloc const& o) const { return id == o.id; }
+  bool operator!=(TestAlloc const& o) const { return id != o.id; }
 };
 
 // Convenience aliases: only the relevant propagation flag is true.
-template <class T> using PocswapAlloc = TestAlloc<T, /*Pocs*/true,  false, false>;
-template <class T> using PoccaAlloc   = TestAlloc<T, false, /*Pocca*/true,  false>;
-template <class T> using PocmaAlloc   = TestAlloc<T, false, false, /*Pocma*/true>;
-template <class T> using StaticAlloc  = TestAlloc<T, false, false, false>;
+template<class T>
+using PocswapAlloc = TestAlloc<T, /*Pocs*/ true, false, false>;
+template<class T>
+using PoccaAlloc = TestAlloc<T, false, /*Pocca*/ true, false>;
+template<class T>
+using PocmaAlloc = TestAlloc<T, false, false, /*Pocma*/ true>;
+template<class T>
+using StaticAlloc = TestAlloc<T, false, false, false>;
 
 // --- swap ---
 
@@ -414,7 +425,7 @@ TEST_CASE("indirect alloc: move assign POCMA=false same alloc steals value")
   pf::indirect<int, StaticAlloc<int>> y(std::allocator_arg, a1, pf::in_place, 0);
   y = std::move(x);
   CHECK(*y == 42);
-  CHECK(x.valueless_after_move());   // pointer was stolen
+  CHECK(x.valueless_after_move());  // pointer was stolen
   CHECK(y.get_allocator() == a1);
 }
 

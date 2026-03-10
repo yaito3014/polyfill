@@ -20,8 +20,8 @@ struct Animal {
   virtual std::string sound() const = 0;
   virtual Animal* clone_self() const = 0;  // manual clone for verification
 
-  bool operator==(const Animal& o) const { return sound() == o.sound(); }
-  bool operator!=(const Animal& o) const { return !(*this == o); }
+  bool operator==(Animal const& o) const { return sound() == o.sound(); }
+  bool operator!=(Animal const& o) const { return !(*this == o); }
 };
 
 struct Dog : Animal {
@@ -38,8 +38,8 @@ struct Cat : Animal {
 struct Point {
   int x, y;
   explicit Point(int x_ = 0, int y_ = 0) : x(x_), y(y_) {}
-  bool operator==(const Point& o) const { return x == o.x && y == o.y; }
-  bool operator!=(const Point& o) const { return !(*this == o); }
+  bool operator==(Point const& o) const { return x == o.x && y == o.y; }
+  bool operator!=(Point const& o) const { return !(*this == o); }
 };
 
 TEST_CASE("polymorphic: type traits")
@@ -52,9 +52,9 @@ TEST_CASE("polymorphic: type traits")
   STATIC_REQUIRE(std::is_nothrow_move_constructible<pf::polymorphic<int>>::value);
 
   STATIC_REQUIRE(std::is_same<decltype(*std::declval<pf::polymorphic<int>&>()), int&>::value);
-  STATIC_REQUIRE(std::is_same<decltype(*std::declval<const pf::polymorphic<int>&>()), const int&>::value);
+  STATIC_REQUIRE(std::is_same<decltype(*std::declval<pf::polymorphic<int> const&>()), int const&>::value);
   STATIC_REQUIRE(std::is_same<decltype(*std::declval<pf::polymorphic<int>&&>()), int&&>::value);
-  STATIC_REQUIRE(std::is_same<decltype(*std::declval<const pf::polymorphic<int>&&>()), const int&&>::value);
+  STATIC_REQUIRE(std::is_same<decltype(*std::declval<pf::polymorphic<int> const&&>()), int const&&>::value);
 }
 
 TEST_CASE("polymorphic: default construction")
@@ -211,34 +211,42 @@ TEST_CASE("polymorphic: get_allocator")
 
 // ---- allocator-propagation tests ------------------------------------------
 
-template <class T, bool Pocs, bool Pocca, bool Pocma>
+template<class T, bool Pocs, bool Pocca, bool Pocma>
 struct TestAlloc {
   using value_type = T;
   int id;
 
-  template <class U>
-  struct rebind { using other = TestAlloc<U, Pocs, Pocca, Pocma>; };
+  template<class U>
+  struct rebind {
+    using other = TestAlloc<U, Pocs, Pocca, Pocma>;
+  };
 
-  using propagate_on_container_swap             = std::integral_constant<bool, Pocs>;
-  using propagate_on_container_copy_assignment  = std::integral_constant<bool, Pocca>;
-  using propagate_on_container_move_assignment  = std::integral_constant<bool, Pocma>;
+  using propagate_on_container_swap = std::integral_constant<bool, Pocs>;
+  using propagate_on_container_copy_assignment = std::integral_constant<bool, Pocca>;
+  using propagate_on_container_move_assignment = std::integral_constant<bool, Pocma>;
 
   explicit TestAlloc(int i = 0) : id(i) {}
 
-  template <class U>
-  TestAlloc(const TestAlloc<U, Pocs, Pocca, Pocma>& o) : id(o.id) {}
+  template<class U>
+  TestAlloc(TestAlloc<U, Pocs, Pocca, Pocma> const& o) : id(o.id)
+  {
+  }
 
   T* allocate(std::size_t n) { return std::allocator<T>{}.allocate(n); }
   void deallocate(T* p, std::size_t n) { std::allocator<T>{}.deallocate(p, n); }
 
-  bool operator==(const TestAlloc& o) const { return id == o.id; }
-  bool operator!=(const TestAlloc& o) const { return id != o.id; }
+  bool operator==(TestAlloc const& o) const { return id == o.id; }
+  bool operator!=(TestAlloc const& o) const { return id != o.id; }
 };
 
-template <class T> using PocswapAlloc = TestAlloc<T, /*Pocs*/true,  false, false>;
-template <class T> using PoccaAlloc   = TestAlloc<T, false, /*Pocca*/true,  false>;
-template <class T> using PocmaAlloc   = TestAlloc<T, false, false, /*Pocma*/true>;
-template <class T> using StaticAlloc  = TestAlloc<T, false, false, false>;
+template<class T>
+using PocswapAlloc = TestAlloc<T, /*Pocs*/ true, false, false>;
+template<class T>
+using PoccaAlloc = TestAlloc<T, false, /*Pocca*/ true, false>;
+template<class T>
+using PocmaAlloc = TestAlloc<T, false, false, /*Pocma*/ true>;
+template<class T>
+using StaticAlloc = TestAlloc<T, false, false, false>;
 
 // --- swap ---
 
@@ -294,7 +302,7 @@ TEST_CASE("polymorphic alloc: copy assign POCCA=true preserves dynamic type")
   pf::polymorphic<Animal, PoccaAlloc<Animal>> dog(std::allocator_arg, a1, pf::in_place_type_t<Dog>{});
   pf::polymorphic<Animal, PoccaAlloc<Animal>> dst(std::allocator_arg, a2, pf::in_place_type_t<Cat>{});
   dst = dog;
-  CHECK(dst->sound() == "woof");   // dynamic type (Dog) preserved after clone
+  CHECK(dst->sound() == "woof");  // dynamic type (Dog) preserved after clone
   CHECK(dst.get_allocator() == a1);
 }
 
