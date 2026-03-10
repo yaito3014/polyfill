@@ -5,7 +5,7 @@
 Configure, build, and test one directory per standard:
 
 ```bash
-for std in 11 14 17 20; do
+for std in 11 14 17 20 23 26; do
   cmake -B build-cxx${std} -DCMAKE_CXX_STANDARD=${std}
   cmake --build build-cxx${std}
   ctest --test-dir build-cxx${std} --output-on-failure
@@ -14,7 +14,7 @@ done
 
 Each build-cxxNN directory includes only the test suites whose required standard
 is ≤ N (enforced by `test/CMakeLists.txt`), so `build-cxx11` runs only the
-`cxx11` suite while `build-cxx20` runs all four.
+`cxx11` suite while `build-cxx26` runs all six.
 
 ## Test layout
 
@@ -24,6 +24,8 @@ is ≤ N (enforced by `test/CMakeLists.txt`), so `build-cxx11` runs only the
 | `test/cxx14/`      | C++14    | C++14-specific utilities |
 | `test/cxx17/`      | C++17    | C++17-specific utilities |
 | `test/cxx20/`      | C++20    | `STATIC_REQUIRE` constexpr tests for `indirect` and `polymorphic` |
+| `test/cxx23/`      | C++23    | C++23-specific utilities |
+| `test/cxx26/`      | C++26    | C++26-specific utilities and `indirect`/`polymorphic` features |
 
 ## After making changes
 
