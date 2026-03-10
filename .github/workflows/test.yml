@@ -42,7 +42,7 @@ jobs:
           - name: ubuntu
             version: 24.04
           - name: windows
-            version: 2022
+            version: 2025-vs2026
         build-type:
           - Debug
           - Release
@@ -56,6 +56,11 @@ jobs:
           - name: MSVC
             version: 2022
             executable: cl
+            toolset: '14.44'
+          - name: MSVC
+            version: 2026
+            executable: cl
+            toolset: '14.50'
         cxx-version: [11, 14, 17, 20, 23, 26]
         exclude:
           - os:
@@ -93,6 +98,12 @@ jobs:
           wget https://apt.llvm.org/llvm.sh
           chmod +x ./llvm.sh
           sudo ./llvm.sh ${{ matrix.compiler.version }} all
+      - name: Setup MSVC
+        if: matrix.compiler.name == 'MSVC'
+        uses: TheMrMilchmann/setup-msvc-dev@v3
+        with:
+          arch: x64
+          toolset: ${{ matrix.compiler.toolset }}
       - name: Restore deps from cache
         id: cache-restore
         uses: actions/cache/restore@v5
