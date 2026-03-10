@@ -6,7 +6,8 @@
 // Polyfill of P3019R14 std::polymorphic for C++11 and later.
 
 #include <yk/polyfill/config.hpp>
-#include <yk/polyfill/indirect.hpp>  // for indirect_detail::is_always_equal, ebo_alloc
+#include <yk/polyfill/extension/ebo_storage.hpp>
+#include <yk/polyfill/indirect.hpp>  // for indirect_detail::is_always_equal, cswap
 #include <yk/polyfill/utility.hpp>
 
 #include <memory>
@@ -34,10 +35,10 @@ template <bool AlwaysEqual> struct move_ctor_ops;
 }  // namespace polymorphic_detail
 
 template <class T, class A = std::allocator<T>>
-class polymorphic : private indirect_detail::ebo_alloc<A> {
+class polymorphic : private extension::ebo_storage<A> {
   static_assert(!std::is_array<T>::value, "polymorphic: T must not be an array type");
 
-  using alloc_base = indirect_detail::ebo_alloc<A>;
+  using alloc_base = extension::ebo_storage<A>;
 
   struct holder_base {
     T* ptr_ = nullptr;
@@ -119,7 +120,7 @@ class polymorphic : private indirect_detail::ebo_alloc<A> {
   {
     using holder_alloc_t = typename std::allocator_traits<A>::template rebind_alloc<holder<U>>;
     using holder_traits_t = std::allocator_traits<holder_alloc_t>;
-    holder_alloc_t holder_alloc(this->get());
+    holder_alloc_t holder_alloc(this->stored_value());
     holder<U>* p = holder_traits_t::allocate(holder_alloc, 1);
     try {
       holder_traits_t::construct(holder_alloc, p, static_cast<Ts&&>(ts)...);
@@ -133,7 +134,7 @@ class polymorphic : private indirect_detail::ebo_alloc<A> {
   YK_POLYFILL_CXX20_CONSTEXPR void destroy_owned() noexcept
   {
     if (holder_ == nullptr) return;
-    holder_->destroy(this->get());
+    holder_->destroy(this->stored_value());
     holder_ = nullptr;
   }
 
@@ -141,7 +142,7 @@ class polymorphic : private indirect_detail::ebo_alloc<A> {
   {
     destroy_owned();
     if (other.holder_ != nullptr) {
-      holder_ = other.holder_->clone(this->get());
+      holder_ = other.holder_->clone(this->stored_value());
     }
   }
 
@@ -202,11 +203,11 @@ class polymorphic : private indirect_detail::ebo_alloc<A> {
   }
 
   YK_POLYFILL_CXX20_CONSTEXPR polymorphic(const polymorphic& other)
-      : alloc_base(std::allocator_traits<A>::select_on_container_copy_construction(other.get())),
+      : alloc_base(std::allocator_traits<A>::select_on_container_copy_construction(other.stored_value())),
         holder_(nullptr)
   {
     if (other.holder_ != nullptr) {
-      holder_ = other.holder_->clone(this->get());
+      holder_ = other.holder_->clone(this->stored_value());
     }
   }
 
@@ -214,12 +215,12 @@ class polymorphic : private indirect_detail::ebo_alloc<A> {
       : alloc_base(a), holder_(nullptr)
   {
     if (other.holder_ != nullptr) {
-      holder_ = other.holder_->clone(this->get());
+      holder_ = other.holder_->clone(this->stored_value());
     }
   }
 
   YK_POLYFILL_CXX14_CONSTEXPR polymorphic(polymorphic&& other) noexcept
-      : alloc_base(static_cast<A&&>(other.get())), holder_(other.holder_)
+      : alloc_base(static_cast<A&&>(other.stored_value())), holder_(other.holder_)
   {
     other.holder_ = nullptr;
   }
@@ -259,7 +260,7 @@ class polymorphic : private indirect_detail::ebo_alloc<A> {
 
   [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR bool valueless_after_move() const noexcept { return holder_ == nullptr; }
 
-  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR A get_allocator() const noexcept { return this->get(); }
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR A get_allocator() const noexcept { return this->stored_value(); }
 
   YK_POLYFILL_CXX14_CONSTEXPR void swap(polymorphic& other)
       noexcept(std::allocator_traits<A>::propagate_on_container_swap::value
@@ -280,7 +281,7 @@ struct swap_ops</*Pocs = */ true> {
   template <class T, class A>
   static YK_POLYFILL_CXX14_CONSTEXPR void apply(polymorphic<T, A>& a, polymorphic<T, A>& b) noexcept
   {
-    indirect_detail::cswap(a.get(), b.get());
+    indirect_detail::cswap(a.stored_value(), b.stored_value());
     indirect_detail::cswap(a.holder_, b.holder_);
   }
 };
@@ -302,8 +303,8 @@ struct copy_assign_ops</*Pocca = */ true> {
     // polymorphic always destroys before cloning (no in-place reuse), so both
     // branches reduce to the same sequence: destroy, propagate alloc, clone.
     self.destroy_owned();
-    self.get() = other.get();
-    if (other.holder_ != nullptr) self.holder_ = other.holder_->clone(self.get());
+    self.stored_value() = other.stored_value();
+    if (other.holder_ != nullptr) self.holder_ = other.holder_->clone(self.stored_value());
   }
 };
 
@@ -322,7 +323,7 @@ struct move_assign_ops</*Pocma = */ true> {
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, polymorphic<T, A>&& other) noexcept
   {
     self.destroy_owned();
-    self.get() = static_cast<A&&>(other.get());
+    self.stored_value() = static_cast<A&&>(other.stored_value());
     self.holder_ = other.holder_;
     other.holder_ = nullptr;
   }
@@ -355,11 +356,11 @@ struct move_assign_ne_ops</*AlwaysEqual = */ false> {
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, polymorphic<T, A>&& other)
   {
     self.destroy_owned();
-    if (self.get() == other.get()) {
+    if (self.stored_value() == other.stored_value()) {
       self.holder_ = other.holder_;
       other.holder_ = nullptr;
     } else if (other.holder_ != nullptr) {
-      self.holder_ = other.holder_->move_clone(self.get());
+      self.holder_ = other.holder_->move_clone(self.stored_value());
     }
   }
 };
@@ -379,11 +380,11 @@ struct move_ctor_ops</*AlwaysEqual = */ false> {
   template <class T, class A>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, polymorphic<T, A>&& other)
   {
-    if (self.get() == other.get()) {
+    if (self.stored_value() == other.stored_value()) {
       self.holder_ = other.holder_;
       other.holder_ = nullptr;
     } else if (other.holder_ != nullptr) {
-      self.holder_ = other.holder_->move_clone(self.get());
+      self.holder_ = other.holder_->move_clone(self.stored_value());
     }
   }
 };

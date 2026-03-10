@@ -5,6 +5,7 @@
 // Polyfill of P3019R14 std::indirect for C++11 and later.
 
 #include <yk/polyfill/config.hpp>
+#include <yk/polyfill/extension/ebo_storage.hpp>
 #include <yk/polyfill/utility.hpp>
 
 #include <memory>
@@ -46,55 +47,6 @@ YK_POLYFILL_CXX14_CONSTEXPR void cswap(T& a, T& b)
   b = static_cast<T&&>(tmp);
 }
 
-// EBO helper: inherit from A when possible (empty + non-final) to eliminate
-// the allocator's storage entirely.  indirect<T,A> and polymorphic<T,A>
-// inherit from ebo_alloc<A> so the base-class zero-size optimisation fires;
-// holding ebo_alloc as a data member would still cost ≥1 byte even if empty.
-//
-// std::is_final is a C++14 library feature; there is no portable pure-C++11
-// substitute (inheriting from a final class is a hard error, not SFINAE-
-// friendly, so detection via type traits is impossible in C++11).
-// In C++11 mode we therefore omit the final check — a final empty allocator
-// would cause a hard error at ebo_alloc instantiation, but such a type is
-// essentially non-existent in practice.
-template <class A>
-struct can_ebo : std::integral_constant<bool,
-    std::is_empty<A>::value
-#if __cplusplus >= 201402L
-    && !std::is_final<A>::value
-#endif
-> {};
-
-template <class A, bool = can_ebo<A>::value>
-struct ebo_alloc;
-
-template <class A>
-struct ebo_alloc<A, /*EBO=*/false> {
-  A alloc_;
-  ebo_alloc() = default;
-  constexpr explicit ebo_alloc(const A& a)
-      noexcept(std::is_nothrow_copy_constructible<A>::value)
-      : alloc_(a) {}
-  constexpr explicit ebo_alloc(A&& a)
-      noexcept(std::is_nothrow_move_constructible<A>::value)
-      : alloc_(static_cast<A&&>(a)) {}
-  YK_POLYFILL_CXX14_CONSTEXPR A& get() noexcept { return alloc_; }
-  constexpr const A& get() const noexcept { return alloc_; }
-};
-
-template <class A>
-struct ebo_alloc<A, /*EBO=*/true> : private A {
-  ebo_alloc() = default;
-  constexpr explicit ebo_alloc(const A& a)
-      noexcept(std::is_nothrow_copy_constructible<A>::value)
-      : A(a) {}
-  constexpr explicit ebo_alloc(A&& a)
-      noexcept(std::is_nothrow_move_constructible<A>::value)
-      : A(static_cast<A&&>(a)) {}
-  YK_POLYFILL_CXX14_CONSTEXPR A& get() noexcept { return static_cast<A&>(*this); }
-  constexpr const A& get() const noexcept { return static_cast<const A&>(*this); }
-};
-
 // synth_three_way: like <=> but falls back to synthesising weak_ordering from
 // < and == when the type has no <=> (mirrors the standard's synth-three-way).
 #if __cpp_lib_three_way_comparison >= 201907L
@@ -128,10 +80,10 @@ template <bool AlwaysEqual> struct move_ctor_ops;       // extended-alloc move c
 }  // namespace indirect_detail
 
 template <class T, class A = std::allocator<T>>
-class indirect : private indirect_detail::ebo_alloc<A> {
+class indirect : private extension::ebo_storage<A> {
   static_assert(!std::is_array<T>::value, "indirect: T must not be an array type");
 
-  using alloc_base   = indirect_detail::ebo_alloc<A>;
+  using alloc_base   = extension::ebo_storage<A>;
   using alloc_traits = std::allocator_traits<A>;
 
   T* ptr_;
@@ -141,11 +93,11 @@ class indirect : private indirect_detail::ebo_alloc<A> {
   template <class... Ts>
   YK_POLYFILL_CXX20_CONSTEXPR void allocate_and_construct(Ts&&... ts)
   {
-    ptr_ = alloc_traits::allocate(this->get(), 1);
+    ptr_ = alloc_traits::allocate(this->stored_value(), 1);
     try {
-      alloc_traits::construct(this->get(), ptr_, static_cast<Ts&&>(ts)...);
+      alloc_traits::construct(this->stored_value(), ptr_, static_cast<Ts&&>(ts)...);
     } catch (...) {
-      alloc_traits::deallocate(this->get(), ptr_, 1);
+      alloc_traits::deallocate(this->stored_value(), ptr_, 1);
       ptr_ = nullptr;
       throw;
     }
@@ -154,8 +106,8 @@ class indirect : private indirect_detail::ebo_alloc<A> {
   YK_POLYFILL_CXX20_CONSTEXPR void destroy_owned() noexcept
   {
     if (ptr_ != nullptr) {
-      alloc_traits::destroy(this->get(), ptr_);
-      alloc_traits::deallocate(this->get(), ptr_, 1);
+      alloc_traits::destroy(this->stored_value(), ptr_);
+      alloc_traits::deallocate(this->stored_value(), ptr_, 1);
       ptr_ = nullptr;
     }
   }
@@ -240,7 +192,7 @@ class indirect : private indirect_detail::ebo_alloc<A> {
 
   // Mandate: T must be copy-constructible (static_assert)
   YK_POLYFILL_CXX20_CONSTEXPR indirect(const indirect& other)
-      : alloc_base(alloc_traits::select_on_container_copy_construction(other.get())), ptr_(nullptr)
+      : alloc_base(alloc_traits::select_on_container_copy_construction(other.stored_value())), ptr_(nullptr)
   {
     static_assert(std::is_copy_constructible<T>::value, "indirect: T must be copy-constructible");
     if (other.ptr_ != nullptr) {
@@ -259,7 +211,7 @@ class indirect : private indirect_detail::ebo_alloc<A> {
 
   // (no constraint on T: move always works)
   YK_POLYFILL_CXX14_CONSTEXPR indirect(indirect&& other) noexcept
-      : alloc_base(static_cast<A&&>(other.get())), ptr_(other.ptr_)
+      : alloc_base(static_cast<A&&>(other.stored_value())), ptr_(other.ptr_)
   {
     other.ptr_ = nullptr;
   }
@@ -327,7 +279,7 @@ class indirect : private indirect_detail::ebo_alloc<A> {
 
   [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR bool valueless_after_move() const noexcept { return ptr_ == nullptr; }
 
-  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR A get_allocator() const noexcept { return this->get(); }
+  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR A get_allocator() const noexcept { return this->stored_value(); }
 
   // --- Swap ---
 
@@ -462,7 +414,7 @@ struct swap_ops</*Pocs = */ true> {
   template <class T, class A>
   static YK_POLYFILL_CXX14_CONSTEXPR void apply(indirect<T, A>& a, indirect<T, A>& b) noexcept
   {
-    cswap(a.get(), b.get());
+    cswap(a.stored_value(), b.stored_value());
     cswap(a.ptr_, b.ptr_);
   }
 };
@@ -481,9 +433,9 @@ struct copy_assign_ops</*Pocca = */ true> {
   template <class T, class A>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(indirect<T, A>& self, const indirect<T, A>& other)
   {
-    if (self.get() != other.get()) {
+    if (self.stored_value() != other.stored_value()) {
       self.destroy_owned();
-      self.get() = other.get();
+      self.stored_value() = other.stored_value();
       if (other.ptr_ != nullptr) self.allocate_and_construct(*other.ptr_);
     } else {
       self.copy_assign_content(other);
@@ -506,7 +458,7 @@ struct move_assign_ops</*Pocma = */ true> {
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(indirect<T, A>& self, indirect<T, A>&& other) noexcept
   {
     self.destroy_owned();
-    self.get() = static_cast<A&&>(other.get());
+    self.stored_value() = static_cast<A&&>(other.stored_value());
     self.ptr_ = other.ptr_;
     other.ptr_ = nullptr;
   }
@@ -538,7 +490,7 @@ struct move_assign_ne_ops</*AlwaysEqual = */ false> {
   template <class T, class A>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(indirect<T, A>& self, indirect<T, A>&& other)
   {
-    if (self.get() == other.get()) {
+    if (self.stored_value() == other.stored_value()) {
       self.destroy_owned();
       self.ptr_ = other.ptr_;
       other.ptr_ = nullptr;
@@ -569,7 +521,7 @@ struct move_ctor_ops</*AlwaysEqual = */ false> {
   template <class T, class A>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(indirect<T, A>& self, indirect<T, A>&& other)
   {
-    if (self.get() == other.get()) {
+    if (self.stored_value() == other.stored_value()) {
       self.ptr_ = other.ptr_;
       other.ptr_ = nullptr;
     } else if (other.ptr_ != nullptr) {
