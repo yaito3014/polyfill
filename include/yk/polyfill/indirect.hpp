@@ -293,7 +293,7 @@ class indirect {
   // --- Comparison ---
 
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator==(const indirect& lhs, const indirect& rhs)
-      noexcept(noexcept(*lhs == *rhs))
+      noexcept(noexcept(std::declval<const T&>() == std::declval<const T&>()))
   {
     if (lhs.valueless_after_move()) return rhs.valueless_after_move();
     if (rhs.valueless_after_move()) return false;
@@ -301,7 +301,7 @@ class indirect {
   }
 
   friend YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(const indirect& lhs, const indirect& rhs)
-      noexcept(noexcept(*lhs != *rhs))
+      noexcept(noexcept(std::declval<const T&>() != std::declval<const T&>()))
   {
     if (lhs.valueless_after_move()) return !rhs.valueless_after_move();
     if (rhs.valueless_after_move()) return true;
