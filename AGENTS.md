@@ -20,8 +20,8 @@ is <= N (enforced by `test/CMakeLists.txt`), so `build-cxx11` runs only the
 
 For any non-trivial change, add a test that would fail if the change were reverted:
 
-- **Runtime behavior change** → add a `TEST_CASE` to the appropriate `test/cxx11/`
+- **Runtime behavior change** -> add a `TEST_CASE` to the appropriate `test/cxx11/`
   file (or `cxx17/` if it uses C++17 features).
 - **New `constexpr` guarantee** (e.g. lowering `YK_POLYFILL_CXX20_CONSTEXPR` to
-  `YK_POLYFILL_CXX14_CONSTEXPR`) → add or extend a `STATIC_REQUIRE` helper in
+  `YK_POLYFILL_CXX14_CONSTEXPR`) -> add or extend a `STATIC_REQUIRE` helper in
   `test/cxx20/` to exercise the operation at compile time.
