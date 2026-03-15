@@ -61,9 +61,9 @@ TEST_CASE("is_convertible_without_narrowing")
   STATIC_REQUIRE(test_convertible_without_narrowing<void, void>::value == conversion_kind::without_narrowing);
 
   // conversion including function type
-  STATIC_REQUIRE(test_convertible_without_narrowing<void(void), void (*)(void)>::value == conversion_kind::without_narrowing);
-  STATIC_REQUIRE(test_convertible_without_narrowing<void (*)(void), void(void)>::value == conversion_kind::not_convertible);
-  STATIC_REQUIRE(test_convertible_without_narrowing<void(void), void(void)>::value == conversion_kind::not_convertible);
+  STATIC_REQUIRE(test_convertible_without_narrowing<void(), void (*)()>::value == conversion_kind::without_narrowing);
+  STATIC_REQUIRE(test_convertible_without_narrowing<void (*)(), void()>::value == conversion_kind::not_convertible);
+  STATIC_REQUIRE(test_convertible_without_narrowing<void(), void()>::value == conversion_kind::not_convertible);
 
   // conversion including reference type
   STATIC_REQUIRE(test_convertible_without_narrowing<int, int&>::value == conversion_kind::not_convertible);
@@ -144,7 +144,7 @@ TEST_CASE("is_convertible_without_narrowing")
   STATIC_REQUIRE(test_convertible_without_narrowing<bool, int>::value == conversion_kind::without_narrowing);
   STATIC_REQUIRE(test_convertible_without_narrowing<int, bool>::value == conversion_kind::narrowing);
   STATIC_REQUIRE(test_convertible_without_narrowing<int*, bool>::value == conversion_kind::narrowing);
-  STATIC_REQUIRE(test_convertible_without_narrowing<void (*)(void), bool>::value == conversion_kind::narrowing);
+  STATIC_REQUIRE(test_convertible_without_narrowing<void (*)(), bool>::value == conversion_kind::narrowing);
 // MSVC's implementation differs across versions, so the behavior cannot be reliably tested.
 #if !defined(_MSC_VER)
   // nullptr_t -> bool: not convertible (CWG 1781)
