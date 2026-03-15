@@ -11,30 +11,28 @@ namespace polyfill {
 
 namespace extension {
 
-namespace is_convertible_without_narrowing_detail {
-
-template<template<class> class F, class... Ts>
-struct apply_disjunction_expand_types : disjunction<F<Ts>...> {};
-
-template<template<class> class... Fs>
-struct apply_disjunction {
-  template<class... Ts>
-  struct apply : disjunction<apply_disjunction_expand_types<Fs, Ts...>...> {};
-};
+namespace detail {
 
 template<class From, class To, class = void>
-struct is_convertible_without_narrowing_impl : apply_disjunction<std::is_void, std::is_reference, std::is_function, is_unbounded_array>::apply<
-                                                   typename std::remove_cv<From>::type, typename std::remove_cv<To>::type> {};
+struct narrowing_check : std::false_type {};
 
+template<class From, class To>
+struct narrowing_check<From, To, void_t<decltype(typename type_identity<To[]>::type{std::declval<From>()})>> : true_type {};
+
+// Primary template: respect `std::is_convertible`
+template<class From, class To, class = void>
+struct is_convertible_without_narrowing_impl : std::true_type {};
+
+// When reference-stripped `To` IS constructible from `From`, check whether narrowing occur
 template<class From, class To>
 struct is_convertible_without_narrowing_impl<
-    From, To, typename std::enable_if<std::is_same<decltype(typename type_identity<To[]>::type{std::declval<From>()}), To[1]>::value>::type> : true_type {};
+    From, To, typename std::enable_if<std::is_constructible<typename std::remove_reference<To>::type, From>::value>::type>
+    : narrowing_check<From, typename std::remove_reference<To>::type> {};
 
-}  // namespace is_convertible_without_narrowing_detail
+}  // namespace detail
 
 template<class From, class To>
-struct is_convertible_without_narrowing
-    : conjunction<std::is_convertible<From, To>, is_convertible_without_narrowing_detail::is_convertible_without_narrowing_impl<From, To>> {};
+struct is_convertible_without_narrowing : conjunction<std::is_convertible<From, To>, detail::is_convertible_without_narrowing_impl<From, To>> {};
 
 }  // namespace extension
 
