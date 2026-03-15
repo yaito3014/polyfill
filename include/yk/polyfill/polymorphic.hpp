@@ -7,7 +7,8 @@
 
 #include <yk/polyfill/config.hpp>
 #include <yk/polyfill/extension/ebo_storage.hpp>
-#include <yk/polyfill/indirect.hpp>  // for indirect_detail::is_always_equal, cswap
+#include <yk/polyfill/bits/allocator_is_always_equal.hpp>
+#include <yk/polyfill/bits/constexpr_swap.hpp>
 #include <yk/polyfill/utility.hpp>
 
 #include <memory>
@@ -24,20 +25,20 @@ namespace polyfill {
 template<class T, class A>
 class polymorphic;
 
-namespace polymorphic_detail {
+namespace detail {
 
 template<bool Pocs>
-struct swap_ops;
+struct polymorphic_swap_ops;
 template<bool Pocca>
-struct copy_assign_ops;
+struct polymorphic_copy_assign_ops;
 template<bool Pocma>
-struct move_assign_ops;
+struct polymorphic_move_assign_ops;
 template<bool AlwaysEqual>
-struct move_assign_ne_ops;
+struct polymorphic_move_assign_ne_ops;
 template<bool AlwaysEqual>
-struct move_ctor_ops;
+struct polymorphic_move_ctor_ops;
 
-}  // namespace polymorphic_detail
+}  // namespace detail
 
 template<class T, class A = std::allocator<T>>
 class polymorphic : private extension::ebo_storage<A> {
@@ -146,15 +147,15 @@ class polymorphic : private extension::ebo_storage<A> {
   }
 
   template<bool>
-  friend struct polymorphic_detail::swap_ops;
+  friend struct detail::polymorphic_swap_ops;
   template<bool>
-  friend struct polymorphic_detail::copy_assign_ops;
+  friend struct detail::polymorphic_copy_assign_ops;
   template<bool>
-  friend struct polymorphic_detail::move_assign_ops;
+  friend struct detail::polymorphic_move_assign_ops;
   template<bool>
-  friend struct polymorphic_detail::move_assign_ne_ops;
+  friend struct detail::polymorphic_move_assign_ne_ops;
   template<bool>
-  friend struct polymorphic_detail::move_ctor_ops;
+  friend struct detail::polymorphic_move_ctor_ops;
 
 public:
   using value_type = T;
@@ -224,10 +225,10 @@ public:
     other.holder_ = nullptr;
   }
 
-  YK_POLYFILL_CXX20_CONSTEXPR polymorphic(polymorphic&& other, std::allocator_arg_t, A const& a) noexcept(indirect_detail::is_always_equal<A>::value)
+  YK_POLYFILL_CXX20_CONSTEXPR polymorphic(polymorphic&& other, std::allocator_arg_t, A const& a) noexcept(detail::allocator_is_always_equal<A>::value)
       : alloc_base(a), holder_(nullptr)
   {
-    polymorphic_detail::move_ctor_ops<indirect_detail::is_always_equal<A>::value>::apply(*this, static_cast<polymorphic&&>(other));
+    detail::polymorphic_move_ctor_ops<detail::allocator_is_always_equal<A>::value>::apply(*this, static_cast<polymorphic&&>(other));
   }
 
   YK_POLYFILL_CXX20_CONSTEXPR ~polymorphic() noexcept { destroy_owned(); }
@@ -235,16 +236,16 @@ public:
   YK_POLYFILL_CXX20_CONSTEXPR polymorphic& operator=(polymorphic const& other)
   {
     if (this == &other) return *this;
-    polymorphic_detail::copy_assign_ops<std::allocator_traits<A>::propagate_on_container_copy_assignment::value>::apply(*this, other);
+    detail::polymorphic_copy_assign_ops<std::allocator_traits<A>::propagate_on_container_copy_assignment::value>::apply(*this, other);
     return *this;
   }
 
   YK_POLYFILL_CXX20_CONSTEXPR polymorphic& operator=(polymorphic&& other) noexcept(
-      std::allocator_traits<A>::propagate_on_container_move_assignment::value || indirect_detail::is_always_equal<A>::value
+      std::allocator_traits<A>::propagate_on_container_move_assignment::value || detail::allocator_is_always_equal<A>::value
   )
   {
     if (this == &other) return *this;
-    polymorphic_detail::move_assign_ops<std::allocator_traits<A>::propagate_on_container_move_assignment::value>::apply(
+    detail::polymorphic_move_assign_ops<std::allocator_traits<A>::propagate_on_container_move_assignment::value>::apply(
         *this, static_cast<polymorphic&&>(other)
     );
     return *this;
@@ -263,10 +264,10 @@ public:
   [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR A get_allocator() const noexcept { return this->stored_value(); }
 
   YK_POLYFILL_CXX14_CONSTEXPR void swap(polymorphic& other) noexcept(
-      std::allocator_traits<A>::propagate_on_container_swap::value || indirect_detail::is_always_equal<A>::value
+      std::allocator_traits<A>::propagate_on_container_swap::value || detail::allocator_is_always_equal<A>::value
   )
   {
-    polymorphic_detail::swap_ops<std::allocator_traits<A>::propagate_on_container_swap::value>::apply(*this, other);
+    detail::polymorphic_swap_ops<std::allocator_traits<A>::propagate_on_container_swap::value>::apply(*this, other);
   }
 
   friend YK_POLYFILL_CXX14_CONSTEXPR void swap(polymorphic& a, polymorphic& b) noexcept(noexcept(a.swap(b))) { a.swap(b); }
@@ -274,29 +275,29 @@ public:
 
 // ---- Allocator-aware operations (defined after polymorphic is complete) -----
 
-namespace polymorphic_detail {
+namespace detail {
 
 template<>
-struct swap_ops</*Pocs = */ true> {
+struct polymorphic_swap_ops</*Pocs = */ true> {
   template<class T, class A>
   static YK_POLYFILL_CXX14_CONSTEXPR void apply(polymorphic<T, A>& a, polymorphic<T, A>& b) noexcept
   {
-    indirect_detail::cswap(a.stored_value(), b.stored_value());
-    indirect_detail::cswap(a.holder_, b.holder_);
+    detail::constexpr_swap(a.stored_value(), b.stored_value());
+    detail::constexpr_swap(a.holder_, b.holder_);
   }
 };
 
 template<>
-struct swap_ops</*Pocs = */ false> {
+struct polymorphic_swap_ops</*Pocs = */ false> {
   template<class T, class A>
   static YK_POLYFILL_CXX14_CONSTEXPR void apply(polymorphic<T, A>& a, polymorphic<T, A>& b) noexcept
   {
-    indirect_detail::cswap(a.holder_, b.holder_);
+    detail::constexpr_swap(a.holder_, b.holder_);
   }
 };
 
 template<>
-struct copy_assign_ops</*Pocca = */ true> {
+struct polymorphic_copy_assign_ops</*Pocca = */ true> {
   template<class T, class A>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, polymorphic<T, A> const& other)
   {
@@ -309,7 +310,7 @@ struct copy_assign_ops</*Pocca = */ true> {
 };
 
 template<>
-struct copy_assign_ops</*Pocca = */ false> {
+struct polymorphic_copy_assign_ops</*Pocca = */ false> {
   template<class T, class A>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, polymorphic<T, A> const& other)
   {
@@ -318,7 +319,7 @@ struct copy_assign_ops</*Pocca = */ false> {
 };
 
 template<>
-struct move_assign_ops</*Pocma = */ true> {
+struct polymorphic_move_assign_ops</*Pocma = */ true> {
   template<class T, class A>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, polymorphic<T, A>&& other) noexcept
   {
@@ -330,16 +331,16 @@ struct move_assign_ops</*Pocma = */ true> {
 };
 
 template<>
-struct move_assign_ops</*Pocma = */ false> {
+struct polymorphic_move_assign_ops</*Pocma = */ false> {
   template<class T, class A>
-  static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, polymorphic<T, A>&& other) noexcept(indirect_detail::is_always_equal<A>::value)
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, polymorphic<T, A>&& other) noexcept(detail::allocator_is_always_equal<A>::value)
   {
-    move_assign_ne_ops<indirect_detail::is_always_equal<A>::value>::apply(self, static_cast<polymorphic<T, A>&&>(other));
+    polymorphic_move_assign_ne_ops<detail::allocator_is_always_equal<A>::value>::apply(self, static_cast<polymorphic<T, A>&&>(other));
   }
 };
 
 template<>
-struct move_assign_ne_ops</*AlwaysEqual = */ true> {
+struct polymorphic_move_assign_ne_ops</*AlwaysEqual = */ true> {
   template<class T, class A>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, polymorphic<T, A>&& other) noexcept
   {
@@ -350,7 +351,7 @@ struct move_assign_ne_ops</*AlwaysEqual = */ true> {
 };
 
 template<>
-struct move_assign_ne_ops</*AlwaysEqual = */ false> {
+struct polymorphic_move_assign_ne_ops</*AlwaysEqual = */ false> {
   template<class T, class A>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, polymorphic<T, A>&& other)
   {
@@ -365,7 +366,7 @@ struct move_assign_ne_ops</*AlwaysEqual = */ false> {
 };
 
 template<>
-struct move_ctor_ops</*AlwaysEqual = */ true> {
+struct polymorphic_move_ctor_ops</*AlwaysEqual = */ true> {
   template<class T, class A>
   static YK_POLYFILL_CXX14_CONSTEXPR void apply(polymorphic<T, A>& self, polymorphic<T, A>&& other) noexcept
   {
@@ -375,7 +376,7 @@ struct move_ctor_ops</*AlwaysEqual = */ true> {
 };
 
 template<>
-struct move_ctor_ops</*AlwaysEqual = */ false> {
+struct polymorphic_move_ctor_ops</*AlwaysEqual = */ false> {
   template<class T, class A>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(polymorphic<T, A>& self, polymorphic<T, A>&& other)
   {
@@ -388,7 +389,7 @@ struct move_ctor_ops</*AlwaysEqual = */ false> {
   }
 };
 
-}  // namespace polymorphic_detail
+}  // namespace detail
 
 }  // namespace polyfill
 

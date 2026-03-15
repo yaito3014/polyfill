@@ -124,8 +124,8 @@ static_assert(std::is_trivially_copyable<ThrowingTrivialCopyAssign>::value, "");
 
 TEST_CASE("never_valueless check")
 {
-  STATIC_REQUIRE(pf::variant_detail::make_variadic_union<int, double>::type::never_valueless);
-  STATIC_REQUIRE(!pf::variant_detail::make_variadic_union<int, ThrowsOnConstruction>::type::never_valueless);
+  STATIC_REQUIRE(pf::detail::make_variadic_union<int, double>::type::never_valueless);
+  STATIC_REQUIRE(!pf::detail::make_variadic_union<int, ThrowsOnConstruction>::type::never_valueless);
 }
 
 TEST_CASE("variant default construction and destruction")
@@ -665,59 +665,59 @@ TEST_CASE("variant get_if by type")
   }
 }
 
-TEST_CASE("variant_detail::exactly_once")
+TEST_CASE("detail::exactly_once")
 {
-  namespace vd = pf::variant_detail;
+  namespace dv = pf::detail;
 
   // type not present at all -> false
-  STATIC_REQUIRE(!vd::exactly_once<int>::value);
-  STATIC_REQUIRE(!vd::exactly_once<int, double>::value);
-  STATIC_REQUIRE(!vd::exactly_once<int, double, char>::value);
+  STATIC_REQUIRE(!dv::exactly_once<int>::value);
+  STATIC_REQUIRE(!dv::exactly_once<int, double>::value);
+  STATIC_REQUIRE(!dv::exactly_once<int, double, char>::value);
 
   // type present exactly once -> true
-  STATIC_REQUIRE(vd::exactly_once<int, int>::value);
-  STATIC_REQUIRE(vd::exactly_once<int, double, int>::value);
-  STATIC_REQUIRE(vd::exactly_once<int, int, double>::value);
-  STATIC_REQUIRE(vd::exactly_once<int, double, char, int>::value);
-  STATIC_REQUIRE(vd::exactly_once<int, double, int, char>::value);
+  STATIC_REQUIRE(dv::exactly_once<int, int>::value);
+  STATIC_REQUIRE(dv::exactly_once<int, double, int>::value);
+  STATIC_REQUIRE(dv::exactly_once<int, int, double>::value);
+  STATIC_REQUIRE(dv::exactly_once<int, double, char, int>::value);
+  STATIC_REQUIRE(dv::exactly_once<int, double, int, char>::value);
 
   // type present more than once -> false
-  STATIC_REQUIRE(!vd::exactly_once<int, int, int>::value);
-  STATIC_REQUIRE(!vd::exactly_once<int, int, double, int>::value);
-  STATIC_REQUIRE(!vd::exactly_once<int, double, int, int>::value);
-  STATIC_REQUIRE(!vd::exactly_once<int, int, int, int>::value);
+  STATIC_REQUIRE(!dv::exactly_once<int, int, int>::value);
+  STATIC_REQUIRE(!dv::exactly_once<int, int, double, int>::value);
+  STATIC_REQUIRE(!dv::exactly_once<int, double, int, int>::value);
+  STATIC_REQUIRE(!dv::exactly_once<int, int, int, int>::value);
 
   // cv-qualified types are distinct
-  STATIC_REQUIRE(vd::exactly_once<int, int, int const>::value);
-  STATIC_REQUIRE(vd::exactly_once<int const, int, int const>::value);
-  STATIC_REQUIRE(!vd::exactly_once<int, int const, int volatile>::value);
+  STATIC_REQUIRE(dv::exactly_once<int, int, int const>::value);
+  STATIC_REQUIRE(dv::exactly_once<int const, int, int const>::value);
+  STATIC_REQUIRE(!dv::exactly_once<int, int const, int volatile>::value);
 
   // reference types are distinct
-  STATIC_REQUIRE(vd::exactly_once<int, int, int&>::value);
+  STATIC_REQUIRE(dv::exactly_once<int, int, int&>::value);
 }
 
-TEST_CASE("variant_detail::find_index")
+TEST_CASE("detail::find_index")
 {
-  namespace vd = pf::variant_detail;
+  namespace dv = pf::detail;
 
   // single-element pack
-  STATIC_REQUIRE(vd::find_index<int, int>::value == 0);
+  STATIC_REQUIRE(dv::find_index<int, int>::value == 0);
 
   // first element
-  STATIC_REQUIRE(vd::find_index<int, int, double>::value == 0);
+  STATIC_REQUIRE(dv::find_index<int, int, double>::value == 0);
 
   // second element
-  STATIC_REQUIRE(vd::find_index<double, int, double>::value == 1);
+  STATIC_REQUIRE(dv::find_index<double, int, double>::value == 1);
 
   // later position
-  STATIC_REQUIRE(vd::find_index<char, int, double, char>::value == 2);
+  STATIC_REQUIRE(dv::find_index<char, int, double, char>::value == 2);
 
   // finds first occurrence when duplicates exist
-  STATIC_REQUIRE(vd::find_index<int, int, double, int>::value == 0);
-  STATIC_REQUIRE(vd::find_index<double, int, double, double>::value == 1);
+  STATIC_REQUIRE(dv::find_index<int, int, double, int>::value == 0);
+  STATIC_REQUIRE(dv::find_index<double, int, double, double>::value == 1);
 
   // cv-qualified types
-  STATIC_REQUIRE(vd::find_index<int const, int, int const>::value == 1);
+  STATIC_REQUIRE(dv::find_index<int const, int, int const>::value == 1);
 }
 
 TEST_CASE("variant noexcept")

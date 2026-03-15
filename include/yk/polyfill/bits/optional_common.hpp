@@ -24,7 +24,7 @@ public:
   char const* what() const noexcept override { return "accessing empty optional"; }
 };
 
-namespace optional_detail {
+namespace detail {
 
 template<class T, class W>
 struct converts_from_any_cvref {
@@ -33,7 +33,7 @@ struct converts_from_any_cvref {
       std::is_constructible<T, W&&>, std::is_convertible<W&&, T>, std::is_constructible<T, W const&&>, std::is_convertible<W const&&, T>>::value;
 };
 
-}  // namespace optional_detail
+}  // namespace detail
 
 }  // namespace polyfill
 

@@ -13,7 +13,7 @@ namespace yk {
 
 namespace polyfill {
 
-namespace invoke_detail {
+namespace detail {
 
 // normal case
 template<class F, class... Args, typename std::enable_if<!std::is_member_pointer<F>::value, std::nullptr_t>::type = nullptr>
@@ -189,9 +189,9 @@ constexpr auto invoke_impl(T (C::*f)(Params...) const noexcept, U&& u, Args&&...
 template<class R>
 struct invoke_r_impl {
   template<class F, class... Args>
-  static constexpr R apply(F&& f, Args&&... args) noexcept(noexcept(invoke_detail::invoke_impl(static_cast<F&&>(f), static_cast<Args&&>(args)...)))
+  static constexpr R apply(F&& f, Args&&... args) noexcept(noexcept(detail::invoke_impl(static_cast<F&&>(f), static_cast<Args&&>(args)...)))
   {
-    return invoke_detail::invoke_impl(static_cast<F&&>(f), static_cast<Args&&>(args)...);
+    return detail::invoke_impl(static_cast<F&&>(f), static_cast<Args&&>(args)...);
   }
 };
 
@@ -199,10 +199,10 @@ template<>
 struct invoke_r_impl<void> {
   template<class F, class... Args>
   static YK_POLYFILL_CXX14_CONSTEXPR void apply(F&& f, Args&&... args) noexcept(
-      noexcept(invoke_detail::invoke_impl(static_cast<F&&>(f), static_cast<Args&&>(args)...))
+      noexcept(detail::invoke_impl(static_cast<F&&>(f), static_cast<Args&&>(args)...))
   )
   {
-    static_cast<void>(invoke_detail::invoke_impl(static_cast<F&&>(f), static_cast<Args&&>(args)...));
+    static_cast<void>(detail::invoke_impl(static_cast<F&&>(f), static_cast<Args&&>(args)...));
   }
 };
 
@@ -210,14 +210,14 @@ template<class F, class, class... Args>
 struct is_invocable_impl : false_type {};
 
 template<class F, class... Args>
-struct is_invocable_impl<F, void_t<decltype(invoke_detail::invoke_impl(std::declval<F>(), std::declval<Args>()...))>, Args...> : true_type {};
+struct is_invocable_impl<F, void_t<decltype(detail::invoke_impl(std::declval<F>(), std::declval<Args>()...))>, Args...> : true_type {};
 
 template<class F, class, class... Args>
 struct is_nothrow_invocable_impl : false_type {};
 
 template<class F, class... Args>
-struct is_nothrow_invocable_impl<F, void_t<decltype(invoke_detail::invoke_impl(std::declval<F>(), std::declval<Args>()...))>, Args...>
-    : bool_constant<noexcept(invoke_detail::invoke_impl(std::declval<F>(), std::declval<Args>()...))> {};
+struct is_nothrow_invocable_impl<F, void_t<decltype(detail::invoke_impl(std::declval<F>(), std::declval<Args>()...))>, Args...>
+    : bool_constant<noexcept(detail::invoke_impl(std::declval<F>(), std::declval<Args>()...))> {};
 
 template<class R, class F, class, class... Args>
 struct is_invocable_r_impl : false_type {};
@@ -236,37 +236,37 @@ template<class F, class, class... Args>
 struct invoke_result_impl {};
 
 template<class F, class... Args>
-struct invoke_result_impl<F, void_t<decltype(invoke_detail::invoke_impl(std::declval<F>(), std::declval<Args>()...))>, Args...> {
-  using type = decltype(invoke_detail::invoke_impl(std::declval<F>(), std::declval<Args>()...));
+struct invoke_result_impl<F, void_t<decltype(detail::invoke_impl(std::declval<F>(), std::declval<Args>()...))>, Args...> {
+  using type = decltype(detail::invoke_impl(std::declval<F>(), std::declval<Args>()...));
 };
 
-}  // namespace invoke_detail
+}  // namespace detail
 
 template<class F, class... Args>
-struct is_invocable : invoke_detail::is_invocable_impl<F, void, Args...> {};
+struct is_invocable : detail::is_invocable_impl<F, void, Args...> {};
 
 template<class R, class F, class... Args>
-struct is_invocable_r : invoke_detail::is_invocable_r_impl<R, F, void, Args...> {};
+struct is_invocable_r : detail::is_invocable_r_impl<R, F, void, Args...> {};
 
 template<class F, class... Args>
-struct is_nothrow_invocable : invoke_detail::is_nothrow_invocable_impl<F, void, Args...> {};
+struct is_nothrow_invocable : detail::is_nothrow_invocable_impl<F, void, Args...> {};
 
 template<class R, class F, class... Args>
-struct is_nothrow_invocable_r : invoke_detail::is_nothrow_invocable_r_impl<R, F, void, Args...> {};
+struct is_nothrow_invocable_r : detail::is_nothrow_invocable_r_impl<R, F, void, Args...> {};
 
 template<class F, class... Args>
-struct invoke_result : invoke_detail::invoke_result_impl<F, void, Args...> {};
+struct invoke_result : detail::invoke_result_impl<F, void, Args...> {};
 
 template<class F, class... Args>
 constexpr typename invoke_result<F, Args...>::type invoke(F&& f, Args&&... args) noexcept(is_nothrow_invocable<F, Args...>::value)
 {
-  return invoke_detail::invoke_impl(static_cast<F&&>(f), static_cast<Args&&>(args)...);
+  return detail::invoke_impl(static_cast<F&&>(f), static_cast<Args&&>(args)...);
 }
 
 template<class R, class F, class... Args>
 constexpr R invoke_r(F&& f, Args&&... args) noexcept(is_nothrow_invocable_r<F, Args...>::value)
 {
-  return invoke_detail::invoke_r_impl<R>::apply(static_cast<F&&>(f), static_cast<Args&&>(args)...);
+  return detail::invoke_r_impl<R>::apply(static_cast<F&&>(f), static_cast<Args&&>(args)...);
 }
 
 }  // namespace polyfill

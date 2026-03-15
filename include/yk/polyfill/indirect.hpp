@@ -5,6 +5,8 @@
 // Polyfill of P3019R14 std::indirect for C++11 and later.
 
 #include <yk/polyfill/config.hpp>
+#include <yk/polyfill/bits/allocator_is_always_equal.hpp>
+#include <yk/polyfill/bits/constexpr_swap.hpp>
 #include <yk/polyfill/extension/ebo_storage.hpp>
 #include <yk/polyfill/utility.hpp>
 
@@ -20,31 +22,13 @@ namespace polyfill {
 template<class T, class A>
 class indirect;
 
-namespace indirect_detail {
+namespace detail {
 
 template<class T>
 struct is_indirect : std::false_type {};
 
 template<class T, class A>
 struct is_indirect<indirect<T, A>> : std::true_type {};
-
-// Fallback for is_always_equal (added to allocator_traits in C++17)
-#if __cpp_lib_allocator_traits_is_always_equal >= 201411L
-template<class A>
-struct is_always_equal : std::allocator_traits<A>::is_always_equal {};
-#else
-template<class A>
-struct is_always_equal : std::is_empty<A> {};
-#endif
-
-// constexpr-friendly swap: std::swap is not constexpr before C++20
-template<class T>
-YK_POLYFILL_CXX14_CONSTEXPR void cswap(T& a, T& b) noexcept(std::is_nothrow_move_constructible<T>::value && std::is_nothrow_move_assignable<T>::value)
-{
-  T tmp(static_cast<T&&>(a));
-  a = static_cast<T&&>(b);
-  b = static_cast<T&&>(tmp);
-}
 
 // synth_three_way: like <=> but falls back to synthesising weak_ordering from
 // < and == when the type has no <=> (mirrors the standard's synth-three-way).
@@ -71,17 +55,17 @@ using synth_three_way_result = decltype(synth_three_way(std::declval<T const&>()
 
 // Forward declarations — specialisations are defined after indirect is complete.
 template<bool Pocs>
-struct swap_ops;
+struct indirect_swap_ops;
 template<bool Pocca>
-struct copy_assign_ops;
+struct indirect_copy_assign_ops;
 template<bool Pocma>
-struct move_assign_ops;
+struct indirect_move_assign_ops;
 template<bool AlwaysEqual>
-struct move_assign_ne_ops;  // POCMA=false path
+struct indirect_move_assign_ne_ops;  // POCMA=false path
 template<bool AlwaysEqual>
-struct move_ctor_ops;  // extended-alloc move ctor
+struct indirect_move_ctor_ops;  // extended-alloc move ctor
 
-}  // namespace indirect_detail
+}  // namespace detail
 
 template<class T, class A = std::allocator<T>>
 class indirect : private extension::ebo_storage<A> {
@@ -130,15 +114,15 @@ class indirect : private extension::ebo_storage<A> {
   // --- Friends: ops specialisations need access to private members -----------
 
   template<bool>
-  friend struct indirect_detail::swap_ops;
+  friend struct detail::indirect_swap_ops;
   template<bool>
-  friend struct indirect_detail::copy_assign_ops;
+  friend struct detail::indirect_copy_assign_ops;
   template<bool>
-  friend struct indirect_detail::move_assign_ops;
+  friend struct detail::indirect_move_assign_ops;
   template<bool>
-  friend struct indirect_detail::move_assign_ne_ops;
+  friend struct detail::indirect_move_assign_ne_ops;
   template<bool>
-  friend struct indirect_detail::move_ctor_ops;
+  friend struct detail::indirect_move_ctor_ops;
 
 public:
   using value_type = T;
@@ -226,11 +210,11 @@ public:
   }
 
   // Mandate: T must be move-constructible (static_assert)
-  YK_POLYFILL_CXX20_CONSTEXPR indirect(indirect&& other, std::allocator_arg_t, A const& a) noexcept(indirect_detail::is_always_equal<A>::value)
+  YK_POLYFILL_CXX20_CONSTEXPR indirect(indirect&& other, std::allocator_arg_t, A const& a) noexcept(detail::allocator_is_always_equal<A>::value)
       : alloc_base(a), ptr_(nullptr)
   {
     static_assert(std::is_move_constructible<T>::value, "indirect: T must be move-constructible");
-    indirect_detail::move_ctor_ops<indirect_detail::is_always_equal<A>::value>::apply(*this, static_cast<indirect&&>(other));
+    detail::indirect_move_ctor_ops<detail::allocator_is_always_equal<A>::value>::apply(*this, static_cast<indirect&&>(other));
   }
 
   // --- Destructor ---
@@ -245,18 +229,18 @@ public:
     static_assert(std::is_copy_constructible<T>::value, "indirect: T must be copy-constructible");
     static_assert(std::is_copy_assignable<T>::value, "indirect: T must be copy-assignable");
     if (this == &other) return *this;
-    indirect_detail::copy_assign_ops<alloc_traits::propagate_on_container_copy_assignment::value>::apply(*this, other);
+    detail::indirect_copy_assign_ops<alloc_traits::propagate_on_container_copy_assignment::value>::apply(*this, other);
     return *this;
   }
 
   // Mandate: T must be move-constructible (static_assert)
   YK_POLYFILL_CXX20_CONSTEXPR indirect& operator=(indirect&& other) noexcept(
-      alloc_traits::propagate_on_container_move_assignment::value || indirect_detail::is_always_equal<A>::value
+      alloc_traits::propagate_on_container_move_assignment::value || detail::allocator_is_always_equal<A>::value
   )
   {
     static_assert(std::is_move_constructible<T>::value, "indirect: T must be move-constructible");
     if (this == &other) return *this;
-    indirect_detail::move_assign_ops<alloc_traits::propagate_on_container_move_assignment::value>::apply(*this, static_cast<indirect&&>(other));
+    detail::indirect_move_assign_ops<alloc_traits::propagate_on_container_move_assignment::value>::apply(*this, static_cast<indirect&&>(other));
     return *this;
   }
 
@@ -292,10 +276,10 @@ public:
   // --- Swap ---
 
   YK_POLYFILL_CXX14_CONSTEXPR void swap(indirect& other) noexcept(
-      alloc_traits::propagate_on_container_swap::value || indirect_detail::is_always_equal<A>::value
+      alloc_traits::propagate_on_container_swap::value || detail::allocator_is_always_equal<A>::value
   )
   {
-    indirect_detail::swap_ops<alloc_traits::propagate_on_container_swap::value>::apply(*this, other);
+    detail::indirect_swap_ops<alloc_traits::propagate_on_container_swap::value>::apply(*this, other);
   }
 
   friend YK_POLYFILL_CXX14_CONSTEXPR void swap(indirect& a, indirect& b) noexcept(noexcept(a.swap(b))) { a.swap(b); }
@@ -326,48 +310,48 @@ public:
   // evaluated eagerly at class instantiation (avoids hard errors for T
   // types that lack operator< / operator<=>).
   template<class U, class AA>
-  friend constexpr auto operator<=>(indirect<T, A> const& lhs, indirect<U, AA> const& rhs) -> indirect_detail::synth_three_way_result<T, U>
+  friend constexpr auto operator<=>(indirect<T, A> const& lhs, indirect<U, AA> const& rhs) -> detail::synth_three_way_result<T, U>
   {
     if (lhs.valueless_after_move() || rhs.valueless_after_move()) {
       return !lhs.valueless_after_move() <=> !rhs.valueless_after_move();
     }
-    return indirect_detail::synth_three_way(*lhs, *rhs);
+    return detail::synth_three_way(*lhs, *rhs);
   }
 
   template<class U>
-  friend constexpr auto operator<=>(indirect<T, A> const& lhs, U const& rhs) -> indirect_detail::synth_three_way_result<T, U>
-    requires (!indirect_detail::is_indirect<U>::value)
+  friend constexpr auto operator<=>(indirect<T, A> const& lhs, U const& rhs) -> detail::synth_three_way_result<T, U>
+    requires (!detail::is_indirect<U>::value)
   {
     if (lhs.valueless_after_move()) return std::strong_ordering::less;
-    return indirect_detail::synth_three_way(*lhs, rhs);
+    return detail::synth_three_way(*lhs, rhs);
   }
 #endif  // __cpp_lib_three_way_comparison
 };
 
 // ---- Heterogeneous comparisons (outside class to avoid MSVC ADL recursion) ----
 
-template<class T, class A, class U, typename std::enable_if<!indirect_detail::is_indirect<U>::value, std::nullptr_t>::type = nullptr>
+template<class T, class A, class U, typename std::enable_if<!detail::is_indirect<U>::value, std::nullptr_t>::type = nullptr>
 YK_POLYFILL_CXX14_CONSTEXPR bool operator==(indirect<T, A> const& lhs, U const& rhs) noexcept(noexcept(std::declval<T const&>() == std::declval<U const&>()))
 {
   if (lhs.valueless_after_move()) return false;
   return *lhs == rhs;
 }
 
-template<class T, class A, class U, typename std::enable_if<!indirect_detail::is_indirect<U>::value, std::nullptr_t>::type = nullptr>
+template<class T, class A, class U, typename std::enable_if<!detail::is_indirect<U>::value, std::nullptr_t>::type = nullptr>
 YK_POLYFILL_CXX14_CONSTEXPR bool operator==(U const& lhs, indirect<T, A> const& rhs) noexcept(noexcept(std::declval<U const&>() == std::declval<T const&>()))
 {
   if (rhs.valueless_after_move()) return false;
   return lhs == *rhs;
 }
 
-template<class T, class A, class U, typename std::enable_if<!indirect_detail::is_indirect<U>::value, std::nullptr_t>::type = nullptr>
+template<class T, class A, class U, typename std::enable_if<!detail::is_indirect<U>::value, std::nullptr_t>::type = nullptr>
 YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(indirect<T, A> const& lhs, U const& rhs) noexcept(noexcept(std::declval<T const&>() != std::declval<U const&>()))
 {
   if (lhs.valueless_after_move()) return true;
   return *lhs != rhs;
 }
 
-template<class T, class A, class U, typename std::enable_if<!indirect_detail::is_indirect<U>::value, std::nullptr_t>::type = nullptr>
+template<class T, class A, class U, typename std::enable_if<!detail::is_indirect<U>::value, std::nullptr_t>::type = nullptr>
 YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(U const& lhs, indirect<T, A> const& rhs) noexcept(noexcept(std::declval<U const&>() != std::declval<T const&>()))
 {
   if (rhs.valueless_after_move()) return true;
@@ -409,29 +393,29 @@ indirect(std::allocator_arg_t, A, T) -> indirect<T, typename std::allocator_trai
 
 // ---- ops specialisations (indirect is now complete) -------------------------
 
-namespace indirect_detail {
+namespace detail {
 
 template<>
-struct swap_ops</*Pocs = */ true> {
+struct indirect_swap_ops</*Pocs = */ true> {
   template<class T, class A>
   static YK_POLYFILL_CXX14_CONSTEXPR void apply(indirect<T, A>& a, indirect<T, A>& b) noexcept
   {
-    cswap(a.stored_value(), b.stored_value());
-    cswap(a.ptr_, b.ptr_);
+    detail::constexpr_swap(a.stored_value(), b.stored_value());
+    detail::constexpr_swap(a.ptr_, b.ptr_);
   }
 };
 
 template<>
-struct swap_ops</*Pocs = */ false> {
+struct indirect_swap_ops</*Pocs = */ false> {
   template<class T, class A>
   static YK_POLYFILL_CXX14_CONSTEXPR void apply(indirect<T, A>& a, indirect<T, A>& b) noexcept
   {
-    cswap(a.ptr_, b.ptr_);
+    detail::constexpr_swap(a.ptr_, b.ptr_);
   }
 };
 
 template<>
-struct copy_assign_ops</*Pocca = */ true> {
+struct indirect_copy_assign_ops</*Pocca = */ true> {
   template<class T, class A>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(indirect<T, A>& self, indirect<T, A> const& other)
   {
@@ -446,7 +430,7 @@ struct copy_assign_ops</*Pocca = */ true> {
 };
 
 template<>
-struct copy_assign_ops</*Pocca = */ false> {
+struct indirect_copy_assign_ops</*Pocca = */ false> {
   template<class T, class A>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(indirect<T, A>& self, indirect<T, A> const& other)
   {
@@ -455,7 +439,7 @@ struct copy_assign_ops</*Pocca = */ false> {
 };
 
 template<>
-struct move_assign_ops</*Pocma = */ true> {
+struct indirect_move_assign_ops</*Pocma = */ true> {
   template<class T, class A>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(indirect<T, A>& self, indirect<T, A>&& other) noexcept
   {
@@ -467,16 +451,16 @@ struct move_assign_ops</*Pocma = */ true> {
 };
 
 template<>
-struct move_assign_ops</*Pocma = */ false> {
+struct indirect_move_assign_ops</*Pocma = */ false> {
   template<class T, class A>
-  static YK_POLYFILL_CXX20_CONSTEXPR void apply(indirect<T, A>& self, indirect<T, A>&& other) noexcept(is_always_equal<A>::value)
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(indirect<T, A>& self, indirect<T, A>&& other) noexcept(detail::allocator_is_always_equal<A>::value)
   {
-    move_assign_ne_ops<is_always_equal<A>::value>::apply(self, static_cast<indirect<T, A>&&>(other));
+    indirect_move_assign_ne_ops<detail::allocator_is_always_equal<A>::value>::apply(self, static_cast<indirect<T, A>&&>(other));
   }
 };
 
 template<>
-struct move_assign_ne_ops</*AlwaysEqual = */ true> {
+struct indirect_move_assign_ne_ops</*AlwaysEqual = */ true> {
   template<class T, class A>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(indirect<T, A>& self, indirect<T, A>&& other) noexcept
   {
@@ -487,7 +471,7 @@ struct move_assign_ne_ops</*AlwaysEqual = */ true> {
 };
 
 template<>
-struct move_assign_ne_ops</*AlwaysEqual = */ false> {
+struct indirect_move_assign_ne_ops</*AlwaysEqual = */ false> {
   template<class T, class A>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(indirect<T, A>& self, indirect<T, A>&& other)
   {
@@ -508,7 +492,7 @@ struct move_assign_ne_ops</*AlwaysEqual = */ false> {
 };
 
 template<>
-struct move_ctor_ops</*AlwaysEqual = */ true> {
+struct indirect_move_ctor_ops</*AlwaysEqual = */ true> {
   template<class T, class A>
   static YK_POLYFILL_CXX14_CONSTEXPR void apply(indirect<T, A>& self, indirect<T, A>&& other) noexcept
   {
@@ -518,7 +502,7 @@ struct move_ctor_ops</*AlwaysEqual = */ true> {
 };
 
 template<>
-struct move_ctor_ops</*AlwaysEqual = */ false> {
+struct indirect_move_ctor_ops</*AlwaysEqual = */ false> {
   template<class T, class A>
   static YK_POLYFILL_CXX20_CONSTEXPR void apply(indirect<T, A>& self, indirect<T, A>&& other)
   {
@@ -531,7 +515,7 @@ struct move_ctor_ops</*AlwaysEqual = */ false> {
   }
 };
 
-}  // namespace indirect_detail
+}  // namespace detail
 
 }  // namespace polyfill
 

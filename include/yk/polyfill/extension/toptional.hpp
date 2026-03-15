@@ -31,7 +31,7 @@ namespace extension {
 template<class T, class Traits>
 class toptional;
 
-namespace toptional_detail {
+namespace detail {
 
 template<class T, class Traits, bool Const>
 class toptional_iterator {
@@ -127,7 +127,7 @@ private:
   pointer ptr_ = nullptr;
 };
 
-}  // namespace toptional_detail
+}  // namespace detail
 
 class bad_toptional_initialization : public std::exception {
   char const* what() const noexcept override { return "initializing toptional with tombstone value"; }
@@ -205,7 +205,7 @@ public:
   template<
       class U, class UTraits,
       typename std::enable_if<
-          std::is_constructible<T, U const&>::value && !optional_detail::converts_from_any_cvref<T, toptional<U, UTraits>>::value, std::nullptr_t>::type =
+          std::is_constructible<T, U const&>::value && !polyfill::detail::converts_from_any_cvref<T, toptional<U, UTraits>>::value, std::nullptr_t>::type =
           nullptr>
   YK_POLYFILL_CXX14_CONSTEXPR toptional(toptional<U, UTraits> const& other) : data(other.has_value() ? *other : Traits::tombstone_value())
   {
@@ -215,7 +215,7 @@ public:
   template<
       class U, class UTraits,
       typename std::enable_if<
-          std::is_constructible<T, U>::value && !optional_detail::converts_from_any_cvref<T, toptional<U, UTraits>>::value, std::nullptr_t>::type = nullptr>
+          std::is_constructible<T, U>::value && !polyfill::detail::converts_from_any_cvref<T, toptional<U, UTraits>>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX14_CONSTEXPR toptional(toptional<U, UTraits>&& other) : data(other.has_value() ? *std::move(other) : Traits::tombstone_value())
   {
     if (other.has_value() && !has_value()) throw bad_toptional_initialization{};
@@ -253,7 +253,7 @@ public:
   template<
       class U, class UTraits,
       typename std::enable_if<
-          std::is_assignable<T&, U const&>::value && !optional_detail::converts_from_any_cvref<T, toptional<U, UTraits>>::value
+          std::is_assignable<T&, U const&>::value && !polyfill::detail::converts_from_any_cvref<T, toptional<U, UTraits>>::value
               && !std::is_assignable<T&, toptional<U, UTraits>&>::value && !std::is_assignable<T&, toptional<U, UTraits> const&>::value
               && !std::is_assignable<T&, toptional<U, UTraits>&&>::value && !std::is_assignable<T&, toptional<U, UTraits> const&&>::value,
           std::nullptr_t>::type = nullptr>
@@ -275,7 +275,7 @@ public:
   template<
       class U, class UTraits,
       typename std::enable_if<
-          std::is_assignable<T&, U>::value && !optional_detail::converts_from_any_cvref<T, toptional<U, UTraits>>::value
+          std::is_assignable<T&, U>::value && !polyfill::detail::converts_from_any_cvref<T, toptional<U, UTraits>>::value
               && !std::is_assignable<T&, toptional<U, UTraits>&>::value && !std::is_assignable<T&, toptional<U, UTraits> const&>::value
               && !std::is_assignable<T&, toptional<U, UTraits>&&>::value && !std::is_assignable<T&, toptional<U, UTraits> const&&>::value,
           std::nullptr_t>::type = nullptr>
@@ -549,8 +549,8 @@ public:
     }
   }
 
-  using iterator = toptional_detail::toptional_iterator<T, Traits, false>;
-  using const_iterator = toptional_detail::toptional_iterator<T, Traits, true>;
+  using iterator = detail::toptional_iterator<T, Traits, false>;
+  using const_iterator = detail::toptional_iterator<T, Traits, true>;
 
   YK_POLYFILL_CXX17_CONSTEXPR iterator begin() noexcept { return iterator{std::addressof(data) + !has_value()}; }
   YK_POLYFILL_CXX17_CONSTEXPR const_iterator begin() const noexcept { return const_iterator{std::addressof(data) + !has_value()}; }

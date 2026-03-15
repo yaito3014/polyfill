@@ -30,7 +30,7 @@ namespace polyfill {
 template<class T>
 class optional;
 
-namespace optional_detail {
+namespace detail {
 
 template<class T, bool Const>
 class optional_iterator {
@@ -283,12 +283,12 @@ concept is_derived_from_optional = requires(T const& t) { []<class U>(optional<U
 
 #endif
 
-}  // namespace optional_detail
+}  // namespace detail
 
 template<class T>
-class optional : private cond_trivial_smf<optional_detail::optional_storage_base<T>, T> {
+class optional : private detail::cond_trivial_smf<detail::optional_storage_base<T>, T> {
 private:
-  using base = cond_trivial_smf<optional_detail::optional_storage_base<T>, T>;
+  using base = detail::cond_trivial_smf<detail::optional_storage_base<T>, T>;
 
   template<class>
   friend class optional;
@@ -319,21 +319,21 @@ public:
 
   template<
       class U = typename std::remove_cv<T>::type,
-      typename std::enable_if<optional_detail::is_eligible_for_construction<T, U>::value && std::is_convertible<U, T>::value, std::nullptr_t>::type = nullptr>
+      typename std::enable_if<detail::is_eligible_for_construction<T, U>::value && std::is_convertible<U, T>::value, std::nullptr_t>::type = nullptr>
   constexpr optional(U&& v) noexcept(std::is_nothrow_constructible<T, U>::value) : base(in_place, std::forward<U>(v))
   {
   }
 
   template<
       class U = typename std::remove_cv<T>::type,
-      typename std::enable_if<optional_detail::is_eligible_for_construction<T, U>::value && !std::is_convertible<U, T>::value, std::nullptr_t>::type = nullptr>
+      typename std::enable_if<detail::is_eligible_for_construction<T, U>::value && !std::is_convertible<U, T>::value, std::nullptr_t>::type = nullptr>
   constexpr explicit optional(U&& v) noexcept(std::is_nothrow_constructible<T, U>::value) : base(in_place, std::forward<U>(v))
   {
   }
 
   template<
       class U, typename std::enable_if<
-                   conjunction<std::is_constructible<T, U>, optional_detail::allow_unwrapping<T, U>>::value && std::is_convertible<U const&, T>::value,
+                   conjunction<std::is_constructible<T, U>, detail::allow_unwrapping<T, U>>::value && std::is_convertible<U const&, T>::value,
                    std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR optional(optional<U> const& rhs) noexcept(std::is_nothrow_constructible<T, U const&>::value)
   {
@@ -344,7 +344,7 @@ public:
 
   template<
       class U, typename std::enable_if<
-                   conjunction<std::is_constructible<T, U>, optional_detail::allow_unwrapping<T, U>>::value && !std::is_convertible<U const&, T>::value,
+                   conjunction<std::is_constructible<T, U>, detail::allow_unwrapping<T, U>>::value && !std::is_convertible<U const&, T>::value,
                    std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR explicit optional(optional<U> const& rhs) noexcept(std::is_nothrow_constructible<T, U const&>::value)
   {
@@ -355,7 +355,7 @@ public:
 
   template<
       class U, typename std::enable_if<
-                   std::is_constructible<T, U>::value && optional_detail::allow_unwrapping<T, U>::value && std::is_convertible<U, T>::value,
+                   std::is_constructible<T, U>::value && detail::allow_unwrapping<T, U>::value && std::is_convertible<U, T>::value,
                    std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR optional(optional<U>&& rhs) noexcept(std::is_nothrow_constructible<T, U>::value)
   {
@@ -366,7 +366,7 @@ public:
 
   template<
       class U, typename std::enable_if<
-                   std::is_constructible<T, U>::value && optional_detail::allow_unwrapping<T, U>::value && !std::is_convertible<U, T>::value,
+                   std::is_constructible<T, U>::value && detail::allow_unwrapping<T, U>::value && !std::is_convertible<U, T>::value,
                    std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR explicit optional(optional<U>&& rhs) noexcept(std::is_nothrow_constructible<T, U>::value)
   {
@@ -395,7 +395,7 @@ public:
   template<
       class U,
       typename std::enable_if<
-          std::is_constructible<T, U const&>::value && std::is_assignable<T&, U const&>::value && optional_detail::allow_unwrapping_assignment<T, U>::value,
+          std::is_constructible<T, U const&>::value && std::is_assignable<T&, U const&>::value && detail::allow_unwrapping_assignment<T, U>::value,
           std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR optional& operator=(optional<U> const& rhs) noexcept(
       conjunction<std::is_nothrow_constructible<T, U const&>, std::is_nothrow_assignable<T&, U const&>>::value
@@ -411,7 +411,7 @@ public:
 
   template<
       class U, typename std::enable_if<
-                   std::is_constructible<T, U>::value && std::is_assignable<T&, U>::value && optional_detail::allow_unwrapping_assignment<T, U>::value,
+                   std::is_constructible<T, U>::value && std::is_assignable<T&, U>::value && detail::allow_unwrapping_assignment<T, U>::value,
                    std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR optional& operator=(optional<U>&& rhs) noexcept(
       conjunction<std::is_nothrow_constructible<T, U>, std::is_nothrow_assignable<T&, U>>::value
@@ -650,8 +650,8 @@ public:
     }
   }
 
-  using iterator = optional_detail::optional_iterator<T, false>;
-  using const_iterator = optional_detail::optional_iterator<T, true>;
+  using iterator = detail::optional_iterator<T, false>;
+  using const_iterator = detail::optional_iterator<T, true>;
 
   YK_POLYFILL_CXX17_CONSTEXPR iterator begin() noexcept { return iterator{operator->() + !has_value()}; }
   constexpr const_iterator begin() const noexcept { return const_iterator{operator->() + !has_value()}; }
@@ -866,8 +866,8 @@ public:
     }
   }
 
-  using iterator = optional_detail::optional_iterator<T, false>;
-  using const_iterator = optional_detail::optional_iterator<T, true>;
+  using iterator = detail::optional_iterator<T, false>;
+  using const_iterator = detail::optional_iterator<T, true>;
 
   YK_POLYFILL_CXX14_CONSTEXPR iterator begin() noexcept { return iterator{operator->() + !has_value()}; }
   constexpr const_iterator begin() const noexcept { return const_iterator{operator->() + !has_value()}; }
@@ -1164,7 +1164,7 @@ constexpr std::strong_ordering operator<=>(optional<T> const& opt, nullopt_t) no
 
 // Three-way comparison with T
 template<class T, class U>
-  requires (!optional_detail::is_derived_from_optional<U>) && std::three_way_comparable_with<T, U>
+  requires (!detail::is_derived_from_optional<U>) && std::three_way_comparable_with<T, U>
 constexpr std::compare_three_way_result_t<T, U> operator<=>(optional<T> const& opt, U const& u) noexcept(noexcept(*opt <=> u))
 {
   return opt.has_value() ? *opt <=> u : std::strong_ordering::less;

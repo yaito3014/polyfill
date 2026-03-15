@@ -15,8 +15,6 @@ namespace polyfill {
 
 namespace detail {
 
-namespace cond_trivial_detail {
-
 template<class Base>
 struct non_trivial_CC : Base {
   using Base::Base;
@@ -159,11 +157,7 @@ using cond_trivial_smf = typename std::conditional<
         conjunction<std::is_move_constructible<Ts>..., std::is_move_assignable<Ts>...>::value, non_trivial_MA<Base, Ts...>,
         deleted_MA<Base, Ts...>>::type>::type;
 
-}  // namespace cond_trivial_detail
-
 }  // namespace detail
-
-using detail::cond_trivial_detail::cond_trivial_smf;
 
 }  // namespace polyfill
 

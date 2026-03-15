@@ -51,7 +51,7 @@ struct integer_sequence {
 template<std::size_t... Is>
 using index_sequence = integer_sequence<std::size_t, Is...>;
 
-namespace integer_sequence_detail {
+namespace detail {
 
 template<class T, T N, T Current, class IntegerSequence>
 struct make_integer_sequence_impl;
@@ -64,10 +64,10 @@ struct make_integer_sequence_impl<T, N, N, integer_sequence<T, Is...>> {
 template<class T, T N, T I, T... Is>
 struct make_integer_sequence_impl<T, N, I, integer_sequence<T, Is...>> : make_integer_sequence_impl<T, N, I + 1, integer_sequence<T, Is..., I>> {};
 
-}  // namespace integer_sequence_detail
+}  // namespace detail
 
 template<class T, T N>
-using make_integer_sequence = typename integer_sequence_detail::make_integer_sequence_impl<T, N, 0, integer_sequence<T>>::type;
+using make_integer_sequence = typename detail::make_integer_sequence_impl<T, N, 0, integer_sequence<T>>::type;
 
 template<std::size_t N>
 using make_index_sequence = make_integer_sequence<std::size_t, N>;
@@ -75,7 +75,7 @@ using make_index_sequence = make_integer_sequence<std::size_t, N>;
 template<class... Ts>
 using index_sequence_for = make_index_sequence<sizeof...(Ts)>;
 
-namespace integer_sequence_detail {
+namespace detail {
 
 template<std::size_t I, class T, T... Is>
 struct get_impl {};
@@ -86,13 +86,13 @@ struct get_impl<0, T, Head, Rest...> : integral_constant<T, Head> {};
 template<std::size_t I, class T, T Head, T... Rest>
 struct get_impl<I, T, Head, Rest...> : get_impl<I - 1, T, Rest...> {};
 
-}  // namespace integer_sequence_detail
+}  // namespace detail
 
 template<std::size_t I, class T, T... Is>
 constexpr T get(integer_sequence<T, Is...>) noexcept
 {
   static_assert(I < sizeof...(Is), "I must be less than sizeof...(Is)");
-  return integer_sequence_detail::get_impl<I, T, Is...>::value;
+  return detail::get_impl<I, T, Is...>::value;
 }
 
 template<class T, class U = T>
