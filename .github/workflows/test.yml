@@ -25,7 +25,6 @@ jobs:
       - id: changes
         uses: dorny/paths-filter@v4
         with:
-          base: ${{ github.ref }}
           filters: |
             headers:
               - 'include/**/*'
