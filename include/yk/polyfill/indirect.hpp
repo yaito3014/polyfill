@@ -53,7 +53,6 @@ template<class T, class U = T>
 using synth_three_way_result = decltype(synth_three_way(std::declval<T const&>(), std::declval<U const&>()));
 #endif  // __cpp_lib_three_way_comparison
 
-// Forward declarations — specialisations are defined after indirect is complete.
 template<bool Pocs>
 struct indirect_swap_ops;
 template<bool Pocca>
