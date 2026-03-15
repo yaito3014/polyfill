@@ -202,11 +202,6 @@ TEST_CASE("indirect: get_allocator")
   STATIC_REQUIRE(std::is_same<decltype(i.get_allocator()), std::allocator<int>>::value);
 }
 
-// ---- constraint / mandate tests -------------------------------------------
-//
-// Constraints (enable_if): affect overload resolution — reflected in type traits.
-// Mandates (static_assert): fire at instantiation — NOT reflected in type traits.
-
 struct MoveOnly {
   MoveOnly() = default;
   MoveOnly(MoveOnly const&) = delete;
@@ -221,7 +216,6 @@ struct NonDefault {
   int value;
 };
 
-// Allocator with no default constructor — tests the Constraint on indirect().
 template<class T>
 struct NoDefaultAlloc {
   using value_type = T;
@@ -239,7 +233,7 @@ struct NoDefaultAlloc {
 
 // --- Constraint: default ctor requires default-constructible A ---
 
-TEST_CASE("indirect: default ctor Constraint — not in overload set when A has no default ctor")
+TEST_CASE("indirect: default ctor Constraint - not in overload set when A has no default ctor")
 {
   // Constraint (enable_if) on A: indirect<T, NoDefaultAlloc>() must not be selectable
   STATIC_REQUIRE(!std::is_default_constructible<pf::indirect<int, NoDefaultAlloc<int>>>::value);
@@ -247,20 +241,20 @@ TEST_CASE("indirect: default ctor Constraint — not in overload set when A has 
 
 // --- Constraint: in_place_t ctor requires is_constructible<T, Ts...> ---
 
-TEST_CASE("indirect: in_place_t Constraint — selected when args match")
+TEST_CASE("indirect: in_place_t Constraint - selected when args match")
 {
   pf::indirect<std::string> s(pf::in_place, 3u, 'a');
   CHECK(*s == "aaa");
 }
 
-TEST_CASE("indirect: in_place_t Constraint — not in overload set when args don't match")
+TEST_CASE("indirect: in_place_t Constraint - not in overload set when args don't match")
 {
   STATIC_REQUIRE(!std::is_constructible<pf::indirect<int>, pf::in_place_t, char const*>::value);
 }
 
 // --- Mandate: T must be default-constructible (static_assert, not a type-trait effect) ---
 
-TEST_CASE("indirect: non-default T — in_place construction works")
+TEST_CASE("indirect: non-default T - in_place construction works")
 {
   pf::indirect<NonDefault> p(pf::in_place, 42);
   CHECK(p->value == 42);
@@ -268,7 +262,7 @@ TEST_CASE("indirect: non-default T — in_place construction works")
 
 // --- Mandate: T must be move-constructible (static_assert) ---
 
-TEST_CASE("indirect: move-only T — basic move ctor and move assign work")
+TEST_CASE("indirect: move-only T - basic move ctor and move assign work")
 {
   pf::indirect<MoveOnly> a(pf::in_place);
   pf::indirect<MoveOnly> b = std::move(a);
@@ -282,31 +276,31 @@ TEST_CASE("indirect: move-only T — basic move ctor and move assign work")
 
 // --- Generic (converting) constructor ---
 
-TEST_CASE("indirect: generic ctor — constructs from value")
+TEST_CASE("indirect: generic ctor - constructs from value")
 {
   pf::indirect<std::string> s(std::string("hello"));
   CHECK(*s == "hello");
 }
 
-TEST_CASE("indirect: generic ctor — constructs from compatible type")
+TEST_CASE("indirect: generic ctor - constructs from compatible type")
 {
   // const char* is constructible to std::string
   pf::indirect<std::string> s("world");
   CHECK(*s == "world");
 }
 
-TEST_CASE("indirect: generic ctor — Constraint: not selected when U is incompatible")
+TEST_CASE("indirect: generic ctor - Constraint: not selected when U is incompatible")
 {
   // int is not constructible from std::string
   STATIC_REQUIRE(!std::is_constructible<pf::indirect<int>, std::string>::value);
 }
 
-TEST_CASE("indirect: generic ctor — Constraint: not in overload set when A has no default ctor")
+TEST_CASE("indirect: generic ctor - Constraint: not in overload set when A has no default ctor")
 {
   STATIC_REQUIRE(!std::is_constructible<pf::indirect<int, NoDefaultAlloc<int>>, int>::value);
 }
 
-TEST_CASE("indirect: alloc-extended generic ctor — constructs from value with allocator")
+TEST_CASE("indirect: alloc-extended generic ctor - constructs from value with allocator")
 {
   std::allocator<std::string> a;
   pf::indirect<std::string> s(std::allocator_arg, a, std::string("hi"));
