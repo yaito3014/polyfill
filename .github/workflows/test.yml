@@ -100,7 +100,7 @@ jobs:
           sudo ./llvm.sh ${{ matrix.compiler.version }} all
       - name: Setup MSVC
         if: matrix.compiler.name == 'MSVC'
-        uses: TheMrMilchmann/setup-msvc-dev@v3
+        uses: TheMrMilchmann/setup-msvc-dev@v4
         with:
           arch: x64
           toolset: ${{ matrix.compiler.toolset }}
