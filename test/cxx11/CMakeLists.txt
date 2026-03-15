@@ -3,6 +3,7 @@ add_executable(yk_polyfill_cxx11_test)
 target_sources(
     yk_polyfill_cxx11_test
     PRIVATE
+        bit_cast.cpp
         integer_sequence.cpp
         integral_constant.cpp
         is_null_pointer.cpp
@@ -20,6 +21,11 @@ target_sources(
         apply.cpp
         exchange.cpp
         is_convertible_without_narrowing.cpp
+        optional.cpp
+        toptional.cpp
+        variant.cpp
+        indirect.cpp
+        polymorphic.cpp
 )
 
 set_target_properties(yk_polyfill_cxx11_test PROPERTIES CXX_EXTENSIONS OFF)

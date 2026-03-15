@@ -1,6 +1,7 @@
 #ifndef YK_POLYFILL_MEMORY_HPP
 #define YK_POLYFILL_MEMORY_HPP
 
+#include <yk/polyfill/config.hpp>
 #include <yk/polyfill/type_traits.hpp>
 
 #include <memory>
@@ -26,6 +27,16 @@ template<class T, class = typename std::enable_if<is_unbounded_array<T>::value>:
 
 template<class T, class... Args, class = typename std::enable_if<is_bounded_array<T>::value>::type>
 constexpr void make_unique(Args&&...) = delete;
+
+template<class T, class... Args>
+YK_POLYFILL_CXX20_CONSTEXPR void construct_at(T* dest, Args&&... args) noexcept(std::is_nothrow_constructible<T, Args...>::value)
+{
+#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
+  std::construct_at(dest, std::forward<Args>(args)...);
+#else
+  new (dest) T(std::forward<Args>(args)...);
+#endif
+}
 
 }  // namespace polyfill
 

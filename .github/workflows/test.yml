@@ -1,5 +1,8 @@
 name: Test
 
+permissions:
+  id-token: write
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -18,9 +21,9 @@ jobs:
     outputs:
       need_build: ${{ steps.changes.outputs.workflows == 'true' || steps.changes.outputs.headers == 'true' || steps.changes.outputs.sources == 'true' }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - id: changes
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v4
         with:
           filters: |
             headers:
@@ -31,7 +34,7 @@ jobs:
               - '.github/workflows/**/*'
   build:
     needs: check-changes
-    if: needs.check-changes.outputs.need_build
+    if: needs.check-changes.outputs.need_build == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -39,7 +42,7 @@ jobs:
           - name: ubuntu
             version: 24.04
           - name: windows
-            version: 2022
+            version: 2025-vs2026
         build-type:
           - Debug
           - Release
@@ -50,12 +53,14 @@ jobs:
           - name: Clang
             version: 21
             executable: clang++-21
-          - name: Clang
-            version: 22
-            executable: clang++-22
           - name: MSVC
             version: 2022
             executable: cl
+            toolset: '14.44'
+          - name: MSVC
+            version: 2026
+            executable: cl
+            toolset: '14.50'
         cxx-version: [11, 14, 17, 20, 23, 26]
         exclude:
           - os:
@@ -76,7 +81,7 @@ jobs:
     name: C++${{ matrix.cxx-version }} ${{ matrix.build-type }} (${{ matrix.compiler.name }} ${{ matrix.compiler.version }} on ${{ matrix.os.name }})
     runs-on: ${{ matrix.os.name }}-${{ matrix.os.version }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Init Ubuntu
         if: matrix.os.name == 'ubuntu'
         run: |
@@ -93,21 +98,28 @@ jobs:
           wget https://apt.llvm.org/llvm.sh
           chmod +x ./llvm.sh
           sudo ./llvm.sh ${{ matrix.compiler.version }} all
+      - name: Setup MSVC
+        if: matrix.compiler.name == 'MSVC'
+        uses: TheMrMilchmann/setup-msvc-dev@v4
+        with:
+          arch: x64
+          toolset: ${{ matrix.compiler.toolset }}
       - name: Restore deps from cache
         id: cache-restore
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: build/_deps
           key: ${{ matrix.cxx-version }}-${{ matrix.build-type }}-${{ matrix.compiler.name }}-${{ matrix.compiler.version }}-${{ matrix.os.name }}-${{ matrix.os.version }}
       - name: Configure
         run: |
-          cmake -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_STANDARD=${{ matrix.cxx-version }} -DCMAKE_CXX_COMPILER=${{ matrix.compiler.executable }} -Bbuild .
+          cmake -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_STANDARD=${{ matrix.cxx-version }} -DCMAKE_CXX_COMPILER=${{ matrix.compiler.executable }} -DYK_POLYFILL_CI=ON -Bbuild .
       - name: Build tests
         run: |
+          echo "CPPWARNINGNOTIFIER_LOG_MARKER"
           cmake --build build --config ${{ matrix.build-type }}
       - name: Save deps to cache
         if: steps.cache-restore.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: build/_deps
           key: ${{ steps.cache-restore.outputs.cache-primary-key }}
@@ -115,3 +127,15 @@ jobs:
         working-directory: build/test
         run: |
           ctest -C ${{ matrix.build-type }}
+  run-notifier:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: iris-cpp/cpp-warning-notifier@v0.7
+        with:
+          RUN_ID: ${{ github.run_id }}
+          JOB_ID: ${{ job.check_run_id }}
+          JOB_REGEX: C\+\+(?<cppVersion>\d+) (?<config>.+) \((?<vendorName>.+) (?<vendorVersion>.+) on (?<osName>.+)\)
+          STEP_REGEX: Build.+
+          ROW_HEADERS: '["osName", "vendorName", "vendorVersion", "config"]'
+          COLUMN_HEADER: cppVersion

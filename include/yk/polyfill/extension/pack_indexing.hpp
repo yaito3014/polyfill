@@ -11,7 +11,7 @@ namespace polyfill {
 
 namespace extension {
 
-namespace pack_indexing_detail {
+namespace detail {
 
 template<std::size_t I>
 using make_void = void;
@@ -28,12 +28,12 @@ struct do_pack_indexing<index_sequence<Is...>> {
   static T select(make_void<Is>*..., identity<T>*, ...);
 };
 
-}  // namespace pack_indexing_detail
+}  // namespace detail
 
 template<std::size_t I, class... Ts>
 struct pack_indexing {
   static_assert(I < sizeof...(Ts), "index must be less than size of parameter pack");
-  using type = decltype(pack_indexing_detail::do_pack_indexing<make_index_sequence<I>>::select(static_cast<pack_indexing_detail::identity<Ts>*>(nullptr)...));
+  using type = decltype(detail::do_pack_indexing<make_index_sequence<I>>::select(static_cast<detail::identity<Ts>*>(nullptr)...));
 };
 
 }  // namespace extension

@@ -1,7 +1,10 @@
 #ifndef YK_POLYFILL_UTILITY_HPP
 #define YK_POLYFILL_UTILITY_HPP
 
+#include <yk/polyfill/bits/core_traits.hpp>
 #include <yk/polyfill/config.hpp>
+
+#include <tuple>
 
 #include <cstddef>
 
@@ -13,13 +16,29 @@ struct in_place_t {
   explicit in_place_t() = default;
 };
 
-struct in_place_holder {
-  static constexpr in_place_t value{};
+YK_POLYFILL_INLINE constexpr in_place_t in_place{};
+
+template<std::size_t I>
+struct in_place_index_t {
+  explicit in_place_index_t() = default;
 };
 
-#if __cpp_inline_variables >= 201606L
+#if __cpp_variable_templates >= 201304L
 
-inline constexpr in_place_t in_place{};
+template<std::size_t I>
+YK_POLYFILL_INLINE constexpr in_place_index_t<I> in_place_index{};
+
+#endif
+
+template<class T>
+struct in_place_type_t {
+  explicit in_place_type_t() = default;
+};
+
+#if __cpp_variable_templates >= 201304L
+
+template<class T>
+YK_POLYFILL_INLINE constexpr in_place_type_t<T> in_place_type{};
 
 #endif
 
@@ -32,7 +51,7 @@ struct integer_sequence {
 template<std::size_t... Is>
 using index_sequence = integer_sequence<std::size_t, Is...>;
 
-namespace integer_sequence_detail {
+namespace detail {
 
 template<class T, T N, T Current, class IntegerSequence>
 struct make_integer_sequence_impl;
@@ -45,16 +64,36 @@ struct make_integer_sequence_impl<T, N, N, integer_sequence<T, Is...>> {
 template<class T, T N, T I, T... Is>
 struct make_integer_sequence_impl<T, N, I, integer_sequence<T, Is...>> : make_integer_sequence_impl<T, N, I + 1, integer_sequence<T, Is..., I>> {};
 
-}  // namespace integer_sequence_detail
+}  // namespace detail
 
 template<class T, T N>
-using make_integer_sequence = typename integer_sequence_detail::make_integer_sequence_impl<T, N, 0, integer_sequence<T>>::type;
+using make_integer_sequence = typename detail::make_integer_sequence_impl<T, N, 0, integer_sequence<T>>::type;
 
 template<std::size_t N>
 using make_index_sequence = make_integer_sequence<std::size_t, N>;
 
 template<class... Ts>
 using index_sequence_for = make_index_sequence<sizeof...(Ts)>;
+
+namespace detail {
+
+template<std::size_t I, class T, T... Is>
+struct get_impl {};
+
+template<class T, T Head, T... Rest>
+struct get_impl<0, T, Head, Rest...> : integral_constant<T, Head> {};
+
+template<std::size_t I, class T, T Head, T... Rest>
+struct get_impl<I, T, Head, Rest...> : get_impl<I - 1, T, Rest...> {};
+
+}  // namespace detail
+
+template<std::size_t I, class T, T... Is>
+constexpr T get(integer_sequence<T, Is...>) noexcept
+{
+  static_assert(I < sizeof...(Is), "I must be less than sizeof...(Is)");
+  return detail::get_impl<I, T, Is...>::value;
+}
 
 template<class T, class U = T>
 [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR T
@@ -65,9 +104,32 @@ exchange(T& obj, U&& new_value) noexcept(std::is_nothrow_move_constructible<T>::
   return old_value;
 }
 
+template<class T>
+constexpr typename std::add_const<T>::type& as_const(T& x) noexcept
+{
+  return x;
+}
+
+template<class T>
+void as_const(T const&&) = delete;
 
 }  // namespace polyfill
 
 }  // namespace yk
+
+template<class T, T... Is>
+struct std::tuple_size<yk::polyfill::integer_sequence<T, Is...>> : yk::polyfill::integral_constant<std::size_t, sizeof...(Is)> {};
+
+template<std::size_t I, class T, T... Is>
+struct std::tuple_element<I, yk::polyfill::integer_sequence<T, Is...>> {
+  static_assert(I < sizeof...(Is), "I must be less than sizeof...(Is)");
+  using type = T;
+};
+
+template<std::size_t I, class T, T... Is>
+struct std::tuple_element<I, yk::polyfill::integer_sequence<T, Is...> const> {
+  static_assert(I < sizeof...(Is), "I must be less than sizeof...(Is)");
+  using type = T;
+};
 
 #endif  // YK_POLYFILL_UTILITY_HPP

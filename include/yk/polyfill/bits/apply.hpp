@@ -1,5 +1,5 @@
-#ifndef YK_POLYFILL_BITS_APPLY_DETAIL_HPP
-#define YK_POLYFILL_BITS_APPLY_DETAIL_HPP
+#ifndef YK_POLYFILL_BITS_APPLY_HPP
+#define YK_POLYFILL_BITS_APPLY_HPP
 
 #include <yk/polyfill/bits/core_traits.hpp>
 
@@ -15,7 +15,9 @@ namespace yk {
 
 namespace polyfill {
 
-namespace apply_detail {
+namespace detail {
+
+namespace apply_guard {
 
 // injects `std::get`, since unqualified `get<I>(t)` call won't trigger ADL until C++20
 using std::get;
@@ -33,13 +35,15 @@ struct apply_impl<index_sequence<Is...>> {
   }
 };
 
+}  // namespace apply_guard
+
 template<class F, class Tuple, class = void>
 struct is_applicable_impl : false_type {};
 
 template<class F, class Tuple>
 struct is_applicable_impl<
     F, Tuple,
-    void_t<decltype(apply_impl<make_index_sequence<std::tuple_size<typename std::remove_reference<Tuple>::type>::value>>::
+    void_t<decltype(apply_guard::apply_impl<make_index_sequence<std::tuple_size<typename std::remove_reference<Tuple>::type>::value>>::
                         apply(std::declval<F>(), std::declval<Tuple>()))>> : true_type {};
 
 template<class F, class Tuple, class = void>
@@ -48,11 +52,11 @@ struct is_nothrow_applicable_impl : false_type {};
 template<class F, class Tuple>
 struct is_nothrow_applicable_impl<
     F, Tuple,
-    void_t<decltype(apply_impl<make_index_sequence<std::tuple_size<typename std::remove_reference<Tuple>::type>::value>>::
+    void_t<decltype(apply_guard::apply_impl<make_index_sequence<std::tuple_size<typename std::remove_reference<Tuple>::type>::value>>::
                         apply(std::declval<F>(), std::declval<Tuple>()))>>
-    : bool_constant<noexcept(
-          apply_impl<make_index_sequence<std::tuple_size<typename std::remove_reference<Tuple>::type>::value>>::apply(std::declval<F>(), std::declval<Tuple>())
-      )> {};
+    : bool_constant<noexcept(apply_guard::apply_impl<make_index_sequence<std::tuple_size<typename std::remove_reference<Tuple>::type>::value>>::apply(
+          std::declval<F>(), std::declval<Tuple>()
+      ))> {};
 
 template<class F, class Tuple, class = void>
 struct apply_result_impl {};
@@ -60,17 +64,17 @@ struct apply_result_impl {};
 template<class F, class Tuple>
 struct apply_result_impl<
     F, Tuple,
-    void_t<decltype(apply_impl<make_index_sequence<std::tuple_size<typename std::remove_reference<Tuple>::type>::value>>::
+    void_t<decltype(apply_guard::apply_impl<make_index_sequence<std::tuple_size<typename std::remove_reference<Tuple>::type>::value>>::
                         apply(std::declval<F>(), std::declval<Tuple>()))>> {
-  using type = decltype(apply_impl<make_index_sequence<std::tuple_size<typename std::remove_reference<Tuple>::type>::value>>::apply(
+  using type = decltype(apply_guard::apply_impl<make_index_sequence<std::tuple_size<typename std::remove_reference<Tuple>::type>::value>>::apply(
       std::declval<F>(), std::declval<Tuple>()
   ));
 };
 
-}  // namespace apply_detail
+}  // namespace detail
 
 }  // namespace polyfill
 
 }  // namespace yk
 
-#endif  // YK_POLYFILL_BITS_APPLY_DETAIL_HPP
+#endif  // YK_POLYFILL_BITS_APPLY_HPP

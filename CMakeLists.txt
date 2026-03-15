@@ -79,7 +79,13 @@ add_library(yk::polyfill ALIAS yk_polyfill)
 
 # test
 option(YK_POLYFILL_BUILD_TESTING "build tests" ${PROJECT_IS_TOP_LEVEL})
-if(YK_POLYFILL_BUILD_TESTING)
+
+if(YK_POLYFILL_BUILD_TESTING AND NOT DEFINED BUILD_TESTING)
+    set(BUILD_TESTING ON)
+endif()
+
+if(BUILD_TESTING)
+    include(CTest)
     add_subdirectory(test)
 endif()
 
