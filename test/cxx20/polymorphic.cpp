@@ -32,7 +32,7 @@ struct ConstDerived : ConstBase {
 constexpr int polymorphic_default_construct()
 {
   pf::polymorphic<int> a;
-  return *a;  // value-initialised → 0
+  return *a;  // value-initialised -> 0
 }
 
 constexpr int polymorphic_in_place_construct()

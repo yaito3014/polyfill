@@ -10,7 +10,7 @@ namespace pf = yk::polyfill;
 constexpr int indirect_default_construct()
 {
   pf::indirect<int> a;
-  return *a;  // value-initialised → 0
+  return *a;  // value-initialised -> 0
 }
 
 constexpr int indirect_in_place_construct()
