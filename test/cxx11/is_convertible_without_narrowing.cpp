@@ -115,8 +115,8 @@ TEST_CASE("is_convertible_without_narrowing")
   STATIC_REQUIRE(test_convertible_without_narrowing<std::int16_t, std::int32_t&>::value == conversion_kind::not_convertible);
 
   // conversion including function reference type
-  STATIC_REQUIRE(test_convertible_without_narrowing<void(void), void (&)(void)>::value == conversion_kind::without_narrowing);
-  STATIC_REQUIRE(test_convertible_without_narrowing<void (*)(void), void (&)(void)>::value == conversion_kind::not_convertible);
+  STATIC_REQUIRE(test_convertible_without_narrowing<void(), void (&)()>::value == conversion_kind::without_narrowing);
+  STATIC_REQUIRE(test_convertible_without_narrowing<void (*)(), void (&)()>::value == conversion_kind::not_convertible);
 
   // conversion including abstract class reference type
   struct Abstract {
@@ -145,12 +145,11 @@ TEST_CASE("is_convertible_without_narrowing")
   STATIC_REQUIRE(test_convertible_without_narrowing<int, bool>::value == conversion_kind::narrowing);
   STATIC_REQUIRE(test_convertible_without_narrowing<int*, bool>::value == conversion_kind::narrowing);
   STATIC_REQUIRE(test_convertible_without_narrowing<void (*)(void), bool>::value == conversion_kind::narrowing);
-  // nullptr_t -> bool: not convertible (CWG 1781) or narrowing, depending on implementation
-  STATIC_REQUIRE(
-      test_convertible_without_narrowing<std::nullptr_t, bool>::value == conversion_kind::not_convertible
-      || test_convertible_without_narrowing<std::nullptr_t, bool>::value == conversion_kind::narrowing
-  );
-
+// MSVC's implementation differs across versions, so the behavior cannot be reliably tested.
+#if !defined(_MSC_VER)
+  // nullptr_t -> bool: not convertible (CWG 1781)
+  STATIC_REQUIRE(test_convertible_without_narrowing<std::nullptr_t, bool>::value == conversion_kind::not_convertible);
+#endif
   // conversion including enum type
   enum UnscopedEnum : int { ue_value = 0 };
   enum class ScopedEnum : int { se_value = 0 };
