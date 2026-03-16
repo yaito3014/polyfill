@@ -264,7 +264,7 @@ constexpr typename invoke_result<F, Args...>::type invoke(F&& f, Args&&... args)
 }
 
 template<class R, class F, class... Args>
-constexpr R invoke_r(F&& f, Args&&... args) noexcept(is_nothrow_invocable_r<F, Args...>::value)
+constexpr R invoke_r(F&& f, Args&&... args) noexcept(is_nothrow_invocable_r<R, F, Args...>::value)
 {
   return detail::invoke_r_impl<R>::apply(static_cast<F&&>(f), static_cast<Args&&>(args)...);
 }
