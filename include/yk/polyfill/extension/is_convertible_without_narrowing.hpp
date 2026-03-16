@@ -19,8 +19,8 @@ struct narrowing_check : std::false_type {};
 template<class From, class To>
 struct narrowing_check<From, To, void_t<decltype(typename type_identity<To[]>::type{std::declval<From>()})>> : true_type {};
 
-// `is_convertible_without_narrowing` uses `std::is_constructible` internally, since for object types, `To` must be at least constructible from
-// `From` for conversion to occur. For non-object types, it respects `std::is_convertible`.
+// `is_convertible_without_narrowing` uses `std::is_constructible` internally, since for object types (or reference to them),
+// reference-stripped `To` must be at least constructible from `From` for conversion to occur. For non-object types, it respects `std::is_convertible`.
 
 // Primary template: respect `std::is_convertible`
 template<class From, class To, class = void>
