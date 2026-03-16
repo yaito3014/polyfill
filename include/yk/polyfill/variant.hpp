@@ -6,6 +6,7 @@
 #include <yk/polyfill/bits/cond_trivial_smf.hpp>
 #include <yk/polyfill/bits/core_traits.hpp>
 
+#include <yk/polyfill/extension/is_convertible_without_narrowing.hpp>
 #include <yk/polyfill/extension/pack_indexing.hpp>
 
 #include <yk/polyfill/functional.hpp>
@@ -499,7 +500,7 @@ struct reconstruct_operation<trivial_reconstruction::move_assign> {
     } else {
       using union_type = typename variant_storage<Ts...>::union_type;
       union_type tmp(in_place_index_t<ValidI>{}, std::forward<Args>(args)...);  // may throw
-      storage.vunion = std::move(tmp);  // trivial move assign, won't throw
+      storage.vunion = std::move(tmp);                                          // trivial move assign, won't throw
       storage.vindex = ValidI;
     }
   }
@@ -519,7 +520,7 @@ struct reconstruct_operation<trivial_reconstruction::copy_assign> {
     } else {
       using union_type = typename variant_storage<Ts...>::union_type;
       union_type tmp(in_place_index_t<ValidI>{}, std::forward<Args>(args)...);  // may throw
-      storage.vunion = tmp;  // trivial copy assign, won't throw
+      storage.vunion = tmp;                                                     // trivial copy assign, won't throw
       storage.vindex = ValidI;
     }
   }
@@ -777,16 +778,11 @@ struct make_variant_base {
   using type = variant_base<conjunction<std::is_trivially_destructible<Ts>...>::value, Ts...>;
 };
 
-template<class T>
-struct one_element_array {
-  T data[1];
-};
-
 template<std::size_t Index, class Target, class Source, class = void>
 struct imaginary_function {};
 
 template<std::size_t Index, class Target, class Source>
-struct imaginary_function<Index, Target, Source, void_t<decltype(one_element_array<Target>{{std::declval<Source>()}})>> {
+struct imaginary_function<Index, Target, Source, typename std::enable_if<extension::is_convertible_without_narrowing<Source, Target>::value>::type> {
   integral_constant<std::size_t, Index> operator()(Target);
 };
 
@@ -1106,7 +1102,8 @@ template<>
 struct multi_visit_total_size<> : integral_constant<std::size_t, 1> {};
 
 template<class V0, class... Vs>
-struct multi_visit_total_size<V0, Vs...> : integral_constant<std::size_t, variant_size<typename remove_cvref<V0>::type>::value * multi_visit_total_size<Vs...>::value> {};
+struct multi_visit_total_size<V0, Vs...>
+    : integral_constant<std::size_t, variant_size<typename remove_cvref<V0>::type>::value * multi_visit_total_size<Vs...>::value> {};
 
 // stride for K-th variant: product of sizes of variants after K
 template<std::size_t K, class... Variants>
@@ -1202,7 +1199,9 @@ using multi_visit_return_type = typename invoke_result<Visitor, decltype(polyfil
 
 }  // namespace detail
 
-template<class Visitor, class... Variants, typename std::enable_if<conjunction<detail::is_variant<typename remove_cvref<Variants>::type>...>::value, std::nullptr_t>::type = nullptr>
+template<
+    class Visitor, class... Variants,
+    typename std::enable_if<conjunction<detail::is_variant<typename remove_cvref<Variants>::type>...>::value, std::nullptr_t>::type = nullptr>
 YK_POLYFILL_CXX14_CONSTEXPR detail::multi_visit_return_type<Visitor, Variants...> visit(Visitor&& vis, Variants&&... vars)
 {
   using return_type = detail::multi_visit_return_type<Visitor, Variants...>;
@@ -1375,9 +1374,9 @@ struct three_way_cmp_visitor {
 // Workaround: SFINAE via return type instead of default template parameter.
 // MSVC fails to deduce the default enable_if parameter for C++20 reversed comparison candidates.
 template<class... Ts>
-YK_POLYFILL_CXX14_CONSTEXPR typename std::enable_if<
-    conjunction<std::is_convertible<decltype(std::declval<Ts const&>() == std::declval<Ts const&>()), bool>...>::value, bool>::type
-operator==(variant<Ts...> const& lhs, variant<Ts...> const& rhs)
+YK_POLYFILL_CXX14_CONSTEXPR
+    typename std::enable_if<conjunction<std::is_convertible<decltype(std::declval<Ts const&>() == std::declval<Ts const&>()), bool>...>::value, bool>::type
+    operator==(variant<Ts...> const& lhs, variant<Ts...> const& rhs)
 {
   if (lhs.index() != rhs.index()) return false;
   if (lhs.valueless_by_exception()) return true;
