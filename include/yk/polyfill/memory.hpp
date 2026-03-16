@@ -26,7 +26,7 @@ namespace polyfill {
 // construct_at
 
 template<class T, class... Args>
-YK_POLYFILL_CXX20_CONSTEXPR T* construct_at(T* dest, Args&&... args) noexcept(std::is_nothrow_constructible<T, Args...>::value)
+YK_POLYFILL_CXX20_CONSTEXPR T* construct_at(T* dest, Args&&... args)
 {
 #if __cpp_lib_constexpr_dynamic_alloc >= 201907L
   return std::construct_at(dest, std::forward<Args>(args)...);
@@ -538,7 +538,7 @@ constexpr std::compare_three_way_result_t<typename unique_ptr<T, D>::pointer> op
 // Non-member swap
 
 template<class T, class D>
-YK_POLYFILL_CXX14_CONSTEXPR void swap(unique_ptr<T, D>& x, unique_ptr<T, D>& y) noexcept
+YK_POLYFILL_CXX14_CONSTEXPR void swap(unique_ptr<T, D>& x, unique_ptr<T, D>& y) noexcept(noexcept(x.swap(y)))
 {
   x.swap(y);
 }

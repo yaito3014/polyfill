@@ -325,7 +325,7 @@ TEST_CASE("unique_ptr - comparisons")
     CHECK((nullptr >= p) == p_less);
 
     // non-null is never equal to nullptr, so one direction must hold
-    CHECK(p_less != !p_less);
+    CHECK_FALSE(p == nullptr);
   }
 
   SECTION("ordering - non-null unique_ptr vs null unique_ptr is consistent")

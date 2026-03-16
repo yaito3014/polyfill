@@ -519,7 +519,7 @@ template<class T, class A, class = void>
 struct indirect_hash {};
 
 template<class T, class A>
-struct indirect_hash<T, A, polyfill::void_t<decltype(std::hash<T>{}(std::declval<T const&>()))>> {
+struct indirect_hash<T, A, void_t<decltype(std::hash<T>{}(std::declval<T const&>()))>> {
   std::size_t operator()(polyfill::indirect<T, A> const& ind) const noexcept(noexcept(std::hash<T>{}(*ind)))
   {
     if (ind.valueless_after_move()) return std::hash<T*>{}(nullptr);
