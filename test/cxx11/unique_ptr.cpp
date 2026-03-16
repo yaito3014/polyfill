@@ -6,8 +6,10 @@
 
 #include <yk/polyfill/memory.hpp>
 
+#include <functional>
 #include <string>
 #include <type_traits>
+#include <unordered_set>
 
 namespace pf = yk::polyfill;
 
@@ -416,6 +418,40 @@ TEST_CASE("unique_ptr - array specialization")
     REQUIRE(p);
     p[0] = 100;
     CHECK(p[0] == 100);
+  }
+}
+
+TEST_CASE("unique_ptr - hash")
+{
+  SECTION("null unique_ptr hashes to hash of nullptr")
+  {
+    pf::unique_ptr<int> p;
+    std::size_t h = std::hash<pf::unique_ptr<int>>{}(p);
+    CHECK(h == std::hash<int*>{}(nullptr));
+  }
+
+  SECTION("non-null unique_ptr hashes to hash of raw pointer")
+  {
+    pf::unique_ptr<int> p(new int(42));
+    int* raw = p.get();
+    std::size_t h = std::hash<pf::unique_ptr<int>>{}(p);
+    CHECK(h == std::hash<int*>{}(raw));
+  }
+
+  SECTION("usable as unordered_set key")
+  {
+    std::unordered_set<pf::unique_ptr<int>> s;
+    s.insert(pf::make_unique<int>(1));
+    s.insert(pf::make_unique<int>(2));
+    CHECK(s.size() == 2);
+  }
+
+  SECTION("array specialization")
+  {
+    pf::unique_ptr<int[]> p(new int[3]);
+    int* raw = p.get();
+    std::size_t h = std::hash<pf::unique_ptr<int[]>>{}(p);
+    CHECK(h == std::hash<int*>{}(raw));
   }
 }
 

@@ -560,8 +560,32 @@ YK_POLYFILL_NODISCARD YK_POLYFILL_CXX20_CONSTEXPR unique_ptr<T> make_unique(std:
 template<class T, class... Args, class = typename std::enable_if<is_bounded_array<T>::value>::type>
 void make_unique(Args&&...) = delete;
 
+namespace detail {
+
+template<class T, class D, class = void>
+struct unique_ptr_hash {};
+
+template<class T, class D>
+struct unique_ptr_hash<T, D, void_t<decltype(std::hash<typename unique_ptr<T, D>::pointer>{}(std::declval<typename unique_ptr<T, D>::pointer const&>()))>> {
+  std::size_t operator()(unique_ptr<T, D> const& p) const
+      noexcept(noexcept(std::hash<typename unique_ptr<T, D>::pointer>{}(p.get())))
+  {
+    return std::hash<typename unique_ptr<T, D>::pointer>{}(p.get());
+  }
+};
+
+}  // namespace detail
+
 }  // namespace polyfill
 
 }  // namespace yk
+
+// Hash specialization
+namespace std {
+
+template<class T, class D>
+struct hash<yk::polyfill::unique_ptr<T, D>> : yk::polyfill::detail::unique_ptr_hash<T, D> {};
+
+}  // namespace std
 
 #endif  // YK_POLYFILL_MEMORY_HPP
