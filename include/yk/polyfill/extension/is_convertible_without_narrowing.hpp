@@ -26,7 +26,7 @@ struct narrowing_check<From, To, void_t<decltype(typename type_identity<To[]>::t
 template<class From, class To, class = void>
 struct is_convertible_without_narrowing_impl : true_type {};
 
-// When reference-stripped `To` IS constructible from `From`, check whether narrowing occur
+// When reference-stripped `To` IS constructible from `From`, check whether narrowing occurs
 template<class From, class To>
 struct is_convertible_without_narrowing_impl<
     From, To, typename std::enable_if<std::is_constructible<typename std::remove_reference<To>::type, From>::value>::type>
