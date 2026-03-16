@@ -11,6 +11,7 @@ target_sources(
         is_unbounded_array.cpp
         is_swappable_with.cpp
         is_swappable.cpp
+        is_nothrow_convertible.cpp
         disjunction.cpp
         conjunction.cpp
         void_t.cpp

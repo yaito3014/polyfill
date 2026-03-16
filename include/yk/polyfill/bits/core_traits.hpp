@@ -53,6 +53,23 @@ struct disjunction<> : false_type {};
 template<class Trait, class... Traits>
 struct disjunction<Trait, Traits...> : std::conditional<Trait::value, true_type, disjunction<Traits...>>::type {};
 
+namespace detail {
+
+template<class To>
+void is_nothrow_convertible_test(To) noexcept;
+
+}  // namespace detail
+
+template<class From, class To, class = void>
+struct is_nothrow_convertible : false_type {};
+
+template<class From, class To>
+struct is_nothrow_convertible<From, To, typename std::enable_if<std::is_convertible<From, To>::value>::type>
+    : bool_constant<noexcept(detail::is_nothrow_convertible_test<To>(std::declval<From>()))> {};
+
+template<>
+struct is_nothrow_convertible<void, void> : true_type {};
+
 }  // namespace polyfill
 
 }  // namespace yk

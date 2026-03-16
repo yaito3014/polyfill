@@ -27,6 +27,14 @@ struct Derived : S {
   explicit Derived(int val) noexcept : S(val) {}
 };
 
+struct ThrowingConvertible {
+  ThrowingConvertible(int) noexcept(false) {}
+};
+
+struct NothrowConvertible {
+  NothrowConvertible(int) noexcept {}
+};
+
 namespace pf = yk::polyfill;
 
 TEST_CASE("invoke")
@@ -135,6 +143,7 @@ TEST_CASE("invoke")
   {
     S s{42};
     CHECK(pf::invoke(&S::value, std::ref(s)) == 42);
+    CHECK(pf::invoke(&S::value, std::cref(s)) == 42);
   }
 
   // member data pointer + pointer
@@ -162,7 +171,11 @@ TEST_CASE("invoke_r")
   CHECK(pf::invoke_r<double>(&normal_function, 33, 4) == 37.0);
 
   // invoke_r<void> discards return value
-  pf::invoke_r<void>(&normal_function, 33, 4);
+  {
+    int side_effect = 0;
+    pf::invoke_r<void>([&] { side_effect = 1; });
+    CHECK(side_effect == 1);
+  }
 
   // invoke_r with member function
   {
@@ -269,6 +282,12 @@ TEST_CASE("is_nothrow_invocable_r")
 
   // non-convertible return type
   STATIC_REQUIRE(pf::is_nothrow_invocable_r<S, decltype(&nothrow_function), int, int>::value == false);
+
+  // nothrow invocable but throwing conversion
+  STATIC_REQUIRE(pf::is_nothrow_invocable_r<ThrowingConvertible, decltype(&nothrow_function), int, int>::value == false);
+
+  // nothrow invocable and nothrow conversion
+  STATIC_REQUIRE(pf::is_nothrow_invocable_r<NothrowConvertible, decltype(&nothrow_function), int, int>::value == true);
 }
 
 TEST_CASE("invoke_result")
