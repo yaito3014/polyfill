@@ -189,7 +189,10 @@ constexpr auto invoke_impl(T (C::*f)(Params...) const noexcept, U&& u, Args&&...
 template<class R>
 struct invoke_r_impl {
   template<class F, class... Args>
-  static constexpr R apply(F&& f, Args&&... args) noexcept(noexcept(detail::invoke_impl(static_cast<F&&>(f), static_cast<Args&&>(args)...)))
+  static constexpr R apply(F&& f, Args&&... args) noexcept(
+      noexcept(detail::invoke_impl(static_cast<F&&>(f), static_cast<Args&&>(args)...))
+      && is_nothrow_convertible<decltype(detail::invoke_impl(static_cast<F&&>(f), static_cast<Args&&>(args)...)), R>::value
+  )
   {
     return detail::invoke_impl(static_cast<F&&>(f), static_cast<Args&&>(args)...);
   }
@@ -219,18 +222,31 @@ template<class F, class... Args>
 struct is_nothrow_invocable_impl<F, void_t<decltype(detail::invoke_impl(std::declval<F>(), std::declval<Args>()...))>, Args...>
     : bool_constant<noexcept(detail::invoke_impl(std::declval<F>(), std::declval<Args>()...))> {};
 
+template<class R, class InvokeResult, class = void>
+struct is_invocable_r_check : false_type {};
+
+template<class R, class InvokeResult>
+struct is_invocable_r_check<R, InvokeResult, typename std::enable_if<disjunction<std::is_void<R>, std::is_convertible<InvokeResult, R>>::value>::type>
+    : true_type {};
+
 template<class R, class F, class, class... Args>
 struct is_invocable_r_impl : false_type {};
 
 template<class R, class F, class... Args>
-struct is_invocable_r_impl<R, F, void_t<decltype(invoke_r_impl<R>::apply(std::declval<F>(), std::declval<Args>()...))>, Args...> : true_type {};
+struct is_invocable_r_impl<R, F, void_t<decltype(detail::invoke_impl(std::declval<F>(), std::declval<Args>()...))>, Args...>
+    : is_invocable_r_check<R, decltype(detail::invoke_impl(std::declval<F>(), std::declval<Args>()...))> {};
+
+template<class R, class InvokeResult>
+struct is_nothrow_invocable_r_check : disjunction<std::is_void<R>, is_nothrow_convertible<InvokeResult, R>> {};
 
 template<class R, class F, class, class... Args>
 struct is_nothrow_invocable_r_impl : false_type {};
 
 template<class R, class F, class... Args>
-struct is_nothrow_invocable_r_impl<R, F, void_t<decltype(invoke_r_impl<R>::apply(std::declval<F>(), std::declval<Args>()...))>, Args...>
-    : bool_constant<noexcept(invoke_r_impl<R>::apply(std::declval<F>(), std::declval<Args>()...))> {};
+struct is_nothrow_invocable_r_impl<R, F, void_t<decltype(detail::invoke_impl(std::declval<F>(), std::declval<Args>()...))>, Args...>
+    : conjunction<
+          is_nothrow_invocable_r_check<R, decltype(detail::invoke_impl(std::declval<F>(), std::declval<Args>()...))>,
+          bool_constant<noexcept(detail::invoke_impl(std::declval<F>(), std::declval<Args>()...))>> {};
 
 template<class F, class, class... Args>
 struct invoke_result_impl {};
@@ -264,7 +280,7 @@ constexpr typename invoke_result<F, Args...>::type invoke(F&& f, Args&&... args)
 }
 
 template<class R, class F, class... Args>
-constexpr R invoke_r(F&& f, Args&&... args) noexcept(is_nothrow_invocable_r<F, Args...>::value)
+constexpr R invoke_r(F&& f, Args&&... args) noexcept(is_nothrow_invocable_r<R, F, Args...>::value)
 {
   return detail::invoke_r_impl<R>::apply(static_cast<F&&>(f), static_cast<Args&&>(args)...);
 }
