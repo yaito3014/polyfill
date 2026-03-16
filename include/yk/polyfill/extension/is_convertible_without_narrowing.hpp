@@ -14,7 +14,7 @@ namespace extension {
 namespace detail {
 
 template<class From, class To, class = void>
-struct narrowing_check : std::false_type {};
+struct narrowing_check : false_type {};
 
 template<class From, class To>
 struct narrowing_check<From, To, void_t<decltype(typename type_identity<To[]>::type{std::declval<From>()})>> : true_type {};
@@ -24,7 +24,7 @@ struct narrowing_check<From, To, void_t<decltype(typename type_identity<To[]>::t
 
 // Primary template: respect `std::is_convertible`
 template<class From, class To, class = void>
-struct is_convertible_without_narrowing_impl : std::true_type {};
+struct is_convertible_without_narrowing_impl : true_type {};
 
 // When reference-stripped `To` IS constructible from `From`, check whether narrowing occur
 template<class From, class To>
