@@ -82,14 +82,14 @@ TEST_CASE("unique_ptr - basic")
   SECTION("default constructor")
   {
     pf::unique_ptr<int> p;
-    CHECK_FALSE(p);
+    CHECK(!p);
     CHECK(p.get() == nullptr);
   }
 
   SECTION("nullptr constructor")
   {
     pf::unique_ptr<int> p(nullptr);
-    CHECK_FALSE(p);
+    CHECK(!p);
   }
 
   SECTION("pointer constructor")
@@ -114,7 +114,7 @@ TEST_CASE("unique_ptr - move semantics")
     pf::unique_ptr<int> a(new int(10));
     int* raw = a.get();
     pf::unique_ptr<int> b(static_cast<pf::unique_ptr<int>&&>(a));
-    CHECK_FALSE(a);
+    CHECK(!a);
     CHECK(b.get() == raw);
     CHECK(*b == 10);
   }
@@ -125,7 +125,7 @@ TEST_CASE("unique_ptr - move semantics")
     pf::unique_ptr<int> b(new int(20));
     int* raw = a.get();
     b = static_cast<pf::unique_ptr<int>&&>(a);
-    CHECK_FALSE(a);
+    CHECK(!a);
     CHECK(b.get() == raw);
     CHECK(*b == 10);
   }
@@ -134,7 +134,7 @@ TEST_CASE("unique_ptr - move semantics")
   {
     pf::unique_ptr<Derived> d(new Derived);
     pf::unique_ptr<Base> b(static_cast<pf::unique_ptr<Derived>&&>(d));
-    CHECK_FALSE(d);
+    CHECK(!d);
     REQUIRE(b);
     CHECK(b->id() == 1);
   }
@@ -143,7 +143,7 @@ TEST_CASE("unique_ptr - move semantics")
   {
     pf::unique_ptr<int> p(new int(42));
     p = nullptr;
-    CHECK_FALSE(p);
+    CHECK(!p);
   }
 }
 
@@ -153,7 +153,7 @@ TEST_CASE("unique_ptr - modifiers")
   {
     pf::unique_ptr<int> p(new int(42));
     int* raw = p.release();
-    CHECK_FALSE(p);
+    CHECK(!p);
     CHECK(*raw == 42);
     delete raw;
   }
@@ -169,7 +169,7 @@ TEST_CASE("unique_ptr - modifiers")
   {
     pf::unique_ptr<int> p(new int(42));
     p.reset();
-    CHECK_FALSE(p);
+    CHECK(!p);
   }
 
   SECTION("swap")
@@ -193,7 +193,7 @@ TEST_CASE("unique_ptr - custom deleter")
     bool deleted = false;
     {
       pf::unique_ptr<int, custom_deleter> p(new int(1), custom_deleter(&deleted));
-      CHECK_FALSE(deleted);
+      CHECK(!deleted);
     }
     CHECK(deleted);
   }
@@ -218,7 +218,7 @@ TEST_CASE("unique_ptr - custom pointer type in deleter")
   CHECK(*p.get() == 42);
 
   long* raw = p.release();
-  CHECK_FALSE(p);
+  CHECK(!p);
   delete raw;
 }
 
@@ -247,10 +247,10 @@ TEST_CASE("unique_ptr - comparisons")
 
     CHECK(null == nullptr);
     CHECK(nullptr == null);
-    CHECK_FALSE(null != nullptr);
+    CHECK(!(null != nullptr));
     CHECK(non_null != nullptr);
     CHECK(nullptr != non_null);
-    CHECK_FALSE(non_null == nullptr);
+    CHECK(!(non_null == nullptr));
   }
 
   SECTION("pointer comparisons")
@@ -258,7 +258,7 @@ TEST_CASE("unique_ptr - comparisons")
     pf::unique_ptr<int> a(new int(1));
     pf::unique_ptr<int> b(new int(2));
 
-    CHECK_FALSE(a == b);
+    CHECK(!(a == b));
     CHECK(a != b);
 
     pf::unique_ptr<int> c;
@@ -270,9 +270,8 @@ TEST_CASE("unique_ptr - comparisons")
   {
     pf::unique_ptr<int> null;
 
-    // null == null in the total order
-    CHECK_FALSE(null < null);
-    CHECK_FALSE(null > null);
+    CHECK(!(null < null));
+    CHECK(!(null > null));
     CHECK(null <= null);
     CHECK(null >= null);
   }
@@ -282,7 +281,6 @@ TEST_CASE("unique_ptr - comparisons")
     pf::unique_ptr<int> a(new int(1));
     pf::unique_ptr<int> b(new int(2));
 
-    // exactly one direction holds (or they're equal, which can't happen for distinct allocs)
     bool a_less = a < b;
     CHECK((a < b) == a_less);
     CHECK((b < a) == !a_less);
@@ -298,11 +296,10 @@ TEST_CASE("unique_ptr - comparisons")
   {
     pf::unique_ptr<int> null;
 
-    // null unique_ptr holds nullptr, so they are equal in the total order
-    CHECK_FALSE(null < nullptr);
-    CHECK_FALSE(nullptr < null);
-    CHECK_FALSE(null > nullptr);
-    CHECK_FALSE(nullptr > null);
+    CHECK(!(null < nullptr));
+    CHECK(!(nullptr < null));
+    CHECK(!(null > nullptr));
+    CHECK(!(nullptr > null));
     CHECK(null <= nullptr);
     CHECK(nullptr <= null);
     CHECK(null >= nullptr);
@@ -313,7 +310,6 @@ TEST_CASE("unique_ptr - comparisons")
   {
     pf::unique_ptr<int> p(new int(1));
 
-    // the direction is implementation-defined, but all operators must agree
     bool p_less = p < nullptr;
     CHECK((p < nullptr) == p_less);
     CHECK((nullptr < p) == !p_less);
@@ -324,8 +320,7 @@ TEST_CASE("unique_ptr - comparisons")
     CHECK((p >= nullptr) == !p_less);
     CHECK((nullptr >= p) == p_less);
 
-    // non-null is never equal to nullptr, so one direction must hold
-    CHECK_FALSE(p == nullptr);
+    CHECK(p != nullptr);
   }
 
   SECTION("ordering - non-null unique_ptr vs null unique_ptr is consistent")
@@ -385,7 +380,7 @@ TEST_CASE("unique_ptr - array specialization")
     pf::unique_ptr<int[]> a(new int[2]);
     a[0] = 42;
     pf::unique_ptr<int[]> b(static_cast<pf::unique_ptr<int[]>&&>(a));
-    CHECK_FALSE(a);
+    CHECK(!a);
     CHECK(b[0] == 42);
   }
 
@@ -395,7 +390,7 @@ TEST_CASE("unique_ptr - array specialization")
     p.reset(new int[3]);
     REQUIRE(p);
     p.reset();
-    CHECK_FALSE(p);
+    CHECK(!p);
   }
 
   SECTION("swap calls ADL swap on deleter")
@@ -455,16 +450,10 @@ TEST_CASE("unique_ptr - hash")
   }
 }
 
-// SFINAE checks
 TEST_CASE("unique_ptr - SFINAE")
 {
-  // array unique_ptr should not accept pointer-to-derived
-  STATIC_REQUIRE_FALSE(std::is_constructible<pf::unique_ptr<Base[]>, Derived*>::value);
-
-  // not copyable
-  STATIC_REQUIRE_FALSE(std::is_copy_constructible<pf::unique_ptr<int>>::value);
-  STATIC_REQUIRE_FALSE(std::is_copy_assignable<pf::unique_ptr<int>>::value);
-
-  // convertible: Derived* -> Base*
+  STATIC_REQUIRE(!std::is_constructible<pf::unique_ptr<Base[]>, Derived*>::value);
+  STATIC_REQUIRE(!std::is_copy_constructible<pf::unique_ptr<int>>::value);
+  STATIC_REQUIRE(!std::is_copy_assignable<pf::unique_ptr<int>>::value);
   STATIC_REQUIRE(std::is_constructible<pf::unique_ptr<Base>, pf::unique_ptr<Derived>&&>::value);
 }
