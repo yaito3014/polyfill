@@ -241,6 +241,17 @@ TEST_CASE("is_invocable_r")
   // member data pointer
   STATIC_REQUIRE(pf::is_invocable_r<int, decltype(&S::value), S&>::value == true);
   STATIC_REQUIRE(pf::is_invocable_r<long, decltype(&S::value), S&>::value == true);
+
+  // not invocable
+  STATIC_REQUIRE(pf::is_invocable_r<int, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable_r<int, int, int>::value == false);
+
+  // wrong arity
+  STATIC_REQUIRE(pf::is_invocable_r<int, decltype(&normal_function), int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable_r<int, decltype(&normal_function), int, int, int>::value == false);
+
+  // non-convertible return type
+  STATIC_REQUIRE(pf::is_invocable_r<S, decltype(&normal_function), int, int>::value == false);
 }
 
 TEST_CASE("is_nothrow_invocable_r")
@@ -251,6 +262,13 @@ TEST_CASE("is_nothrow_invocable_r")
 
   // member data pointer is noexcept
   STATIC_REQUIRE(pf::is_nothrow_invocable_r<int, decltype(&S::value), S&>::value == true);
+
+  // not invocable
+  STATIC_REQUIRE(pf::is_nothrow_invocable_r<int, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable_r<int, int, int>::value == false);
+
+  // non-convertible return type
+  STATIC_REQUIRE(pf::is_nothrow_invocable_r<S, decltype(&nothrow_function), int, int>::value == false);
 }
 
 TEST_CASE("invoke_result")
