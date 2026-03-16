@@ -26,12 +26,12 @@ namespace polyfill {
 // construct_at
 
 template<class T, class... Args>
-YK_POLYFILL_CXX20_CONSTEXPR void construct_at(T* dest, Args&&... args) noexcept(std::is_nothrow_constructible<T, Args...>::value)
+YK_POLYFILL_CXX20_CONSTEXPR T* construct_at(T* dest, Args&&... args) noexcept(std::is_nothrow_constructible<T, Args...>::value)
 {
 #if __cpp_lib_constexpr_dynamic_alloc >= 201907L
-  std::construct_at(dest, std::forward<Args>(args)...);
+  return std::construct_at(dest, std::forward<Args>(args)...);
 #else
-  new (dest) T(std::forward<Args>(args)...);
+  return ::new (static_cast<void*>(dest)) T(std::forward<Args>(args)...);
 #endif
 }
 
@@ -140,7 +140,7 @@ public:
 
   // (4) Move constructor
   template<class D = Deleter, typename std::enable_if<std::is_move_constructible<D>::value, std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX14_CONSTEXPR unique_ptr(unique_ptr&& u) noexcept : deleter_base(std::forward<Deleter>(u.get_deleter())), ptr_(u.release())
+  YK_POLYFILL_CXX14_CONSTEXPR unique_ptr(unique_ptr&& u) noexcept : deleter_base(std::move(u.get_deleter())), ptr_(u.release())
   {
   }
 
@@ -172,7 +172,7 @@ public:
   YK_POLYFILL_CXX20_CONSTEXPR unique_ptr& operator=(unique_ptr&& r) noexcept
   {
     reset(r.release());
-    get_deleter() = std::forward<Deleter>(r.get_deleter());
+    get_deleter() = std::move(r.get_deleter());
     return *this;
   }
 
@@ -220,7 +220,7 @@ public:
     }
   }
 
-  YK_POLYFILL_CXX14_CONSTEXPR void swap(unique_ptr& other) noexcept
+  YK_POLYFILL_CXX14_CONSTEXPR void swap(unique_ptr& other) noexcept(is_nothrow_swappable<Deleter>::value)
   {
     detail::constexpr_swap(ptr_, other.ptr_);
     detail::constexpr_swap(deleter_base::stored_value(), other.deleter_base::stored_value());
@@ -301,7 +301,7 @@ public:
 
   // (4) Move constructor
   template<class D = Deleter, typename std::enable_if<std::is_move_constructible<D>::value, std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX14_CONSTEXPR unique_ptr(unique_ptr&& u) noexcept : deleter_base(std::forward<Deleter>(u.get_deleter())), ptr_(u.release())
+  YK_POLYFILL_CXX14_CONSTEXPR unique_ptr(unique_ptr&& u) noexcept : deleter_base(std::move(u.get_deleter())), ptr_(u.release())
   {
   }
 
@@ -335,7 +335,7 @@ public:
   YK_POLYFILL_CXX20_CONSTEXPR unique_ptr& operator=(unique_ptr&& r) noexcept
   {
     reset(r.release());
-    get_deleter() = std::forward<Deleter>(r.get_deleter());
+    get_deleter() = std::move(r.get_deleter());
     return *this;
   }
 
@@ -392,7 +392,7 @@ public:
     }
   }
 
-  YK_POLYFILL_CXX14_CONSTEXPR void swap(unique_ptr& other) noexcept
+  YK_POLYFILL_CXX14_CONSTEXPR void swap(unique_ptr& other) noexcept(is_nothrow_swappable<Deleter>::value)
   {
     detail::constexpr_swap(ptr_, other.ptr_);
     detail::constexpr_swap(deleter_base::stored_value(), other.deleter_base::stored_value());
@@ -546,13 +546,13 @@ YK_POLYFILL_CXX14_CONSTEXPR void swap(unique_ptr<T, D>& x, unique_ptr<T, D>& y) 
 // make_unique
 
 template<class T, class... Args, class = typename std::enable_if<!std::is_array<T>::value>::type>
-[[nodiscard]] YK_POLYFILL_CXX20_CONSTEXPR unique_ptr<T> make_unique(Args&&... args)
+YK_POLYFILL_NODISCARD YK_POLYFILL_CXX20_CONSTEXPR unique_ptr<T> make_unique(Args&&... args)
 {
   return unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
 
 template<class T, class = typename std::enable_if<is_unbounded_array<T>::value>::type>
-[[nodiscard]] YK_POLYFILL_CXX20_CONSTEXPR unique_ptr<T> make_unique(std::size_t size)
+YK_POLYFILL_NODISCARD YK_POLYFILL_CXX20_CONSTEXPR unique_ptr<T> make_unique(std::size_t size)
 {
   return unique_ptr<T>(new typename std::remove_extent<T>::type[size]);
 }

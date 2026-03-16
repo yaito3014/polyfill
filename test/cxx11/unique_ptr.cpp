@@ -264,44 +264,82 @@ TEST_CASE("unique_ptr - comparisons")
     CHECK(c == d);
   }
 
-  SECTION("ordering operators")
+  SECTION("ordering - self consistency")
   {
     pf::unique_ptr<int> null;
-    pf::unique_ptr<int> p(new int(1));
 
-    // null < non-null (on most platforms, nullptr < any valid pointer)
-    CHECK(null < p);
-    CHECK(null <= p);
-    CHECK(p > null);
-    CHECK(p >= null);
-    CHECK_FALSE(p < null);
-    CHECK_FALSE(null > p);
-
-    // self-equality for ordering
-    CHECK(null <= null);
-    CHECK(null >= null);
+    // null == null in the total order
     CHECK_FALSE(null < null);
     CHECK_FALSE(null > null);
+    CHECK(null <= null);
+    CHECK(null >= null);
   }
 
-  SECTION("nullptr ordering operators")
+  SECTION("ordering - two distinct pointers are consistent")
+  {
+    pf::unique_ptr<int> a(new int(1));
+    pf::unique_ptr<int> b(new int(2));
+
+    // exactly one direction holds (or they're equal, which can't happen for distinct allocs)
+    bool a_less = a < b;
+    CHECK((a < b) == a_less);
+    CHECK((b < a) == !a_less);
+    CHECK((a > b) == !a_less);
+    CHECK((b > a) == a_less);
+    CHECK((a <= b) == a_less);
+    CHECK((b <= a) == !a_less);
+    CHECK((a >= b) == !a_less);
+    CHECK((b >= a) == a_less);
+  }
+
+  SECTION("ordering - null unique_ptr vs nullptr literal")
   {
     pf::unique_ptr<int> null;
-    pf::unique_ptr<int> p(new int(1));
 
+    // null unique_ptr holds nullptr, so they are equal in the total order
     CHECK_FALSE(null < nullptr);
     CHECK_FALSE(nullptr < null);
+    CHECK_FALSE(null > nullptr);
+    CHECK_FALSE(nullptr > null);
     CHECK(null <= nullptr);
     CHECK(nullptr <= null);
     CHECK(null >= nullptr);
     CHECK(nullptr >= null);
+  }
 
-    CHECK(nullptr < p);
-    CHECK(p > nullptr);
-    CHECK(nullptr <= p);
-    CHECK(p >= nullptr);
-    CHECK_FALSE(p < nullptr);
-    CHECK_FALSE(nullptr > p);
+  SECTION("ordering - non-null unique_ptr vs nullptr literal is consistent")
+  {
+    pf::unique_ptr<int> p(new int(1));
+
+    // the direction is implementation-defined, but all operators must agree
+    bool p_less = p < nullptr;
+    CHECK((p < nullptr) == p_less);
+    CHECK((nullptr < p) == !p_less);
+    CHECK((p > nullptr) == !p_less);
+    CHECK((nullptr > p) == p_less);
+    CHECK((p <= nullptr) == p_less);
+    CHECK((nullptr <= p) == !p_less);
+    CHECK((p >= nullptr) == !p_less);
+    CHECK((nullptr >= p) == p_less);
+
+    // non-null is never equal to nullptr, so one direction must hold
+    CHECK(p_less != !p_less);
+  }
+
+  SECTION("ordering - non-null unique_ptr vs null unique_ptr is consistent")
+  {
+    pf::unique_ptr<int> null;
+    pf::unique_ptr<int> p(new int(1));
+
+    bool p_less = p < null;
+    CHECK((p < null) == p_less);
+    CHECK((null < p) == !p_less);
+    CHECK((p > null) == !p_less);
+    CHECK((null > p) == p_less);
+    CHECK((p <= null) == p_less);
+    CHECK((null <= p) == !p_less);
+    CHECK((p >= null) == !p_less);
+    CHECK((null >= p) == p_less);
   }
 }
 
@@ -393,5 +431,4 @@ TEST_CASE("unique_ptr - SFINAE")
 
   // convertible: Derived* -> Base*
   STATIC_REQUIRE(std::is_constructible<pf::unique_ptr<Base>, pf::unique_ptr<Derived>&&>::value);
-
 }

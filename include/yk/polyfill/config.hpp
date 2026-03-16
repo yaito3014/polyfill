@@ -46,4 +46,10 @@
 #define YK_POLYFILL_CXX20_CONSTEXPR_VDESTROY YK_POLYFILL_CXX20_CONSTEXPR
 #endif
 
+#if __cplusplus >= 201703L
+#define YK_POLYFILL_NODISCARD [[nodiscard]]
+#else
+#define YK_POLYFILL_NODISCARD
+#endif
+
 #endif  // YK_POLYFILL_CONFIG_HPP
