@@ -18,8 +18,8 @@ All headers are included via `<yk/polyfill/...>`. Everything lives in the `yk::p
 | `optional.hpp` | `optional` with monadic operations and iterator support |
 | `variant.hpp` | `variant`, `visit`, `monostate` |
 | `bit.hpp` | `bit_cast` |
-| `indirect.hpp` | `indirect<T, A>`, value-semantic heap-allocated wrapper (C++26) |
-| `polymorphic.hpp` | `polymorphic<T, A>`, value-semantic type-erased wrapper (C++26) |
+| `indirect.hpp` | `indirect` |
+| `polymorphic.hpp` | `polymorphic` |
 
 ### Extensions (`yk::polyfill::extension`)
 
