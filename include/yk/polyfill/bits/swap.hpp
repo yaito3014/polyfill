@@ -27,12 +27,11 @@ YK_POLYFILL_CXX14_CONSTEXPR void constexpr_swap(T& a, T& b) noexcept(noexcept(sw
 }
 
 template<class T, typename std::enable_if<!has_adl_swap<T>::value, std::nullptr_t>::type = nullptr>
-YK_POLYFILL_CXX14_CONSTEXPR void constexpr_swap(T& a, T& b) noexcept(
-    std::is_nothrow_move_constructible<T>::value && std::is_nothrow_move_assignable<T>::value)
+YK_POLYFILL_CXX14_CONSTEXPR void constexpr_swap(T& a, T& b) noexcept(std::is_nothrow_move_constructible<T>::value && std::is_nothrow_move_assignable<T>::value)
 {
-  T tmp(static_cast<T&&>(a));
-  a = static_cast<T&&>(b);
-  b = static_cast<T&&>(tmp);
+  T tmp(std::move(a));
+  a = std::move(b);
+  b = std::move(tmp);
 }
 
 }  // namespace detail
