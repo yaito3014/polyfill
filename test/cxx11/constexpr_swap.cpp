@@ -41,8 +41,8 @@ TEST_CASE("constexpr_swap")
   SECTION("has_adl_swap trait")
   {
     STATIC_REQUIRE(has_adl_swap<has_custom_swap>::value);
-    STATIC_REQUIRE_FALSE(has_adl_swap<no_custom_swap>::value);
-    STATIC_REQUIRE_FALSE(has_adl_swap<int>::value);
+    STATIC_REQUIRE(!has_adl_swap<no_custom_swap>::value);
+    STATIC_REQUIRE(!has_adl_swap<int>::value);
   }
 
   SECTION("calls ADL swap when available")

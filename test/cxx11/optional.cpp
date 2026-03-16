@@ -1296,31 +1296,31 @@ TEST_CASE("optional iterator comparison operators")
 
     // Equality
     CHECK((it1 == it3));
-    CHECK_FALSE((it1 == it2));
+    CHECK(!(it1 == it2));
 
     // Inequality
     CHECK((it1 != it2));
-    CHECK_FALSE((it1 != it3));
+    CHECK(!(it1 != it3));
 
     // Less than
     CHECK((it1 < it2));
-    CHECK_FALSE((it2 < it1));
-    CHECK_FALSE((it1 < it3));
+    CHECK(!(it2 < it1));
+    CHECK(!(it1 < it3));
 
     // Less than or equal
     CHECK((it1 <= it2));
     CHECK((it1 <= it3));
-    CHECK_FALSE((it2 <= it1));
+    CHECK(!(it2 <= it1));
 
     // Greater than
     CHECK((it2 > it1));
-    CHECK_FALSE((it1 > it2));
-    CHECK_FALSE((it1 > it3));
+    CHECK(!(it1 > it2));
+    CHECK(!(it1 > it3));
 
     // Greater than or equal
     CHECK((it2 >= it1));
     CHECK((it1 >= it3));
-    CHECK_FALSE((it1 >= it2));
+    CHECK(!(it1 >= it2));
 
     // Empty optional
     auto empty_begin = b.begin();
@@ -1340,31 +1340,31 @@ TEST_CASE("optional iterator comparison operators")
 
     // Equality
     CHECK((it1 == it3));
-    CHECK_FALSE((it1 == it2));
+    CHECK(!(it1 == it2));
 
     // Inequality
     CHECK((it1 != it2));
-    CHECK_FALSE((it1 != it3));
+    CHECK(!(it1 != it3));
 
     // Less than
     CHECK((it1 < it2));
-    CHECK_FALSE((it2 < it1));
-    CHECK_FALSE((it1 < it3));
+    CHECK(!(it2 < it1));
+    CHECK(!(it1 < it3));
 
     // Less than or equal
     CHECK((it1 <= it2));
     CHECK((it1 <= it3));
-    CHECK_FALSE((it2 <= it1));
+    CHECK(!(it2 <= it1));
 
     // Greater than
     CHECK((it2 > it1));
-    CHECK_FALSE((it1 > it2));
-    CHECK_FALSE((it1 > it3));
+    CHECK(!(it1 > it2));
+    CHECK(!(it1 > it3));
 
     // Greater than or equal
     CHECK((it2 >= it1));
     CHECK((it1 >= it3));
-    CHECK_FALSE((it1 >= it2));
+    CHECK(!(it1 >= it2));
 
     // Empty optional
     auto empty_begin = b.begin();

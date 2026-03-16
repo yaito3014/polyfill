@@ -676,40 +676,40 @@ TEST_CASE("toptional - relational operators")
 
     // Equality
     CHECK(opt1 == opt3);
-    CHECK_FALSE(opt1 == opt2);
-    CHECK_FALSE(opt1 == opt4);
+    CHECK(!(opt1 == opt2));
+    CHECK(!(opt1 == opt4));
     CHECK(opt4 == ext::toptional<int>{});
 
     // Inequality
     CHECK(opt1 != opt2);
-    CHECK_FALSE(opt1 != opt3);
+    CHECK(!(opt1 != opt3));
     CHECK(opt1 != opt4);
 
     // Less than
     CHECK(opt1 < opt2);
-    CHECK_FALSE(opt2 < opt1);
-    CHECK_FALSE(opt1 < opt3);
+    CHECK(!(opt2 < opt1));
+    CHECK(!(opt1 < opt3));
     CHECK(opt4 < opt1);        // disengaged < engaged
-    CHECK_FALSE(opt1 < opt4);  // engaged < disengaged
+    CHECK(!(opt1 < opt4));
 
     // Less than or equal
     CHECK(opt1 <= opt2);
     CHECK(opt1 <= opt3);
-    CHECK_FALSE(opt2 <= opt1);
+    CHECK(!(opt2 <= opt1));
     CHECK(opt4 <= opt1);
     CHECK(opt4 <= ext::toptional<int>{});  // disengaged <= disengaged
 
     // Greater than
     CHECK(opt2 > opt1);
-    CHECK_FALSE(opt1 > opt2);
-    CHECK_FALSE(opt1 > opt3);
+    CHECK(!(opt1 > opt2));
+    CHECK(!(opt1 > opt3));
     CHECK(opt1 > opt4);
-    CHECK_FALSE(opt4 > opt1);
+    CHECK(!(opt4 > opt1));
 
     // Greater than or equal
     CHECK(opt2 >= opt1);
     CHECK(opt1 >= opt3);
-    CHECK_FALSE(opt1 >= opt2);
+    CHECK(!(opt1 >= opt2));
     CHECK(opt1 >= opt4);
     CHECK(opt4 >= ext::toptional<int>{});  // disengaged >= disengaged
   }
@@ -722,38 +722,38 @@ TEST_CASE("toptional - relational operators")
     // Equality
     CHECK(opt2 == pf::nullopt);
     CHECK(pf::nullopt == opt2);
-    CHECK_FALSE(opt1 == pf::nullopt);
-    CHECK_FALSE(pf::nullopt == opt1);
+    CHECK(!(opt1 == pf::nullopt));
+    CHECK(!(pf::nullopt == opt1));
 
     // Inequality
     CHECK(opt1 != pf::nullopt);
     CHECK(pf::nullopt != opt1);
-    CHECK_FALSE(opt2 != pf::nullopt);
-    CHECK_FALSE(pf::nullopt != opt2);
+    CHECK(!(opt2 != pf::nullopt));
+    CHECK(!(pf::nullopt != opt2));
 
     // Less than
-    CHECK_FALSE(opt1 < pf::nullopt);  // engaged < nullopt is false
-    CHECK(pf::nullopt < opt1);        // nullopt < engaged is true
-    CHECK_FALSE(opt2 < pf::nullopt);  // disengaged < nullopt is false
-    CHECK_FALSE(pf::nullopt < opt2);  // nullopt < disengaged is false
+    CHECK(!(opt1 < pf::nullopt));
+    CHECK(pf::nullopt < opt1);
+    CHECK(!(opt2 < pf::nullopt));
+    CHECK(!(pf::nullopt < opt2));
 
     // Less than or equal
-    CHECK_FALSE(opt1 <= pf::nullopt);  // engaged <= nullopt is false
-    CHECK(pf::nullopt <= opt1);        // nullopt <= engaged is true
-    CHECK(opt2 <= pf::nullopt);        // disengaged <= nullopt is true
-    CHECK(pf::nullopt <= opt2);        // nullopt <= disengaged is true
+    CHECK(!(opt1 <= pf::nullopt));
+    CHECK(pf::nullopt <= opt1);
+    CHECK(opt2 <= pf::nullopt);
+    CHECK(pf::nullopt <= opt2);
 
     // Greater than
-    CHECK(opt1 > pf::nullopt);        // engaged > nullopt is true
-    CHECK_FALSE(pf::nullopt > opt1);  // nullopt > engaged is false
-    CHECK_FALSE(opt2 > pf::nullopt);  // disengaged > nullopt is false
-    CHECK_FALSE(pf::nullopt > opt2);  // nullopt > disengaged is false
+    CHECK(opt1 > pf::nullopt);
+    CHECK(!(pf::nullopt > opt1));
+    CHECK(!(opt2 > pf::nullopt));
+    CHECK(!(pf::nullopt > opt2));
 
     // Greater than or equal
-    CHECK(opt1 >= pf::nullopt);        // engaged >= nullopt is true
-    CHECK_FALSE(pf::nullopt >= opt1);  // nullopt >= engaged is false
-    CHECK(opt2 >= pf::nullopt);        // disengaged >= nullopt is true
-    CHECK(pf::nullopt >= opt2);        // nullopt >= disengaged is true
+    CHECK(opt1 >= pf::nullopt);
+    CHECK(!(pf::nullopt >= opt1));
+    CHECK(opt2 >= pf::nullopt);
+    CHECK(pf::nullopt >= opt2);
   }
 
   SECTION("comparison with value")
@@ -764,43 +764,43 @@ TEST_CASE("toptional - relational operators")
     // Equality
     CHECK(opt1 == 42);
     CHECK(42 == opt1);
-    CHECK_FALSE(opt1 == 10);
-    CHECK_FALSE(10 == opt1);
-    CHECK_FALSE(opt2 == 42);  // disengaged != any value
-    CHECK_FALSE(42 == opt2);
+    CHECK(!(opt1 == 10));
+    CHECK(!(10 == opt1));
+    CHECK(!(opt2 == 42));  // disengaged != any value
+    CHECK(!(42 == opt2));
 
     // Inequality
     CHECK(opt1 != 10);
     CHECK(10 != opt1);
-    CHECK_FALSE(opt1 != 42);
-    CHECK_FALSE(42 != opt1);
+    CHECK(!(opt1 != 42));
+    CHECK(!(42 != opt1));
     CHECK(opt2 != 42);  // disengaged != any value
     CHECK(42 != opt2);
 
     // Less than
     CHECK(opt1 < 50);
     CHECK(30 < opt1);
-    CHECK_FALSE(opt1 < 30);
-    CHECK_FALSE(50 < opt1);
+    CHECK(!(opt1 < 30));
+    CHECK(!(50 < opt1));
     CHECK(opt2 < 42);        // disengaged < any value is true
-    CHECK_FALSE(42 < opt2);  // value < disengaged is false
+    CHECK(!(42 < opt2));
 
     // Less than or equal
     CHECK(opt1 <= 42);
     CHECK(opt1 <= 50);
     CHECK(42 <= opt1);
     CHECK(30 <= opt1);
-    CHECK_FALSE(opt1 <= 30);
-    CHECK_FALSE(50 <= opt1);
+    CHECK(!(opt1 <= 30));
+    CHECK(!(50 <= opt1));
     CHECK(opt2 <= 42);        // disengaged <= any value is true
-    CHECK_FALSE(42 <= opt2);  // value <= disengaged is false
+    CHECK(!(42 <= opt2));
 
     // Greater than
     CHECK(opt1 > 30);
     CHECK(50 > opt1);
-    CHECK_FALSE(opt1 > 50);
-    CHECK_FALSE(30 > opt1);
-    CHECK_FALSE(opt2 > 42);  // disengaged > any value is false
+    CHECK(!(opt1 > 50));
+    CHECK(!(30 > opt1));
+    CHECK(!(opt2 > 42));
     CHECK(42 > opt2);        // value > disengaged is true
 
     // Greater than or equal
@@ -808,9 +808,9 @@ TEST_CASE("toptional - relational operators")
     CHECK(opt1 >= 30);
     CHECK(42 >= opt1);
     CHECK(50 >= opt1);
-    CHECK_FALSE(opt1 >= 50);
-    CHECK_FALSE(30 >= opt1);
-    CHECK_FALSE(opt2 >= 42);  // disengaged >= any value is false
+    CHECK(!(opt1 >= 50));
+    CHECK(!(30 >= opt1));
+    CHECK(!(opt2 >= 42));
     CHECK(42 >= opt2);        // value >= disengaged is true
   }
 
@@ -821,10 +821,10 @@ TEST_CASE("toptional - relational operators")
 
     // These have the same value, so they should be equal
     CHECK(opt1 == opt2);
-    CHECK_FALSE(opt1 != opt2);
-    CHECK_FALSE(opt1 < opt2);
+    CHECK(!(opt1 != opt2));
+    CHECK(!(opt1 < opt2));
     CHECK(opt1 <= opt2);
-    CHECK_FALSE(opt1 > opt2);
+    CHECK(!(opt1 > opt2));
     CHECK(opt1 >= opt2);
   }
 
@@ -837,28 +837,28 @@ TEST_CASE("toptional - relational operators")
 
     // Two disengaged optionals are equal
     CHECK(none1 == none2);
-    CHECK_FALSE(none1 < none2);
-    CHECK_FALSE(none1 > none2);
+    CHECK(!(none1 < none2));
+    CHECK(!(none1 > none2));
     CHECK(none1 <= none2);
     CHECK(none1 >= none2);
 
     // Disengaged < Engaged
     CHECK(none1 < some1);
     CHECK(none1 <= some1);
-    CHECK_FALSE(none1 > some1);
-    CHECK_FALSE(none1 >= some1);
+    CHECK(!(none1 > some1));
+    CHECK(!(none1 >= some1));
 
     // Engaged > Disengaged
     CHECK(some1 > none1);
     CHECK(some1 >= none1);
-    CHECK_FALSE(some1 < none1);
-    CHECK_FALSE(some1 <= none1);
+    CHECK(!(some1 < none1));
+    CHECK(!(some1 <= none1));
 
     // Engaged values compare by value
     CHECK(some1 < some2);
     CHECK(some1 <= some2);
-    CHECK_FALSE(some1 > some2);
-    CHECK_FALSE(some1 >= some2);
+    CHECK(!(some1 > some2));
+    CHECK(!(some1 >= some2));
   }
 }
 
