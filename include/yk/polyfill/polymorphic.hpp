@@ -8,7 +8,7 @@
 #include <yk/polyfill/config.hpp>
 #include <yk/polyfill/extension/ebo_storage.hpp>
 #include <yk/polyfill/bits/allocator_is_always_equal.hpp>
-#include <yk/polyfill/bits/constexpr_swap.hpp>
+#include <yk/polyfill/bits/swap.hpp>
 #include <yk/polyfill/utility.hpp>
 
 #include <memory>

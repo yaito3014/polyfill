@@ -28,6 +28,8 @@ struct ebo_storage<T, /*EBO=*/false> {
   T value_;
   ebo_storage() = default;
   constexpr explicit ebo_storage(T const& v) noexcept(std::is_nothrow_copy_constructible<T>::value) : value_(v) {}
+
+  template<class U = T, typename std::enable_if<!std::is_reference<U>::value, std::nullptr_t>::type = nullptr>
   constexpr explicit ebo_storage(T&& v) noexcept(std::is_nothrow_move_constructible<T>::value) : value_(static_cast<T&&>(v)) {}
   YK_POLYFILL_CXX14_CONSTEXPR T& stored_value() noexcept { return value_; }
   constexpr T const& stored_value() const noexcept { return value_; }

@@ -17,9 +17,11 @@ target_sources(
         void_t.cpp
         remove_cvref.cpp
         make_unique.cpp
+        unique_ptr.cpp
         negation.cpp
         invoke.cpp
         apply.cpp
+        constexpr_swap.cpp
         exchange.cpp
         optional.cpp
         toptional.cpp

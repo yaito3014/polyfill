@@ -6,10 +6,11 @@
 
 #include <yk/polyfill/config.hpp>
 #include <yk/polyfill/bits/allocator_is_always_equal.hpp>
-#include <yk/polyfill/bits/constexpr_swap.hpp>
+#include <yk/polyfill/bits/swap.hpp>
 #include <yk/polyfill/extension/ebo_storage.hpp>
 #include <yk/polyfill/utility.hpp>
 
+#include <functional>
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -514,6 +515,18 @@ struct indirect_move_ctor_ops</*AlwaysEqual = */ false> {
   }
 };
 
+template<class T, class A, class = void>
+struct indirect_hash {};
+
+template<class T, class A>
+struct indirect_hash<T, A, void_t<decltype(std::hash<T>{}(std::declval<T const&>()))>> {
+  std::size_t operator()(polyfill::indirect<T, A> const& ind) const noexcept(noexcept(std::hash<T>{}(*ind)))
+  {
+    if (ind.valueless_after_move()) return std::hash<T*>{}(nullptr);
+    return std::hash<T>{}(*ind);
+  }
+};
+
 }  // namespace detail
 
 }  // namespace polyfill
@@ -524,13 +537,7 @@ struct indirect_move_ctor_ops</*AlwaysEqual = */ false> {
 namespace std {
 
 template<class T, class A>
-struct hash<yk::polyfill::indirect<T, A>> {
-  std::size_t operator()(yk::polyfill::indirect<T, A> const& ind) const noexcept(noexcept(std::hash<T>{}(*ind)))
-  {
-    if (ind.valueless_after_move()) return std::hash<T*>{}(nullptr);
-    return std::hash<T>{}(*ind);
-  }
-};
+struct hash<yk::polyfill::indirect<T, A>> : yk::polyfill::detail::indirect_hash<T, A> {};
 
 }  // namespace std
 
