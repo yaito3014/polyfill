@@ -189,7 +189,10 @@ constexpr auto invoke_impl(T (C::*f)(Params...) const noexcept, U&& u, Args&&...
 template<class R>
 struct invoke_r_impl {
   template<class F, class... Args>
-  static constexpr R apply(F&& f, Args&&... args) noexcept(noexcept(detail::invoke_impl(static_cast<F&&>(f), static_cast<Args&&>(args)...)))
+  static constexpr R apply(F&& f, Args&&... args) noexcept(
+      noexcept(detail::invoke_impl(static_cast<F&&>(f), static_cast<Args&&>(args)...))
+      && is_nothrow_convertible<decltype(detail::invoke_impl(static_cast<F&&>(f), static_cast<Args&&>(args)...)), R>::value
+  )
   {
     return detail::invoke_impl(static_cast<F&&>(f), static_cast<Args&&>(args)...);
   }
