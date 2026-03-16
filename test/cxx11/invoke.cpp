@@ -227,10 +227,10 @@ TEST_CASE("is_invocable")
 
 TEST_CASE("is_nothrow_invocable")
 {
-  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&nothrow_function), int, int>::value == true);
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&normal_function), int, int>::value == false);
 
 #if __cpp_noexcept_function_type >= 201510
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&nothrow_function), int, int>::value == true);
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_nothrow_member_function), S&, int>::value == true);
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_nothrow_member_function), S*, int>::value == true);
 #endif
@@ -269,8 +269,6 @@ TEST_CASE("is_invocable_r")
 
 TEST_CASE("is_nothrow_invocable_r")
 {
-  STATIC_REQUIRE(pf::is_nothrow_invocable_r<int, decltype(&nothrow_function), int, int>::value == true);
-  STATIC_REQUIRE(pf::is_nothrow_invocable_r<double, decltype(&nothrow_function), int, int>::value == true);
   STATIC_REQUIRE(pf::is_nothrow_invocable_r<int, decltype(&normal_function), int, int>::value == false);
 
   // member data pointer is noexcept
@@ -286,8 +284,13 @@ TEST_CASE("is_nothrow_invocable_r")
   // nothrow invocable but throwing conversion
   STATIC_REQUIRE(pf::is_nothrow_invocable_r<ThrowingConvertible, decltype(&nothrow_function), int, int>::value == false);
 
+#if __cpp_noexcept_function_type >= 201510
+  STATIC_REQUIRE(pf::is_nothrow_invocable_r<int, decltype(&nothrow_function), int, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable_r<double, decltype(&nothrow_function), int, int>::value == true);
+
   // nothrow invocable and nothrow conversion
   STATIC_REQUIRE(pf::is_nothrow_invocable_r<NothrowConvertible, decltype(&nothrow_function), int, int>::value == true);
+#endif
 }
 
 TEST_CASE("invoke_result")
