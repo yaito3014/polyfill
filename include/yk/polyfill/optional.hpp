@@ -95,6 +95,8 @@ public:
 
   friend constexpr optional_iterator operator+(optional_iterator const& it, difference_type n) noexcept { return optional_iterator{it.ptr_ + n}; }
 
+  friend constexpr optional_iterator operator+(difference_type n, optional_iterator const& it) noexcept { return optional_iterator{it.ptr_ + n}; }
+
   friend constexpr optional_iterator operator-(optional_iterator const& it, difference_type n) noexcept { return optional_iterator{it.ptr_ - n}; }
 
   friend constexpr difference_type operator-(optional_iterator const& a, optional_iterator const& b) noexcept { return a.ptr_ - b.ptr_; }
