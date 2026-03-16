@@ -33,6 +33,12 @@ class toptional;
 
 namespace detail {
 
+template<class T>
+struct is_toptional : false_type {};
+
+template<class T, class Traits>
+struct is_toptional<toptional<T, Traits>> : true_type {};
+
 template<class T, class Traits, bool Const>
 class toptional_iterator {
 public:
@@ -412,7 +418,7 @@ public:
       typename remove_cvref<typename invoke_result<F, decltype(**this)>::type>::type
   {
     using U = typename invoke_result<F, decltype(**this)>::type;
-    static_assert(extension::is_specialization_of<typename remove_cvref<U>::type, toptional>::value, "result type of F must be specialization of toptional");
+    static_assert(detail::is_toptional<typename remove_cvref<U>::type>::value, "result type of F must be specialization of toptional");
     if (has_value()) {
       return invoke(std::forward<F>(f), **this);
     } else {
@@ -425,7 +431,7 @@ public:
       typename remove_cvref<typename invoke_result<F, decltype(**this)>::type>::type
   {
     using U = typename invoke_result<F, decltype(**this)>::type;
-    static_assert(extension::is_specialization_of<typename remove_cvref<U>::type, toptional>::value, "result type of F must be specialization of toptional");
+    static_assert(detail::is_toptional<typename remove_cvref<U>::type>::value, "result type of F must be specialization of toptional");
     if (has_value()) {
       return invoke(std::forward<F>(f), **this);
     } else {
@@ -438,7 +444,7 @@ public:
       typename remove_cvref<typename invoke_result<F, decltype(std::move(**this))>::type>::type
   {
     using U = typename invoke_result<F, decltype(std::move(**this))>::type;
-    static_assert(extension::is_specialization_of<typename remove_cvref<U>::type, toptional>::value, "result type of F must be specialization of toptional");
+    static_assert(detail::is_toptional<typename remove_cvref<U>::type>::value, "result type of F must be specialization of toptional");
     if (has_value()) {
       return invoke(std::forward<F>(f), std::move(**this));
     } else {
@@ -451,7 +457,7 @@ public:
       typename remove_cvref<typename invoke_result<F, decltype(std::move(**this))>::type>::type
   {
     using U = typename invoke_result<F, decltype(std::move(**this))>::type;
-    static_assert(extension::is_specialization_of<typename remove_cvref<U>::type, toptional>::value, "result type of F must be specialization of toptional");
+    static_assert(detail::is_toptional<typename remove_cvref<U>::type>::value, "result type of F must be specialization of toptional");
     if (has_value()) {
       return invoke(std::forward<F>(f), std::move(**this));
     } else {
@@ -847,7 +853,7 @@ constexpr std::strong_ordering operator<=>(toptional<T, Traits> const& opt, null
 
 // Three-way comparison with T
 template<class T, class Traits, class U>
-  requires (!extension::is_specialization_of<U, toptional>::value) && std::three_way_comparable_with<T, U>
+  requires (!detail::is_toptional<U>::value) && std::three_way_comparable_with<T, U>
 constexpr std::compare_three_way_result_t<T, U> operator<=>(toptional<T, Traits> const& opt, U const& u) noexcept(noexcept(*opt <=> u))
 {
   return opt.has_value() ? *opt <=> u : std::strong_ordering::less;

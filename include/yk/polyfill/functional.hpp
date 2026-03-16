@@ -15,6 +15,12 @@ namespace polyfill {
 
 namespace detail {
 
+template<class T>
+struct is_reference_wrapper : false_type {};
+
+template<class T>
+struct is_reference_wrapper<std::reference_wrapper<T>> : true_type {};
+
 // normal case
 template<class F, class... Args, typename std::enable_if<!std::is_member_pointer<F>::value, std::nullptr_t>::type = nullptr>
 constexpr auto invoke_impl(F&& f, Args&&... args) noexcept(noexcept(static_cast<F&&>(f)(static_cast<Args&&>(args)...)))
@@ -40,7 +46,7 @@ struct check_invoke_kind<C, Param, typename std::enable_if<disjunction<std::is_s
 };
 
 template<class C, class Param>
-struct check_invoke_kind<C, Param, typename std::enable_if<extension::is_specialization_of<Param, std::reference_wrapper>::value>::type> {
+struct check_invoke_kind<C, Param, typename std::enable_if<is_reference_wrapper<Param>::value>::type> {
   static constexpr invoke_kind value = invoke_kind::reference_wrapper;
 };
 

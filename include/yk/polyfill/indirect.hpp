@@ -26,10 +26,10 @@ class indirect;
 namespace detail {
 
 template<class T>
-struct is_indirect : std::false_type {};
+struct is_indirect : false_type {};
 
 template<class T, class A>
-struct is_indirect<indirect<T, A>> : std::true_type {};
+struct is_indirect<indirect<T, A>> : true_type {};
 
 // synth_three_way: like <=> but falls back to synthesising weak_ordering from
 // < and == when the type has no <=> (mirrors the standard's synth-three-way).

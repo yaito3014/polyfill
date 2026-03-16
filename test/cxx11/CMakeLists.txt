@@ -23,6 +23,7 @@ target_sources(
         apply.cpp
         constexpr_swap.cpp
         exchange.cpp
+        is_convertible_without_narrowing.cpp
         optional.cpp
         toptional.cpp
         variant.cpp

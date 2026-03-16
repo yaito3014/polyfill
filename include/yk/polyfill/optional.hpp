@@ -258,12 +258,17 @@ struct optional_storage_base : public optional_destruct_base<T> {  // T is NOT a
   [[nodiscard]] constexpr value_type const&& operator*() const&& noexcept { return std::move(base::value); }
 };
 
+template<class T>
+struct is_optional : false_type {};
+
+template<class T>
+struct is_optional<optional<T>> : true_type {};
+
 template<class T, class U>
 struct is_eligible_for_construction {
-  static constexpr bool value =
-      std::is_constructible<T, U>::value && !std::is_same<typename remove_cvref<U>::type, in_place_t>::value
-      && !std::is_same<typename remove_cvref<U>::type, optional<T>>::value
-      && !(std::is_same<typename std::remove_cv<T>::type, bool>::value && extension::is_specialization_of<typename remove_cvref<U>::type, optional>::value);
+  static constexpr bool value = std::is_constructible<T, U>::value && !std::is_same<typename remove_cvref<U>::type, in_place_t>::value
+                                && !std::is_same<typename remove_cvref<U>::type, optional<T>>::value
+                                && !(std::is_same<typename std::remove_cv<T>::type, bool>::value && is_optional<typename remove_cvref<U>::type>::value);
 };
 
 template<class T, class U>
@@ -356,9 +361,9 @@ public:
   }
 
   template<
-      class U, typename std::enable_if<
-                   std::is_constructible<T, U>::value && detail::allow_unwrapping<T, U>::value && std::is_convertible<U, T>::value,
-                   std::nullptr_t>::type = nullptr>
+      class U,
+      typename std::enable_if<
+          std::is_constructible<T, U>::value && detail::allow_unwrapping<T, U>::value && std::is_convertible<U, T>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR optional(optional<U>&& rhs) noexcept(std::is_nothrow_constructible<T, U>::value)
   {
     if (rhs.has_value()) {
@@ -367,9 +372,9 @@ public:
   }
 
   template<
-      class U, typename std::enable_if<
-                   std::is_constructible<T, U>::value && detail::allow_unwrapping<T, U>::value && !std::is_convertible<U, T>::value,
-                   std::nullptr_t>::type = nullptr>
+      class U,
+      typename std::enable_if<
+          std::is_constructible<T, U>::value && detail::allow_unwrapping<T, U>::value && !std::is_convertible<U, T>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR explicit optional(optional<U>&& rhs) noexcept(std::is_nothrow_constructible<T, U>::value)
   {
     if (rhs.has_value()) {
@@ -395,10 +400,9 @@ public:
   }
 
   template<
-      class U,
-      typename std::enable_if<
-          std::is_constructible<T, U const&>::value && std::is_assignable<T&, U const&>::value && detail::allow_unwrapping_assignment<T, U>::value,
-          std::nullptr_t>::type = nullptr>
+      class U, typename std::enable_if<
+                   std::is_constructible<T, U const&>::value && std::is_assignable<T&, U const&>::value && detail::allow_unwrapping_assignment<T, U>::value,
+                   std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR optional& operator=(optional<U> const& rhs) noexcept(
       conjunction<std::is_nothrow_constructible<T, U const&>, std::is_nothrow_assignable<T&, U const&>>::value
   )
@@ -527,7 +531,7 @@ public:
       typename remove_cvref<typename invoke_result<F, decltype(**this)>::type>::type
   {
     using U = typename invoke_result<F, decltype(**this)>::type;
-    static_assert(extension::is_specialization_of<typename remove_cvref<U>::type, optional>::value, "result type of F must be specialization of optional");
+    static_assert(detail::is_optional<typename remove_cvref<U>::type>::value, "result type of F must be specialization of optional");
     if (has_value()) {
       return invoke(std::forward<F>(f), **this);
     } else {
@@ -540,7 +544,7 @@ public:
       typename remove_cvref<typename invoke_result<F, decltype(**this)>::type>::type
   {
     using U = typename invoke_result<F, decltype(**this)>::type;
-    static_assert(extension::is_specialization_of<typename remove_cvref<U>::type, optional>::value, "result type of F must be specialization of optional");
+    static_assert(detail::is_optional<typename remove_cvref<U>::type>::value, "result type of F must be specialization of optional");
     if (has_value()) {
       return invoke(std::forward<F>(f), **this);
     } else {
@@ -553,7 +557,7 @@ public:
       typename remove_cvref<typename invoke_result<F, decltype(std::move(**this))>::type>::type
   {
     using U = typename invoke_result<F, decltype(std::move(**this))>::type;
-    static_assert(extension::is_specialization_of<typename remove_cvref<U>::type, optional>::value, "result type of F must be specialization of optional");
+    static_assert(detail::is_optional<typename remove_cvref<U>::type>::value, "result type of F must be specialization of optional");
     if (has_value()) {
       return invoke(std::forward<F>(f), std::move(**this));
     } else {
@@ -566,7 +570,7 @@ public:
       typename remove_cvref<typename invoke_result<F, decltype(std::move(**this))>::type>::type
   {
     using U = typename invoke_result<F, decltype(std::move(**this))>::type;
-    static_assert(extension::is_specialization_of<typename remove_cvref<U>::type, optional>::value, "result type of F must be specialization of optional");
+    static_assert(detail::is_optional<typename remove_cvref<U>::type>::value, "result type of F must be specialization of optional");
     if (has_value()) {
       return invoke(std::forward<F>(f), std::move(**this));
     } else {
@@ -834,7 +838,7 @@ public:
       typename remove_cvref<typename invoke_result<F, T&>::type>::type
   {
     using U = typename invoke_result<F, T&>::type;
-    static_assert(extension::is_specialization_of<typename remove_cvref<U>::type, optional>::value, "result of F must be specialization of optional");
+    static_assert(detail::is_optional<typename remove_cvref<U>::type>::value, "result of F must be specialization of optional");
     if (has_value()) {
       return invoke(std::forward<F>(f), **this);
     } else {
