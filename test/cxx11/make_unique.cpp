@@ -14,11 +14,11 @@ TEST_CASE("make_unique")
 {
   {
     auto x = pf::make_unique<int>(42);
-    STATIC_REQUIRE(std::is_same<decltype(x), std::unique_ptr<int>>::value);
+    STATIC_REQUIRE(std::is_same<decltype(x), pf::unique_ptr<int>>::value);
     CHECK(*x == 42);
   }
   {
     auto x = pf::make_unique<int[]>(5);
-    STATIC_REQUIRE(std::is_same<decltype(x), std::unique_ptr<int[]>>::value);
+    STATIC_REQUIRE(std::is_same<decltype(x), pf::unique_ptr<int[]>>::value);
   }
 }
