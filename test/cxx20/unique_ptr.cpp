@@ -8,8 +8,6 @@
 
 namespace pf = yk::polyfill;
 
-#if __cpp_lib_constexpr_dynamic_alloc >= 201907L
-
 constexpr bool test_make_unique()
 {
   auto p = pf::make_unique<int>(42);
@@ -92,12 +90,3 @@ TEST_CASE("unique_ptr - constexpr")
   SECTION("comparisons") { STATIC_REQUIRE(test_unique_ptr_comparisons()); }
   SECTION("array") { STATIC_REQUIRE(test_make_unique_array()); }
 }
-
-#else
-
-TEST_CASE("unique_ptr - constexpr (skipped, requires __cpp_lib_constexpr_dynamic_alloc)")
-{
-  SUCCEED();
-}
-
-#endif
