@@ -219,18 +219,28 @@ template<class F, class... Args>
 struct is_nothrow_invocable_impl<F, void_t<decltype(detail::invoke_impl(std::declval<F>(), std::declval<Args>()...))>, Args...>
     : bool_constant<noexcept(detail::invoke_impl(std::declval<F>(), std::declval<Args>()...))> {};
 
+template<class R, class InvokeResult, class = void>
+struct is_invocable_r_check : false_type {};
+
+template<class R, class InvokeResult>
+struct is_invocable_r_check<R, InvokeResult, typename std::enable_if<disjunction<std::is_void<R>, std::is_convertible<InvokeResult, R>>::value>::type>
+    : true_type {};
+
 template<class R, class F, class, class... Args>
 struct is_invocable_r_impl : false_type {};
 
 template<class R, class F, class... Args>
-struct is_invocable_r_impl<R, F, void_t<decltype(invoke_r_impl<R>::apply(std::declval<F>(), std::declval<Args>()...))>, Args...> : true_type {};
+struct is_invocable_r_impl<R, F, void_t<decltype(detail::invoke_impl(std::declval<F>(), std::declval<Args>()...))>, Args...>
+    : is_invocable_r_check<R, decltype(detail::invoke_impl(std::declval<F>(), std::declval<Args>()...))> {};
 
 template<class R, class F, class, class... Args>
 struct is_nothrow_invocable_r_impl : false_type {};
 
 template<class R, class F, class... Args>
-struct is_nothrow_invocable_r_impl<R, F, void_t<decltype(invoke_r_impl<R>::apply(std::declval<F>(), std::declval<Args>()...))>, Args...>
-    : bool_constant<noexcept(invoke_r_impl<R>::apply(std::declval<F>(), std::declval<Args>()...))> {};
+struct is_nothrow_invocable_r_impl<R, F, void_t<decltype(detail::invoke_impl(std::declval<F>(), std::declval<Args>()...))>, Args...>
+    : conjunction<
+          is_invocable_r_check<R, decltype(detail::invoke_impl(std::declval<F>(), std::declval<Args>()...))>,
+          bool_constant<noexcept(detail::invoke_impl(std::declval<F>(), std::declval<Args>()...))>> {};
 
 template<class F, class, class... Args>
 struct invoke_result_impl {};
