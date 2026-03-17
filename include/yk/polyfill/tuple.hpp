@@ -1,5 +1,5 @@
-#ifndef YK_POLYFILL_TUPLE_HPP
-#define YK_POLYFILL_TUPLE_HPP
+#ifndef YK_ZZ_POLYFILL_TUPLE_HPP
+#define YK_ZZ_POLYFILL_TUPLE_HPP
 
 #include <yk/polyfill/bits/apply.hpp>
 
@@ -21,4 +21,4 @@ constexpr typename apply_result<F, Tuple>::type apply(F&& f, Tuple&& t) noexcept
 
 }  // namespace yk
 
-#endif  // YK_POLYFILL_TUPLE_HPP
+#endif  // YK_ZZ_POLYFILL_TUPLE_HPP

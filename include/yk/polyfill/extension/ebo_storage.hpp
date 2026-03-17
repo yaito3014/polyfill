@@ -1,5 +1,5 @@
-#ifndef YK_POLYFILL_EXTENSION_EBO_STORAGE_HPP
-#define YK_POLYFILL_EXTENSION_EBO_STORAGE_HPP
+#ifndef YK_ZZ_POLYFILL_EXTENSION_EBO_STORAGE_HPP
+#define YK_ZZ_POLYFILL_EXTENSION_EBO_STORAGE_HPP
 
 #include <yk/polyfill/config.hpp>
 
@@ -50,4 +50,4 @@ struct ebo_storage<T, /*EBO=*/true> : private T {
 
 }  // namespace yk
 
-#endif  // YK_POLYFILL_EXTENSION_EBO_STORAGE_HPP
+#endif  // YK_ZZ_POLYFILL_EXTENSION_EBO_STORAGE_HPP

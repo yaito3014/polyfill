@@ -1,5 +1,5 @@
-#ifndef YK_POLYFILL_VARIANT_HPP
-#define YK_POLYFILL_VARIANT_HPP
+#ifndef YK_ZZ_POLYFILL_VARIANT_HPP
+#define YK_ZZ_POLYFILL_VARIANT_HPP
 
 #include <yk/polyfill/config.hpp>
 
@@ -1465,4 +1465,4 @@ constexpr std::common_comparison_category_t<std::compare_three_way_result_t<Ts>.
 
 }  // namespace yk
 
-#endif  // YK_POLYFILL_VARIANT_HPP
+#endif  // YK_ZZ_POLYFILL_VARIANT_HPP

@@ -1,5 +1,5 @@
-#ifndef YK_POLYFILL_POLYMORPHIC_HPP
-#define YK_POLYFILL_POLYMORPHIC_HPP
+#ifndef YK_ZZ_POLYFILL_POLYMORPHIC_HPP
+#define YK_ZZ_POLYFILL_POLYMORPHIC_HPP
 
 // polymorphic<T, A>: value-semantic wrapper for a heap-allocated T that may
 // be a derived type.  Copies preserve the dynamic type via type-erased clone.
@@ -395,4 +395,4 @@ struct polymorphic_move_ctor_ops</*AlwaysEqual = */ false> {
 
 }  // namespace yk
 
-#endif  // YK_POLYFILL_POLYMORPHIC_HPP
+#endif  // YK_ZZ_POLYFILL_POLYMORPHIC_HPP

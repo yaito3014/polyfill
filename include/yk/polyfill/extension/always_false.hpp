@@ -1,5 +1,5 @@
-#ifndef YK_POLYFILL_EXTENSION_ALWAYS_FALSE_HPP
-#define YK_POLYFILL_EXTENSION_ALWAYS_FALSE_HPP
+#ifndef YK_ZZ_POLYFILL_EXTENSION_ALWAYS_FALSE_HPP
+#define YK_ZZ_POLYFILL_EXTENSION_ALWAYS_FALSE_HPP
 
 #include <yk/polyfill/bits/core_traits.hpp>
 
@@ -18,4 +18,4 @@ struct always_false : false_type {};
 
 }  // namespace yk
 
-#endif  // YK_POLYFILL_EXTENSION_ALWAYS_FALSE_HPP
+#endif  // YK_ZZ_POLYFILL_EXTENSION_ALWAYS_FALSE_HPP

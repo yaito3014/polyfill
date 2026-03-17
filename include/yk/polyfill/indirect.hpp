@@ -1,5 +1,5 @@
-#ifndef YK_POLYFILL_INDIRECT_HPP
-#define YK_POLYFILL_INDIRECT_HPP
+#ifndef YK_ZZ_POLYFILL_INDIRECT_HPP
+#define YK_ZZ_POLYFILL_INDIRECT_HPP
 
 // indirect<T, A>: value-semantic wrapper for a heap-allocated T
 // Polyfill of P3019R14 std::indirect for C++11 and later.
@@ -541,4 +541,4 @@ struct hash<yk::polyfill::indirect<T, A>> : yk::polyfill::detail::indirect_hash<
 
 }  // namespace std
 
-#endif  // YK_POLYFILL_INDIRECT_HPP
+#endif  // YK_ZZ_POLYFILL_INDIRECT_HPP

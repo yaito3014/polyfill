@@ -1,5 +1,5 @@
-#ifndef YK_POLYFILL_BITS_OPTIONAL_COMMON_HPP
-#define YK_POLYFILL_BITS_OPTIONAL_COMMON_HPP
+#ifndef YK_ZZ_POLYFILL_BITS_OPTIONAL_COMMON_HPP
+#define YK_ZZ_POLYFILL_BITS_OPTIONAL_COMMON_HPP
 
 #include <yk/polyfill/type_traits.hpp>
 
@@ -39,4 +39,4 @@ struct converts_from_any_cvref {
 
 }  // namespace yk
 
-#endif  // YK_POLYFILL_BITS_OPTIONAL_COMMON_HPP
+#endif  // YK_ZZ_POLYFILL_BITS_OPTIONAL_COMMON_HPP

@@ -1,5 +1,5 @@
-#ifndef YK_POLYFILL_COND_TRIVIAL_SMF_HPP
-#define YK_POLYFILL_COND_TRIVIAL_SMF_HPP
+#ifndef YK_ZZ_POLYFILL_COND_TRIVIAL_SMF_HPP
+#define YK_ZZ_POLYFILL_COND_TRIVIAL_SMF_HPP
 
 // derived from https://github.com/iris-cpp/iris with permission from original author
 

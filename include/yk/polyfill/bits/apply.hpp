@@ -1,5 +1,5 @@
-#ifndef YK_POLYFILL_BITS_APPLY_HPP
-#define YK_POLYFILL_BITS_APPLY_HPP
+#ifndef YK_ZZ_POLYFILL_BITS_APPLY_HPP
+#define YK_ZZ_POLYFILL_BITS_APPLY_HPP
 
 #include <yk/polyfill/bits/core_traits.hpp>
 
@@ -77,4 +77,4 @@ struct apply_result_impl<
 
 }  // namespace yk
 
-#endif  // YK_POLYFILL_BITS_APPLY_HPP
+#endif  // YK_ZZ_POLYFILL_BITS_APPLY_HPP

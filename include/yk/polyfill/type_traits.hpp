@@ -1,5 +1,5 @@
-#ifndef YK_POLYFILL_TYPE_TRAITS_HPP
-#define YK_POLYFILL_TYPE_TRAITS_HPP
+#ifndef YK_ZZ_POLYFILL_TYPE_TRAITS_HPP
+#define YK_ZZ_POLYFILL_TYPE_TRAITS_HPP
 
 #include <yk/polyfill/bits/apply.hpp>
 #include <yk/polyfill/bits/core_traits.hpp>
@@ -326,4 +326,4 @@ inline constexpr auto cw = constant_wrapper<X>{};
 
 }  // namespace yk
 
-#endif  // YK_POLYFILL_TYPE_TRAITS_HPP
+#endif  // YK_ZZ_POLYFILL_TYPE_TRAITS_HPP

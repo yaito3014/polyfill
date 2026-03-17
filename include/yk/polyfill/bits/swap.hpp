@@ -1,5 +1,5 @@
-#ifndef YK_POLYFILL_BITS_SWAP_HPP
-#define YK_POLYFILL_BITS_SWAP_HPP
+#ifndef YK_ZZ_POLYFILL_BITS_SWAP_HPP
+#define YK_ZZ_POLYFILL_BITS_SWAP_HPP
 
 #include <yk/polyfill/config.hpp>
 
@@ -40,4 +40,4 @@ YK_POLYFILL_CXX14_CONSTEXPR void constexpr_swap(T& a, T& b) noexcept(std::is_not
 
 }  // namespace yk
 
-#endif  // YK_POLYFILL_BITS_SWAP_HPP
+#endif  // YK_ZZ_POLYFILL_BITS_SWAP_HPP

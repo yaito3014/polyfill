@@ -1,5 +1,5 @@
-#ifndef YK_POLYFILL_MEMORY_HPP
-#define YK_POLYFILL_MEMORY_HPP
+#ifndef YK_ZZ_POLYFILL_MEMORY_HPP
+#define YK_ZZ_POLYFILL_MEMORY_HPP
 
 #include <yk/polyfill/config.hpp>
 
@@ -588,4 +588,4 @@ struct hash<yk::polyfill::unique_ptr<T, D>> : yk::polyfill::detail::unique_ptr_h
 
 }  // namespace std
 
-#endif  // YK_POLYFILL_MEMORY_HPP
+#endif  // YK_ZZ_POLYFILL_MEMORY_HPP
