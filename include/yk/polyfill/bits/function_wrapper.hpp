@@ -3,6 +3,8 @@
 
 #include <yk/polyfill/bits/invoke.hpp>
 
+#include <utility>
+
 namespace yk {
 
 namespace polyfill {
@@ -48,6 +50,37 @@ struct invoker {
 };
 
 }  // namespace detail
+
+template<class Signature>
+class function_ref;
+
+#define YK_POLYFILL_INCLUDE_FUNCTION_REF
+
+// #define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_CONST
+// #define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
+#include "yk/polyfill/bits/function_wrapper/function_ref.ipp"
+#undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_CONST
+#undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
+
+#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_CONST
+// #define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
+#include "yk/polyfill/bits/function_wrapper/function_ref.ipp"
+#undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_CONST
+#undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
+
+// #define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_CONST
+#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
+#include "yk/polyfill/bits/function_wrapper/function_ref.ipp"
+#undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_CONST
+#undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
+
+#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_CONST
+#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
+#include "yk/polyfill/bits/function_wrapper/function_ref.ipp"
+#undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_CONST
+#undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
+
+#undef YK_POLYFILL_INCLUDE_FUNCTION_REF
 
 }  // namespace polyfill
 
