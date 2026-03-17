@@ -10,8 +10,26 @@ namespace polyfill {
 namespace detail {
 
 union bound_entity {
-  void const* obj_ptr;
   void (*func_ptr)();
+  void const* obj_ptr;
+
+  struct func_tag {
+    explicit func_tag() = default;
+  };
+
+  struct obj_tag {
+    explicit obj_tag() = default;
+  };
+
+  template<class Func, typename std::enable_if<std::is_function<Func>::value, std::nullptr_t>::type = nullptr>
+  bound_entity(func_tag, Func* f) : func_ptr(reinterpret_cast<void (*)()>(f))
+  {
+  }
+
+  template<class Obj>
+  YK_POLYFILL_CXX17_CONSTEXPR bound_entity(obj_tag, Obj&& obj) : obj_ptr(static_cast<void const*>(std::addressof(obj)))
+  {
+  }
 };
 
 template<bool Noexcept, class R, class... Args>
