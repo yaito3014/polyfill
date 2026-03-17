@@ -39,13 +39,13 @@ union bound_entity {
 template<bool Noexcept, class R, class... Args>
 struct invoker {
   template<class Func>
-  static R invoke_func(bound_entity entity, Args... args) noexcept(Noexcept)
+  static R invoke_func(bound_entity entity, Args&&... args) noexcept(Noexcept)
   {
     return reinterpret_cast<Func*>(entity.func_ptr)(std::forward<Args>(args)...);
   }
 
   template<class Obj>
-  static R invoke_obj(bound_entity entity, Args... args) noexcept(Noexcept)
+  static R invoke_obj(bound_entity entity, Args&&... args) noexcept(Noexcept)
   {
     return polyfill::invoke_r<R>(*static_cast<Obj*>(const_cast<void*>(entity.obj_ptr)), std::forward<Args>(args)...);
   }
@@ -74,6 +74,8 @@ class function_ref;
 #undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_CONST
 #undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
 
+#if __cpp_noexcept_function_type >= 201510L
+
 // #define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_CONST
 #define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
 #include "yk/polyfill/bits/function_wrapper/function_ref.ipp"
@@ -86,6 +88,23 @@ class function_ref;
 #undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_CONST
 #undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
 
+#endif
+
 #undef YK_POLYFILL_INCLUDE_FUNCTION_REF
+
+namespace yk {
+
+namespace polyfill {
+
+#if __cpp_deduction_guides >= 201703L
+
+template<class F, typename std::enable_if<std::is_function<F>::value, std::nullptr_t>::type = nullptr>
+function_ref(F*) -> function_ref<F>;
+
+#endif
+
+}  // namespace polyfill
+
+}  // namespace yk
 
 #endif  // YK_ZZ_POLYFILL_BITS_FUNCTION_WRAPPER_HPP
