@@ -1,5 +1,5 @@
-#ifndef YK_POLYFILL_OPTIONAL_HPP
-#define YK_POLYFILL_OPTIONAL_HPP
+#ifndef YK_ZZ_POLYFILL_OPTIONAL_HPP
+#define YK_ZZ_POLYFILL_OPTIONAL_HPP
 
 #include <yk/polyfill/bits/cond_trivial_smf.hpp>
 #include <yk/polyfill/bits/core_traits.hpp>
@@ -1210,4 +1210,4 @@ constexpr optional<T> make_optional(std::initializer_list<U> il, Args&&... args)
 
 }  // namespace yk
 
-#endif  // YK_POLYFILL_OPTIONAL_HPP
+#endif  // YK_ZZ_POLYFILL_OPTIONAL_HPP

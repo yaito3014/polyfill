@@ -1,5 +1,5 @@
-#ifndef YK_POLYFILL_UTILITY_HPP
-#define YK_POLYFILL_UTILITY_HPP
+#ifndef YK_ZZ_POLYFILL_UTILITY_HPP
+#define YK_ZZ_POLYFILL_UTILITY_HPP
 
 #include <yk/polyfill/bits/core_traits.hpp>
 #include <yk/polyfill/config.hpp>
@@ -132,4 +132,4 @@ struct std::tuple_element<I, yk::polyfill::integer_sequence<T, Is...> const> {
   using type = T;
 };
 
-#endif  // YK_POLYFILL_UTILITY_HPP
+#endif  // YK_ZZ_POLYFILL_UTILITY_HPP

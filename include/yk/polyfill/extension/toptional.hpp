@@ -1,5 +1,5 @@
-#ifndef YK_POLYFILL_EXTENSION_TOPTIONAL_HPP
-#define YK_POLYFILL_EXTENSION_TOPTIONAL_HPP
+#ifndef YK_ZZ_POLYFILL_EXTENSION_TOPTIONAL_HPP
+#define YK_ZZ_POLYFILL_EXTENSION_TOPTIONAL_HPP
 
 #include <yk/polyfill/config.hpp>
 
@@ -891,4 +891,4 @@ constexpr toptional<T, Traits> make_toptional(std::initializer_list<U> il, Args&
 
 }  // namespace yk
 
-#endif  // YK_POLYFILL_EXTENSION_TOPTIONAL_HPP
+#endif  // YK_ZZ_POLYFILL_EXTENSION_TOPTIONAL_HPP

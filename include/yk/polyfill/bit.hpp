@@ -1,5 +1,5 @@
-#ifndef YK_POLYFILL_BIT_HPP
-#define YK_POLYFILL_BIT_HPP
+#ifndef YK_ZZ_POLYFILL_BIT_HPP
+#define YK_ZZ_POLYFILL_BIT_HPP
 
 #include <yk/polyfill/config.hpp>
 
@@ -41,4 +41,4 @@ YK_POLYFILL_CXX20_CONSTEXPR To bit_cast(From const& from, To dst = To{}) noexcep
 
 }  // namespace yk
 
-#endif  // YK_POLYFILL_BIT_HPP
+#endif  // YK_ZZ_POLYFILL_BIT_HPP

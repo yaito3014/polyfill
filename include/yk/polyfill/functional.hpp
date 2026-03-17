@@ -1,5 +1,5 @@
-#ifndef YK_POLYFILL_FUNCTIONAL_HPP
-#define YK_POLYFILL_FUNCTIONAL_HPP
+#ifndef YK_ZZ_POLYFILL_FUNCTIONAL_HPP
+#define YK_ZZ_POLYFILL_FUNCTIONAL_HPP
 
 #include <yk/polyfill/config.hpp>
 
@@ -295,4 +295,4 @@ constexpr R invoke_r(F&& f, Args&&... args) noexcept(is_nothrow_invocable_r<R, F
 
 }  // namespace yk
 
-#endif  // YK_POLYFILL_FUNCTIONAL_HPP
+#endif  // YK_ZZ_POLYFILL_FUNCTIONAL_HPP

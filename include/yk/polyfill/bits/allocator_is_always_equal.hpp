@@ -1,5 +1,5 @@
-#ifndef YK_POLYFILL_BITS_ALLOCATOR_IS_ALWAYS_EQUAL_HPP
-#define YK_POLYFILL_BITS_ALLOCATOR_IS_ALWAYS_EQUAL_HPP
+#ifndef YK_ZZ_POLYFILL_BITS_ALLOCATOR_IS_ALWAYS_EQUAL_HPP
+#define YK_ZZ_POLYFILL_BITS_ALLOCATOR_IS_ALWAYS_EQUAL_HPP
 
 // Fallback for is_always_equal (added to allocator_traits in C++17).
 
@@ -26,4 +26,4 @@ struct allocator_is_always_equal : std::is_empty<A> {};
 
 }  // namespace yk
 
-#endif  // YK_POLYFILL_BITS_ALLOCATOR_IS_ALWAYS_EQUAL_HPP
+#endif  // YK_ZZ_POLYFILL_BITS_ALLOCATOR_IS_ALWAYS_EQUAL_HPP
