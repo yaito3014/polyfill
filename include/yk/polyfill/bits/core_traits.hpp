@@ -1,5 +1,5 @@
-#ifndef YK_ZZ_POLYFILL_BITS_TYPE_TRAITS_HPP
-#define YK_ZZ_POLYFILL_BITS_TYPE_TRAITS_HPP
+#ifndef YK_ZZ_POLYFILL_BITS_CORE_TRAITS_HPP
+#define YK_ZZ_POLYFILL_BITS_CORE_TRAITS_HPP
 
 #include <type_traits>
 
@@ -74,4 +74,4 @@ struct is_nothrow_convertible<void, void> : true_type {};
 
 }  // namespace yk
 
-#endif  // YK_ZZ_POLYFILL_BITS_TYPE_TRAITS_HPP
+#endif  // YK_ZZ_POLYFILL_BITS_CORE_TRAITS_HPP
