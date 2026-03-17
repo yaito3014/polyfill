@@ -56,6 +56,10 @@ struct invoker {
 template<class Signature>
 class function_ref;
 
+}  // namespace polyfill
+
+}  // namespace yk
+
 #define YK_POLYFILL_INCLUDE_FUNCTION_REF
 
 // #define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_CONST
@@ -83,9 +87,5 @@ class function_ref;
 #undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
 
 #undef YK_POLYFILL_INCLUDE_FUNCTION_REF
-
-}  // namespace polyfill
-
-}  // namespace yk
 
 #endif  // YK_ZZ_POLYFILL_BITS_FUNCTION_WRAPPER_HPP
