@@ -93,7 +93,7 @@ constexpr auto invoke_impl(T (C::*f)(Params...) const, U&& u, Args&&... args) ->
   return (static_cast<U&&>(u).*f)(static_cast<Args&&>(args)...);
 }
 
-#if __cpp_noexcept_function_type >= 201510
+#if __cpp_noexcept_function_type >= 201510L
 
 template<
     class T, class C, class... Params, class U, class... Args,
@@ -131,7 +131,7 @@ constexpr auto invoke_impl(T (C::*f)(Params...) const, U&& u, Args&&... args) ->
   return (static_cast<U&&>(u).get().*f)(static_cast<Args&&>(args)...);
 }
 
-#if __cpp_noexcept_function_type >= 201510
+#if __cpp_noexcept_function_type >= 201510L
 
 template<
     class T, class C, class... Params, class U, class... Args,
@@ -170,7 +170,7 @@ constexpr auto invoke_impl(T (C::*f)(Params...) const, U&& u, Args&&... args) ->
   return ((*static_cast<U&&>(u)).*f)(static_cast<Args&&>(args)...);
 }
 
-#if __cpp_noexcept_function_type >= 201510
+#if __cpp_noexcept_function_type >= 201510L
 
 template<
     class T, class C, class... Params, class U, class... Args,
