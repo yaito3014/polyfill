@@ -3,7 +3,10 @@
 
 #include <yk/polyfill/config.hpp>
 
+#include <yk/polyfill/bits/core_traits.hpp>
+
 #include <type_traits>
+#include <utility>
 
 namespace yk {
 
@@ -24,22 +27,32 @@ template<class T, bool = can_ebo<T>::value>
 struct ebo_storage;
 
 template<class T>
-struct ebo_storage<T, /*EBO=*/false> {
+struct ebo_storage<T, /*IsEmptyBase = */ false> {
   T value_;
   ebo_storage() = default;
-  constexpr explicit ebo_storage(T const& v) noexcept(std::is_nothrow_copy_constructible<T>::value) : value_(v) {}
 
-  template<class U = T, typename std::enable_if<!std::is_reference<U>::value, std::nullptr_t>::type = nullptr>
-  constexpr explicit ebo_storage(T&& v) noexcept(std::is_nothrow_move_constructible<T>::value) : value_(static_cast<T&&>(v)) {}
+  template<
+      class U = T, typename std::enable_if<!std::is_same<typename remove_cvref<U>::type, ebo_storage>::value, std::nullptr_t>::type = nullptr,
+      typename std::enable_if<std::is_constructible<T, U>::value, std::nullptr_t>::type = nullptr>
+  constexpr explicit ebo_storage(U&& u) noexcept(std::is_nothrow_constructible<T, U>::value) : value_(std::forward<U>(u))
+  {
+  }
+
   YK_POLYFILL_CXX14_CONSTEXPR T& stored_value() noexcept { return value_; }
   constexpr T const& stored_value() const noexcept { return value_; }
 };
 
 template<class T>
-struct ebo_storage<T, /*EBO=*/true> : private T {
+struct ebo_storage<T, /*IsEmptyBase = */ true> : private T {
   ebo_storage() = default;
-  constexpr explicit ebo_storage(T const& v) noexcept(std::is_nothrow_copy_constructible<T>::value) : T(v) {}
-  constexpr explicit ebo_storage(T&& v) noexcept(std::is_nothrow_move_constructible<T>::value) : T(static_cast<T&&>(v)) {}
+
+  template<
+      class U = T, typename std::enable_if<!std::is_same<typename remove_cvref<U>::type, ebo_storage>::value, std::nullptr_t>::type = nullptr,
+      typename std::enable_if<std::is_constructible<T, U>::value, std::nullptr_t>::type = nullptr>
+  constexpr explicit ebo_storage(U&& u) noexcept(std::is_nothrow_constructible<T, U>::value) : T(std::forward<U>(u))
+  {
+  }
+
   YK_POLYFILL_CXX14_CONSTEXPR T& stored_value() noexcept { return static_cast<T&>(*this); }
   constexpr T const& stored_value() const noexcept { return static_cast<T const&>(*this); }
 };
