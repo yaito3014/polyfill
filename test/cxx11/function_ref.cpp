@@ -49,7 +49,7 @@ TEST_CASE("function_ref")
   // const-propagation
   {
     DifferentForConstness const func;
-    pf::function_ref<int(int)> const ref = func;  // looks wierd, but the standard allows
+    pf::function_ref<int(int)> const ref = func;  // looks weird, but the standard allows
     CHECK(ref(21) == 42);
   }
   {
