@@ -97,4 +97,4 @@ Unfortunately for some people, this project is not AI-free. AI tools are used fo
 
 ## License
 
-[MIT](LICENSE) — Copyright (c) 2025 Yaito Kakeyama
+[MIT](LICENSE) — Copyright (c) 2026 Yaito Kakeyama
