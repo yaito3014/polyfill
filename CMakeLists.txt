@@ -6,23 +6,20 @@ set(YK_POLYFILL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/include/yk/polyfill)
 
 include(GNUInstallDirs)
 
-# common headers
-add_library(yk_polyfill_common INTERFACE)
-set_target_properties(
-    yk_polyfill_common
-    PROPERTIES EXPORT_NAME polyfill::common
-)
+# library
+add_library(yk_polyfill INTERFACE)
+set_target_properties(yk_polyfill PROPERTIES EXPORT_NAME polyfill)
 if(MSVC)
-    target_compile_options(yk_polyfill_common INTERFACE /Zc:__cplusplus)
+    target_compile_options(yk_polyfill INTERFACE /Zc:__cplusplus)
 endif()
-file(GLOB_RECURSE YK_POLYFILL_COMMON_HEADERS ${YK_POLYFILL_PREFIX}/*.hpp)
+file(GLOB_RECURSE YK_POLYFILL_HEADERS ${YK_POLYFILL_PREFIX}/*.hpp)
 target_sources(
-    yk_polyfill_common
+    yk_polyfill
     INTERFACE
-        FILE_SET yk_polyfill_common_headers_set
+        FILE_SET yk_polyfill_headers_set
             TYPE HEADERS
             BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/include
-            FILES ${YK_POLYFILL_COMMON_HEADERS}
+            FILES ${YK_POLYFILL_HEADERS}
 )
 
 # C++ versions for tests
@@ -37,13 +34,7 @@ list(
     26
 )
 
-# aggregate
-add_library(yk_polyfill INTERFACE)
-set_target_properties(yk_polyfill PROPERTIES EXPORT_NAME polyfill)
-target_link_libraries(yk_polyfill INTERFACE yk_polyfill_common)
-
 # alias
-add_library(yk::polyfill::common ALIAS yk_polyfill_common)
 add_library(yk::polyfill ALIAS yk_polyfill)
 
 # test
@@ -60,12 +51,10 @@ endif()
 
 # install
 install(
-    TARGETS yk_polyfill_common
+    TARGETS yk_polyfill
     EXPORT yk-polyfill-export
-    FILE_SET yk_polyfill_common_headers_set
+    FILE_SET yk_polyfill_headers_set
 )
-
-install(TARGETS yk_polyfill EXPORT yk-polyfill-export)
 
 install(
     EXPORT yk-polyfill-export
