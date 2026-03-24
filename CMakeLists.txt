@@ -25,7 +25,7 @@ target_sources(
             FILES ${YK_POLYFILL_COMMON_HEADERS}
 )
 
-# versioned headers
+# C++ versions for tests
 list(
     APPEND
     YK_POLYFILL_CXX_VERSIONS
@@ -37,31 +37,13 @@ list(
     26
 )
 
-foreach(cxx_version ${YK_POLYFILL_CXX_VERSIONS})
-    set(target_name yk_polyfill_cxx${cxx_version})
-    add_library(${target_name} INTERFACE)
-    set_target_properties(
-        ${target_name}
-        PROPERTIES EXPORT_NAME polyfill::cxx${cxx_version} CXX_EXTENSIONS OFF
-    )
-    target_compile_features(${target_name} INTERFACE cxx_std_${cxx_version})
-    target_link_libraries(${target_name} INTERFACE yk_polyfill_common)
-    list(APPEND YK_POLYFILL_VERSIONED_TARGETS ${target_name})
-endforeach()
-
 # aggregate
 add_library(yk_polyfill INTERFACE)
 set_target_properties(yk_polyfill PROPERTIES EXPORT_NAME polyfill)
-target_link_libraries(yk_polyfill INTERFACE ${YK_POLYFILL_VERSIONED_TARGETS})
+target_link_libraries(yk_polyfill INTERFACE yk_polyfill_common)
 
 # alias
 add_library(yk::polyfill::common ALIAS yk_polyfill_common)
-foreach(cxx_version ${YK_POLYFILL_CXX_VERSIONS})
-    add_library(
-        yk::polyfill::cxx${cxx_version}
-        ALIAS yk_polyfill_cxx${cxx_version}
-    )
-endforeach()
 add_library(yk::polyfill ALIAS yk_polyfill)
 
 # test
@@ -83,12 +65,6 @@ install(
     FILE_SET yk_polyfill_common_headers_set
 )
 
-foreach(cxx_version ${YK_POLYFILL_CXX_VERSIONS})
-    install(
-        TARGETS yk_polyfill_cxx${cxx_version}
-        EXPORT yk-polyfill-export
-    )
-endforeach()
 install(TARGETS yk_polyfill EXPORT yk-polyfill-export)
 
 install(
