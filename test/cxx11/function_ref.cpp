@@ -88,4 +88,26 @@ TEST_CASE("function_ref")
   //   pf::function_ref<int(int) const> const ref = func;
   //   CHECK(ref(21) == 42);
   // }
+
+  // void return type
+  {
+    int result = 0;
+    auto const func = [&result](int x) { result = 2 * x; };
+    pf::function_ref<void(int)> const ref = func;
+    ref(21);
+    CHECK(result == 42);
+  }
+  {
+    int result = 0;
+    auto const func = [&result](int x) { result = 2 * x; };
+    pf::function_ref<void(int) const> const ref = func;
+    ref(21);
+    CHECK(result == 42);
+  }
+
+  // function pointer
+  {
+    pf::function_ref<int(int)> const ref = &doubles;
+    CHECK(ref(21) == 42);
+  }
 }
