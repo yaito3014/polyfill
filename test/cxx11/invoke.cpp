@@ -24,9 +24,17 @@ struct S {
   int& mutating_nothrow_member_function(int arg) noexcept { return value = arg; }
   int const_nothrow_member_function(int arg) const noexcept { return value + arg; }
 
-  int volatile& mutating_volatile_member_function(int arg) volatile { return value = arg; }
+  int volatile& mutating_volatile_member_function(int arg) volatile
+  {
+    value = arg;
+    return value;
+  }
   int const_volatile_member_function(int arg) const volatile { return value + arg; }
-  int volatile& mutating_volatile_nothrow_member_function(int arg) volatile noexcept { return value = arg; }
+  int volatile& mutating_volatile_nothrow_member_function(int arg) volatile noexcept
+  {
+    value = arg;
+    return value;
+  }
   int const_volatile_nothrow_member_function(int arg) const volatile noexcept { return value + arg; }
 
   int& mutating_lvalue_ref_member_function(int arg) & { return value = arg; }
@@ -34,9 +42,17 @@ struct S {
   int& mutating_lvalue_ref_nothrow_member_function(int arg) & noexcept { return value = arg; }
   int const_lvalue_ref_nothrow_member_function(int arg) const& noexcept { return value + arg; }
 
-  int volatile& mutating_volatile_lvalue_ref_member_function(int arg) volatile& { return value = arg; }
+  int volatile& mutating_volatile_lvalue_ref_member_function(int arg) volatile&
+  {
+    value = arg;
+    return value;
+  }
   int const_volatile_lvalue_ref_member_function(int arg) const volatile& { return value + arg; }
-  int volatile& mutating_volatile_lvalue_ref_nothrow_member_function(int arg) volatile& noexcept { return value = arg; }
+  int volatile& mutating_volatile_lvalue_ref_nothrow_member_function(int arg) volatile& noexcept
+  {
+    value = arg;
+    return value;
+  }
   int const_volatile_lvalue_ref_nothrow_member_function(int arg) const volatile& noexcept { return value + arg; }
 
   int mutating_rvalue_ref_member_function(int arg) && { return value = arg; }
