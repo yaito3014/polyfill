@@ -49,100 +49,203 @@ struct S {
   int mutating_volatile_rvalue_ref_nothrow_member_function(int arg) volatile&& noexcept { return value = arg; }
   int const_volatile_rvalue_ref_nothrow_member_function(int arg) const volatile&& noexcept { return value + arg; }
 
+  static int variadic_impl(int count, va_list args)
+  {
+    int sum = 0;
+    for (int i = 0; i < count; ++i) sum += va_arg(args, int);
+    return sum;
+  }
+
   // C-style variadic member functions
-  int variadic_member_function(int count, ...) {
+  int variadic_member_function(int count, ...)
+  {
     va_list args;
     va_start(args, count);
-    int sum = 0;
-    for (int i = 0; i < count; ++i) sum += va_arg(args, int);
+    int sum = variadic_impl(count, args);
     va_end(args);
     return value + sum;
   }
-  int const_variadic_member_function(int count, ...) const {
+  int const_variadic_member_function(int count, ...) const
+  {
     va_list args;
     va_start(args, count);
-    int sum = 0;
-    for (int i = 0; i < count; ++i) sum += va_arg(args, int);
+    int sum = variadic_impl(count, args);
     va_end(args);
     return value + sum;
   }
-  int volatile_variadic_member_function(int count, ...) volatile {
+  int volatile_variadic_member_function(int count, ...) volatile
+  {
     va_list args;
     va_start(args, count);
-    int sum = 0;
-    for (int i = 0; i < count; ++i) sum += va_arg(args, int);
+    int sum = variadic_impl(count, args);
     va_end(args);
     return value + sum;
   }
-  int const_volatile_variadic_member_function(int count, ...) const volatile {
+  int const_volatile_variadic_member_function(int count, ...) const volatile
+  {
     va_list args;
     va_start(args, count);
-    int sum = 0;
-    for (int i = 0; i < count; ++i) sum += va_arg(args, int);
+    int sum = variadic_impl(count, args);
     va_end(args);
     return value + sum;
   }
-  int lvalue_ref_variadic_member_function(int count, ...) & {
+  int lvalue_ref_variadic_member_function(int count, ...) &
+  {
     va_list args;
     va_start(args, count);
-    int sum = 0;
-    for (int i = 0; i < count; ++i) sum += va_arg(args, int);
+    int sum = variadic_impl(count, args);
     va_end(args);
     return value + sum;
   }
-  int const_lvalue_ref_variadic_member_function(int count, ...) const& {
+  int const_lvalue_ref_variadic_member_function(int count, ...) const&
+  {
     va_list args;
     va_start(args, count);
-    int sum = 0;
-    for (int i = 0; i < count; ++i) sum += va_arg(args, int);
+    int sum = variadic_impl(count, args);
     va_end(args);
     return value + sum;
   }
-  int volatile_lvalue_ref_variadic_member_function(int count, ...) volatile& {
+  int volatile_lvalue_ref_variadic_member_function(int count, ...) volatile&
+  {
     va_list args;
     va_start(args, count);
-    int sum = 0;
-    for (int i = 0; i < count; ++i) sum += va_arg(args, int);
+    int sum = variadic_impl(count, args);
     va_end(args);
     return value + sum;
   }
-  int const_volatile_lvalue_ref_variadic_member_function(int count, ...) const volatile& {
+  int const_volatile_lvalue_ref_variadic_member_function(int count, ...) const volatile&
+  {
     va_list args;
     va_start(args, count);
-    int sum = 0;
-    for (int i = 0; i < count; ++i) sum += va_arg(args, int);
+    int sum = variadic_impl(count, args);
     va_end(args);
     return value + sum;
   }
-  int rvalue_ref_variadic_member_function(int count, ...) && {
+  int rvalue_ref_variadic_member_function(int count, ...) &&
+  {
     va_list args;
     va_start(args, count);
-    int sum = 0;
-    for (int i = 0; i < count; ++i) sum += va_arg(args, int);
+    int sum = variadic_impl(count, args);
     va_end(args);
     return value + sum;
   }
-  int const_rvalue_ref_variadic_member_function(int count, ...) const&& {
+  int const_rvalue_ref_variadic_member_function(int count, ...) const&&
+  {
     va_list args;
     va_start(args, count);
-    int sum = 0;
-    for (int i = 0; i < count; ++i) sum += va_arg(args, int);
+    int sum = variadic_impl(count, args);
     va_end(args);
     return value + sum;
   }
-  int volatile_rvalue_ref_variadic_member_function(int count, ...) volatile&& {
+  int volatile_rvalue_ref_variadic_member_function(int count, ...) volatile&&
+  {
     va_list args;
     va_start(args, count);
-    int sum = 0;
-    for (int i = 0; i < count; ++i) sum += va_arg(args, int);
+    int sum = variadic_impl(count, args);
     va_end(args);
     return value + sum;
   }
-  int const_volatile_rvalue_ref_variadic_member_function(int count, ...) const volatile&& {
+  int const_volatile_rvalue_ref_variadic_member_function(int count, ...) const volatile&&
+  {
     va_list args;
     va_start(args, count);
-    int sum = 0;
-    for (int i = 0; i < count; ++i) sum += va_arg(args, int);
+    int sum = variadic_impl(count, args);
+    va_end(args);
+    return value + sum;
+  }
+  int nothrow_variadic_member_function(int count, ...) noexcept
+  {
+    va_list args;
+    va_start(args, count);
+    int sum = variadic_impl(count, args);
+    va_end(args);
+    return value + sum;
+  }
+  int const_nothrow_variadic_member_function(int count, ...) const noexcept
+  {
+    va_list args;
+    va_start(args, count);
+    int sum = variadic_impl(count, args);
+    va_end(args);
+    return value + sum;
+  }
+  int volatile_nothrow_variadic_member_function(int count, ...) volatile noexcept
+  {
+    va_list args;
+    va_start(args, count);
+    int sum = variadic_impl(count, args);
+    va_end(args);
+    return value + sum;
+  }
+  int const_volatile_nothrow_variadic_member_function(int count, ...) const volatile noexcept
+  {
+    va_list args;
+    va_start(args, count);
+    int sum = variadic_impl(count, args);
+    va_end(args);
+    return value + sum;
+  }
+  int lvalue_ref_nothrow_variadic_member_function(int count, ...) & noexcept
+  {
+    va_list args;
+    va_start(args, count);
+    int sum = variadic_impl(count, args);
+    va_end(args);
+    return value + sum;
+  }
+  int const_lvalue_ref_nothrow_variadic_member_function(int count, ...) const& noexcept
+  {
+    va_list args;
+    va_start(args, count);
+    int sum = variadic_impl(count, args);
+    va_end(args);
+    return value + sum;
+  }
+  int volatile_lvalue_ref_nothrow_variadic_member_function(int count, ...) volatile& noexcept
+  {
+    va_list args;
+    va_start(args, count);
+    int sum = variadic_impl(count, args);
+    va_end(args);
+    return value + sum;
+  }
+  int const_volatile_lvalue_ref_nothrow_variadic_member_function(int count, ...) const volatile& noexcept
+  {
+    va_list args;
+    va_start(args, count);
+    int sum = variadic_impl(count, args);
+    va_end(args);
+    return value + sum;
+  }
+  int rvalue_ref_nothrow_variadic_member_function(int count, ...) && noexcept
+  {
+    va_list args;
+    va_start(args, count);
+    int sum = variadic_impl(count, args);
+    va_end(args);
+    return value + sum;
+  }
+  int const_rvalue_ref_nothrow_variadic_member_function(int count, ...) const&& noexcept
+  {
+    va_list args;
+    va_start(args, count);
+    int sum = variadic_impl(count, args);
+    va_end(args);
+    return value + sum;
+  }
+  int volatile_rvalue_ref_nothrow_variadic_member_function(int count, ...) volatile&& noexcept
+  {
+    va_list args;
+    va_start(args, count);
+    int sum = variadic_impl(count, args);
+    va_end(args);
+    return value + sum;
+  }
+  int const_volatile_rvalue_ref_nothrow_variadic_member_function(int count, ...) const volatile&& noexcept
+  {
+    va_list args;
+    va_start(args, count);
+    int sum = variadic_impl(count, args);
     va_end(args);
     return value + sum;
   }
@@ -614,24 +717,105 @@ TEST_CASE("is_invocable")
   STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_volatile_rvalue_ref_member_function), S*, int>::value == false);
   STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_volatile_rvalue_ref_member_function), int, int>::value == false);
 
-  // C-style variadic member function pointer
-  STATIC_REQUIRE(pf::is_invocable<decltype(&S::variadic_member_function), S&, int, int, int>::value == true);
+  // C-style variadic member function pointer (unqualified)
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::variadic_member_function), S, int>::value == true);
   STATIC_REQUIRE(pf::is_invocable<decltype(&S::variadic_member_function), S&, int>::value == true);
-  STATIC_REQUIRE(pf::is_invocable<decltype(&S::variadic_member_function), S*, int, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::variadic_member_function), S const&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::variadic_member_function), S&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::variadic_member_function), S const&&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::variadic_member_function), S*, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::variadic_member_function), int, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::variadic_member_function), S&, int, int, int>::value == true);
+
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_variadic_member_function), S, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_variadic_member_function), S&, int>::value == true);
   STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_variadic_member_function), S const&, int>::value == true);
-  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_variadic_member_function), S*, int, int, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_variadic_member_function), S&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_variadic_member_function), S const&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_variadic_member_function), S*, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_variadic_member_function), int, int>::value == false);
+
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::volatile_variadic_member_function), S, int>::value == true);
   STATIC_REQUIRE(pf::is_invocable<decltype(&S::volatile_variadic_member_function), S&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::volatile_variadic_member_function), S const&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::volatile_variadic_member_function), S&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::volatile_variadic_member_function), S const&&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::volatile_variadic_member_function), S*, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::volatile_variadic_member_function), int, int>::value == false);
+
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_variadic_member_function), S, int>::value == true);
   STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_variadic_member_function), S&, int>::value == true);
-  STATIC_REQUIRE(pf::is_invocable<decltype(&S::lvalue_ref_variadic_member_function), S&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_variadic_member_function), S const&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_variadic_member_function), S&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_variadic_member_function), S const&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_variadic_member_function), S*, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_variadic_member_function), int, int>::value == false);
+
+  // C-style variadic lvalue ref qualified member function pointer
   STATIC_REQUIRE(pf::is_invocable<decltype(&S::lvalue_ref_variadic_member_function), S, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::lvalue_ref_variadic_member_function), S&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::lvalue_ref_variadic_member_function), S const&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::lvalue_ref_variadic_member_function), S&&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::lvalue_ref_variadic_member_function), S const&&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::lvalue_ref_variadic_member_function), S*, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::lvalue_ref_variadic_member_function), int, int>::value == false);
+
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_lvalue_ref_variadic_member_function), S, int>::value == false);
   STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_lvalue_ref_variadic_member_function), S&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_lvalue_ref_variadic_member_function), S const&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_lvalue_ref_variadic_member_function), S&&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_lvalue_ref_variadic_member_function), S const&&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_lvalue_ref_variadic_member_function), S*, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_lvalue_ref_variadic_member_function), int, int>::value == false);
+
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::volatile_lvalue_ref_variadic_member_function), S, int>::value == false);
   STATIC_REQUIRE(pf::is_invocable<decltype(&S::volatile_lvalue_ref_variadic_member_function), S&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::volatile_lvalue_ref_variadic_member_function), S const&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::volatile_lvalue_ref_variadic_member_function), S&&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::volatile_lvalue_ref_variadic_member_function), S const&&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::volatile_lvalue_ref_variadic_member_function), S*, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::volatile_lvalue_ref_variadic_member_function), int, int>::value == false);
+
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_lvalue_ref_variadic_member_function), S, int>::value == false);
   STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_lvalue_ref_variadic_member_function), S&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_lvalue_ref_variadic_member_function), S const&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_lvalue_ref_variadic_member_function), S&&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_lvalue_ref_variadic_member_function), S const&&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_lvalue_ref_variadic_member_function), S*, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_lvalue_ref_variadic_member_function), int, int>::value == false);
+
+  // C-style variadic rvalue ref qualified member function pointer
   STATIC_REQUIRE(pf::is_invocable<decltype(&S::rvalue_ref_variadic_member_function), S, int>::value == true);
   STATIC_REQUIRE(pf::is_invocable<decltype(&S::rvalue_ref_variadic_member_function), S&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::rvalue_ref_variadic_member_function), S const&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::rvalue_ref_variadic_member_function), S&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::rvalue_ref_variadic_member_function), S const&&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::rvalue_ref_variadic_member_function), S*, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::rvalue_ref_variadic_member_function), int, int>::value == false);
+
   STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_rvalue_ref_variadic_member_function), S, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_rvalue_ref_variadic_member_function), S&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_rvalue_ref_variadic_member_function), S const&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_rvalue_ref_variadic_member_function), S&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_rvalue_ref_variadic_member_function), S const&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_rvalue_ref_variadic_member_function), S*, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_rvalue_ref_variadic_member_function), int, int>::value == false);
+
   STATIC_REQUIRE(pf::is_invocable<decltype(&S::volatile_rvalue_ref_variadic_member_function), S, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::volatile_rvalue_ref_variadic_member_function), S&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::volatile_rvalue_ref_variadic_member_function), S const&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::volatile_rvalue_ref_variadic_member_function), S&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::volatile_rvalue_ref_variadic_member_function), S const&&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::volatile_rvalue_ref_variadic_member_function), S*, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::volatile_rvalue_ref_variadic_member_function), int, int>::value == false);
+
   STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_rvalue_ref_variadic_member_function), S, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_rvalue_ref_variadic_member_function), S&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_rvalue_ref_variadic_member_function), S const&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_rvalue_ref_variadic_member_function), S&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_rvalue_ref_variadic_member_function), S const&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_rvalue_ref_variadic_member_function), S*, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_rvalue_ref_variadic_member_function), int, int>::value == false);
 
   // not invocable
   STATIC_REQUIRE(pf::is_invocable<int>::value == false);
@@ -641,14 +825,82 @@ TEST_CASE("is_invocable")
 TEST_CASE("is_nothrow_invocable")
 {
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&normal_function), int, int>::value == false);
+  // non-noexcept member functions are not nothrow invocable
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_member_function), S&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::mutating_member_function), S&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_volatile_member_function), S&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::mutating_volatile_member_function), S&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_lvalue_ref_member_function), S&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::mutating_lvalue_ref_member_function), S&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_volatile_lvalue_ref_member_function), S&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::mutating_volatile_lvalue_ref_member_function), S&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_rvalue_ref_member_function), S, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::mutating_rvalue_ref_member_function), S, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_volatile_rvalue_ref_member_function), S, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::mutating_volatile_rvalue_ref_member_function), S, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::variadic_member_function), S&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_variadic_member_function), S&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::volatile_variadic_member_function), S&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_volatile_variadic_member_function), S&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::lvalue_ref_variadic_member_function), S&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_lvalue_ref_variadic_member_function), S&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::volatile_lvalue_ref_variadic_member_function), S&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_volatile_lvalue_ref_variadic_member_function), S&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::rvalue_ref_variadic_member_function), S, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_rvalue_ref_variadic_member_function), S, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::volatile_rvalue_ref_variadic_member_function), S, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_volatile_rvalue_ref_variadic_member_function), S, int>::value == false);
 
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&InvocationIsThrowing::const_member_function), S&, int>::value == false);
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&InvocationIsThrowing::const_nothrow_member_function), S&, int>::value == false);
 
 #if __cpp_noexcept_function_type >= 201510
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&nothrow_function), int, int>::value == true);
+
+  // noexcept unqualified member functions
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_nothrow_member_function), S&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_nothrow_member_function), S*, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::mutating_nothrow_member_function), S&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_volatile_nothrow_member_function), S&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::mutating_volatile_nothrow_member_function), S&, int>::value == true);
+
+  // noexcept lvalue ref qualified member functions
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_lvalue_ref_nothrow_member_function), S&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_lvalue_ref_nothrow_member_function), S*, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::mutating_lvalue_ref_nothrow_member_function), S&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_volatile_lvalue_ref_nothrow_member_function), S&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::mutating_volatile_lvalue_ref_nothrow_member_function), S&, int>::value == true);
+
+  // noexcept rvalue ref qualified member functions
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_rvalue_ref_nothrow_member_function), S, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_rvalue_ref_nothrow_member_function), S&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::mutating_rvalue_ref_nothrow_member_function), S, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_volatile_rvalue_ref_nothrow_member_function), S, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::mutating_volatile_rvalue_ref_nothrow_member_function), S, int>::value == true);
+
+  // noexcept C-style variadic member functions
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::nothrow_variadic_member_function), S&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::nothrow_variadic_member_function), S*, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_nothrow_variadic_member_function), S&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_nothrow_variadic_member_function), S const&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::volatile_nothrow_variadic_member_function), S&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_volatile_nothrow_variadic_member_function), S&, int>::value == true);
+
+  // noexcept C-style variadic lvalue ref qualified member functions
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::lvalue_ref_nothrow_variadic_member_function), S&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::lvalue_ref_nothrow_variadic_member_function), S*, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_lvalue_ref_nothrow_variadic_member_function), S&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_lvalue_ref_nothrow_variadic_member_function), S const&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::volatile_lvalue_ref_nothrow_variadic_member_function), S&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_volatile_lvalue_ref_nothrow_variadic_member_function), S&, int>::value == true);
+
+  // noexcept C-style variadic rvalue ref qualified member functions
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::rvalue_ref_nothrow_variadic_member_function), S, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::rvalue_ref_nothrow_variadic_member_function), S&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_rvalue_ref_nothrow_variadic_member_function), S, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_rvalue_ref_nothrow_variadic_member_function), S&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::volatile_rvalue_ref_nothrow_variadic_member_function), S, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_volatile_rvalue_ref_nothrow_variadic_member_function), S, int>::value == true);
 
   // member function pointer itself is marked as noexcept, but invocation is throwing
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&InvocationIsThrowing::const_nothrow_member_function), S&, int>::value == false);
