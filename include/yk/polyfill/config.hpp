@@ -1,25 +1,31 @@
 #ifndef YK_ZZ_POLYFILL_CONFIG_HPP
 #define YK_ZZ_POLYFILL_CONFIG_HPP
 
-#if __cplusplus >= 201402L
+#if defined(_MSVC_LANG)
+#define YK_POLYFILL_CXX_VERSION _MSVC_LANG
+#else
+#define YK_POLYFILL_CXX_VERSION __cplusplus
+#endif
+
+#if YK_POLYFILL_CXX_VERSION >= 201402L
 #define YK_POLYFILL_CXX14_CONSTEXPR constexpr
 #else
 #define YK_POLYFILL_CXX14_CONSTEXPR
 #endif
 
-#if __cplusplus >= 201703L
+#if YK_POLYFILL_CXX_VERSION >= 201703L
 #define YK_POLYFILL_CXX17_CONSTEXPR constexpr
 #else
 #define YK_POLYFILL_CXX17_CONSTEXPR
 #endif
 
-#if __cplusplus >= 202002L
+#if YK_POLYFILL_CXX_VERSION >= 202002L
 #define YK_POLYFILL_CXX20_CONSTEXPR constexpr
 #else
 #define YK_POLYFILL_CXX20_CONSTEXPR
 #endif
 
-#if __cplusplus >= 202302L
+#if YK_POLYFILL_CXX_VERSION >= 202302L
 #define YK_POLYFILL_CXX23_CONSTEXPR constexpr
 #else
 #define YK_POLYFILL_CXX23_CONSTEXPR
@@ -46,7 +52,7 @@
 #define YK_POLYFILL_CXX20_CONSTEXPR_VDESTROY YK_POLYFILL_CXX20_CONSTEXPR
 #endif
 
-#if __cplusplus >= 201703L
+#if YK_POLYFILL_CXX_VERSION >= 201703L
 #define YK_POLYFILL_NODISCARD [[nodiscard]]
 #else
 #define YK_POLYFILL_NODISCARD
