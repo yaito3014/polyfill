@@ -33,7 +33,7 @@
 
 // P0704R1: const&-qualified member functions can be called on rvalues through member function pointers
 // MSVC applies this regardless of language version
-#if defined(_MSC_VER) || YK_POLYFILL_CXX_VERSION > 202002L
+#if defined(_MSC_VER) || YK_POLYFILL_CXX_VERSION >= 202002L
 #define YK_POLYFILL_P0704R1 1
 #else
 #define YK_POLYFILL_P0704R1 0

@@ -914,7 +914,7 @@ TEST_CASE("is_nothrow_invocable")
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&InvocationIsThrowing::const_member_function), S&, int>::value == false);
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&InvocationIsThrowing::const_nothrow_member_function), S&, int>::value == false);
 
-#if __cpp_noexcept_function_type >= 201510
+#if __cpp_noexcept_function_type >= 201510L
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&nothrow_function), int, int>::value == true);
 
   // noexcept unqualified member functions
@@ -1014,7 +1014,7 @@ TEST_CASE("is_nothrow_invocable_r")
   // nothrow invocable but throwing conversion
   STATIC_REQUIRE(pf::is_nothrow_invocable_r<ThrowingConvertible, decltype(&nothrow_function), int, int>::value == false);
 
-#if __cpp_noexcept_function_type >= 201510
+#if __cpp_noexcept_function_type >= 201510L
   STATIC_REQUIRE(pf::is_nothrow_invocable_r<int, decltype(&nothrow_function), int, int>::value == true);
   STATIC_REQUIRE(pf::is_nothrow_invocable_r<double, decltype(&nothrow_function), int, int>::value == true);
 
