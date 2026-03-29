@@ -81,7 +81,7 @@ struct get_class_from_member_function_pointer {};
 
 #define YK_POLYFILL_DETAIL_GET_CLASS_FROM_MFP(cv_opt, ref_opt, noexcept_opt, variadic_opt)                      \
   template<class T, class C, class... Params>                                                                   \
-  struct get_class_from_member_function_pointer<T (C::*)(Params... variadic_opt) cv_opt ref_opt noexcept_opt> { \
+  struct get_class_from_member_function_pointer<T (C::*)(Params..., variadic_opt) cv_opt ref_opt noexcept_opt> { \
     using type = C;                                                                                             \
   };
 
