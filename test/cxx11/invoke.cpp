@@ -60,9 +60,17 @@ struct S {
   int mutating_rvalue_ref_nothrow_member_function(int arg) && noexcept { return value = arg; }
   int const_rvalue_ref_nothrow_member_function(int arg) const&& noexcept { return value + arg; }
 
-  int mutating_volatile_rvalue_ref_member_function(int arg) volatile&& { return value = arg; }
+  int mutating_volatile_rvalue_ref_member_function(int arg) volatile&&
+  {
+    value = arg;
+    return value;
+  }
   int const_volatile_rvalue_ref_member_function(int arg) const volatile&& { return value + arg; }
-  int mutating_volatile_rvalue_ref_nothrow_member_function(int arg) volatile&& noexcept { return value = arg; }
+  int mutating_volatile_rvalue_ref_nothrow_member_function(int arg) volatile&& noexcept
+  {
+    value = arg;
+    return value;
+  }
   int const_volatile_rvalue_ref_nothrow_member_function(int arg) const volatile&& noexcept { return value + arg; }
 
   static int variadic_impl(int count, va_list args)
