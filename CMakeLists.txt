@@ -22,18 +22,6 @@ target_sources(
             FILES ${YK_POLYFILL_HEADERS}
 )
 
-# C++ versions for tests
-list(
-    APPEND
-    YK_POLYFILL_CXX_VERSIONS
-    11
-    14
-    17
-    20
-    23
-    26
-)
-
 # alias
 add_library(yk::polyfill ALIAS yk_polyfill)
 
