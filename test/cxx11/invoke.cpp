@@ -479,6 +479,14 @@ TEST_CASE("invoke")
     CHECK(pf::invoke(&S::const_lvalue_ref_variadic_member_function, s, 2, 3, 4) == 17);
     CHECK(pf::invoke(&S::volatile_lvalue_ref_variadic_member_function, s, 2, 3, 4) == 17);
     CHECK(pf::invoke(&S::const_volatile_lvalue_ref_variadic_member_function, s, 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::nothrow_variadic_member_function, s, 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::const_nothrow_variadic_member_function, s, 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::volatile_nothrow_variadic_member_function, s, 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::const_volatile_nothrow_variadic_member_function, s, 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::lvalue_ref_nothrow_variadic_member_function, s, 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::const_lvalue_ref_nothrow_variadic_member_function, s, 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::volatile_lvalue_ref_nothrow_variadic_member_function, s, 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::const_volatile_lvalue_ref_nothrow_variadic_member_function, s, 2, 3, 4) == 17);
   }
 
   // C-style variadic member function + object (xvalue)
@@ -491,6 +499,14 @@ TEST_CASE("invoke")
     CHECK(pf::invoke(&S::const_rvalue_ref_variadic_member_function, S{10}, 2, 3, 4) == 17);
     CHECK(pf::invoke(&S::volatile_rvalue_ref_variadic_member_function, S{10}, 2, 3, 4) == 17);
     CHECK(pf::invoke(&S::const_volatile_rvalue_ref_variadic_member_function, S{10}, 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::nothrow_variadic_member_function, S{10}, 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::const_nothrow_variadic_member_function, S{10}, 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::volatile_nothrow_variadic_member_function, S{10}, 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::const_volatile_nothrow_variadic_member_function, S{10}, 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::rvalue_ref_nothrow_variadic_member_function, S{10}, 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::const_rvalue_ref_nothrow_variadic_member_function, S{10}, 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::volatile_rvalue_ref_nothrow_variadic_member_function, S{10}, 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::const_volatile_rvalue_ref_nothrow_variadic_member_function, S{10}, 2, 3, 4) == 17);
   }
 
   // C-style variadic member function + pointer
@@ -504,6 +520,14 @@ TEST_CASE("invoke")
     CHECK(pf::invoke(&S::const_lvalue_ref_variadic_member_function, &s, 2, 3, 4) == 17);
     CHECK(pf::invoke(&S::volatile_lvalue_ref_variadic_member_function, &s, 2, 3, 4) == 17);
     CHECK(pf::invoke(&S::const_volatile_lvalue_ref_variadic_member_function, &s, 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::nothrow_variadic_member_function, &s, 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::const_nothrow_variadic_member_function, &s, 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::volatile_nothrow_variadic_member_function, &s, 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::const_volatile_nothrow_variadic_member_function, &s, 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::lvalue_ref_nothrow_variadic_member_function, &s, 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::const_lvalue_ref_nothrow_variadic_member_function, &s, 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::volatile_lvalue_ref_nothrow_variadic_member_function, &s, 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::const_volatile_lvalue_ref_nothrow_variadic_member_function, &s, 2, 3, 4) == 17);
   }
 
   // C-style variadic member function + reference_wrapper
@@ -517,6 +541,14 @@ TEST_CASE("invoke")
     CHECK(pf::invoke(&S::const_lvalue_ref_variadic_member_function, std::ref(s), 2, 3, 4) == 17);
     CHECK(pf::invoke(&S::volatile_lvalue_ref_variadic_member_function, std::ref(s), 2, 3, 4) == 17);
     CHECK(pf::invoke(&S::const_volatile_lvalue_ref_variadic_member_function, std::ref(s), 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::nothrow_variadic_member_function, std::ref(s), 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::const_nothrow_variadic_member_function, std::ref(s), 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::volatile_nothrow_variadic_member_function, std::ref(s), 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::const_volatile_nothrow_variadic_member_function, std::ref(s), 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::lvalue_ref_nothrow_variadic_member_function, std::ref(s), 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::const_lvalue_ref_nothrow_variadic_member_function, std::ref(s), 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::volatile_lvalue_ref_nothrow_variadic_member_function, std::ref(s), 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::const_volatile_lvalue_ref_nothrow_variadic_member_function, std::ref(s), 2, 3, 4) == 17);
   }
 
   // C-style variadic member function + pointer-ish
@@ -530,6 +562,14 @@ TEST_CASE("invoke")
     CHECK(pf::invoke(&S::const_lvalue_ref_variadic_member_function, ptr, 2, 3, 4) == 17);
     CHECK(pf::invoke(&S::volatile_lvalue_ref_variadic_member_function, ptr, 2, 3, 4) == 17);
     CHECK(pf::invoke(&S::const_volatile_lvalue_ref_variadic_member_function, ptr, 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::nothrow_variadic_member_function, ptr, 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::const_nothrow_variadic_member_function, ptr, 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::volatile_nothrow_variadic_member_function, ptr, 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::const_volatile_nothrow_variadic_member_function, ptr, 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::lvalue_ref_nothrow_variadic_member_function, ptr, 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::const_lvalue_ref_nothrow_variadic_member_function, ptr, 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::volatile_lvalue_ref_nothrow_variadic_member_function, ptr, 2, 3, 4) == 17);
+    CHECK(pf::invoke(&S::const_volatile_lvalue_ref_nothrow_variadic_member_function, ptr, 2, 3, 4) == 17);
   }
 
   // member data pointer + object (lvalue)
@@ -965,9 +1005,36 @@ TEST_CASE("is_nothrow_invocable_r")
 
 TEST_CASE("invoke_result")
 {
+  // normal function
   STATIC_REQUIRE(std::is_same<pf::invoke_result<decltype(&normal_function), int, int>::type, int>::value == true);
+
+  // unqualified member function
   STATIC_REQUIRE(std::is_same<pf::invoke_result<decltype(&S::const_member_function), S, int>::type, int>::value == true);
   STATIC_REQUIRE(std::is_same<pf::invoke_result<decltype(&S::mutating_member_function), S&, int>::type, int&>::value == true);
+
+  // volatile member function
+  STATIC_REQUIRE(std::is_same<pf::invoke_result<decltype(&S::mutating_volatile_member_function), S&, int>::type, int volatile&>::value == true);
+  STATIC_REQUIRE(std::is_same<pf::invoke_result<decltype(&S::const_volatile_member_function), S&, int>::type, int>::value == true);
+
+  // lvalue ref qualified member function
+  STATIC_REQUIRE(std::is_same<pf::invoke_result<decltype(&S::mutating_lvalue_ref_member_function), S&, int>::type, int&>::value == true);
+  STATIC_REQUIRE(std::is_same<pf::invoke_result<decltype(&S::const_lvalue_ref_member_function), S&, int>::type, int>::value == true);
+  STATIC_REQUIRE(std::is_same<pf::invoke_result<decltype(&S::mutating_volatile_lvalue_ref_member_function), S&, int>::type, int volatile&>::value == true);
+  STATIC_REQUIRE(std::is_same<pf::invoke_result<decltype(&S::const_volatile_lvalue_ref_member_function), S&, int>::type, int>::value == true);
+
+  // rvalue ref qualified member function
+  STATIC_REQUIRE(std::is_same<pf::invoke_result<decltype(&S::mutating_rvalue_ref_member_function), S, int>::type, int>::value == true);
+  STATIC_REQUIRE(std::is_same<pf::invoke_result<decltype(&S::const_rvalue_ref_member_function), S, int>::type, int>::value == true);
+  STATIC_REQUIRE(std::is_same<pf::invoke_result<decltype(&S::mutating_volatile_rvalue_ref_member_function), S, int>::type, int>::value == true);
+  STATIC_REQUIRE(std::is_same<pf::invoke_result<decltype(&S::const_volatile_rvalue_ref_member_function), S, int>::type, int>::value == true);
+
+  // C-style variadic member function
+  STATIC_REQUIRE(std::is_same<pf::invoke_result<decltype(&S::variadic_member_function), S&, int>::type, int>::value == true);
+  STATIC_REQUIRE(std::is_same<pf::invoke_result<decltype(&S::const_variadic_member_function), S&, int>::type, int>::value == true);
+  STATIC_REQUIRE(std::is_same<pf::invoke_result<decltype(&S::lvalue_ref_variadic_member_function), S&, int>::type, int>::value == true);
+  STATIC_REQUIRE(std::is_same<pf::invoke_result<decltype(&S::rvalue_ref_variadic_member_function), S, int>::type, int>::value == true);
+
+  // member data pointer
   STATIC_REQUIRE(std::is_same<pf::invoke_result<decltype(&S::value), S&>::type, int&>::value == true);
   STATIC_REQUIRE(std::is_same<pf::invoke_result<decltype(&S::value), S const&>::type, int const&>::value == true);
   STATIC_REQUIRE(std::is_same<pf::invoke_result<decltype(&S::value), S&&>::type, int&&>::value == true);
