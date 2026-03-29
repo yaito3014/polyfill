@@ -99,6 +99,46 @@ struct get_class_from_member_function_pointer<T (C::*)(Params...) const volatile
   using type = C;
 };
 
+template<class T, class C, class... Params>
+struct get_class_from_member_function_pointer<T (C::*)(Params...) &> {
+  using type = C;
+};
+
+template<class T, class C, class... Params>
+struct get_class_from_member_function_pointer<T (C::*)(Params...) const&> {
+  using type = C;
+};
+
+template<class T, class C, class... Params>
+struct get_class_from_member_function_pointer<T (C::*)(Params...) volatile&> {
+  using type = C;
+};
+
+template<class T, class C, class... Params>
+struct get_class_from_member_function_pointer<T (C::*)(Params...) const volatile&> {
+  using type = C;
+};
+
+template<class T, class C, class... Params>
+struct get_class_from_member_function_pointer<T (C::*)(Params...) &&> {
+  using type = C;
+};
+
+template<class T, class C, class... Params>
+struct get_class_from_member_function_pointer<T (C::*)(Params...) const&&> {
+  using type = C;
+};
+
+template<class T, class C, class... Params>
+struct get_class_from_member_function_pointer<T (C::*)(Params...) volatile&&> {
+  using type = C;
+};
+
+template<class T, class C, class... Params>
+struct get_class_from_member_function_pointer<T (C::*)(Params...) const volatile&&> {
+  using type = C;
+};
+
 #if __cpp_noexcept_function_type >= 201510L
 
 template<class T, class C, class... Params>
@@ -118,6 +158,46 @@ struct get_class_from_member_function_pointer<T (C::*)(Params...) volatile noexc
 
 template<class T, class C, class... Params>
 struct get_class_from_member_function_pointer<T (C::*)(Params...) const volatile noexcept> {
+  using type = C;
+};
+
+template<class T, class C, class... Params>
+struct get_class_from_member_function_pointer<T (C::*)(Params...) & noexcept> {
+  using type = C;
+};
+
+template<class T, class C, class... Params>
+struct get_class_from_member_function_pointer<T (C::*)(Params...) const & noexcept> {
+  using type = C;
+};
+
+template<class T, class C, class... Params>
+struct get_class_from_member_function_pointer<T (C::*)(Params...) volatile & noexcept> {
+  using type = C;
+};
+
+template<class T, class C, class... Params>
+struct get_class_from_member_function_pointer<T (C::*)(Params...) const volatile & noexcept> {
+  using type = C;
+};
+
+template<class T, class C, class... Params>
+struct get_class_from_member_function_pointer<T (C::*)(Params...) && noexcept> {
+  using type = C;
+};
+
+template<class T, class C, class... Params>
+struct get_class_from_member_function_pointer<T (C::*)(Params...) const && noexcept> {
+  using type = C;
+};
+
+template<class T, class C, class... Params>
+struct get_class_from_member_function_pointer<T (C::*)(Params...) volatile && noexcept> {
+  using type = C;
+};
+
+template<class T, class C, class... Params>
+struct get_class_from_member_function_pointer<T (C::*)(Params...) const volatile && noexcept> {
   using type = C;
 };
 

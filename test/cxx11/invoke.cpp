@@ -26,6 +26,26 @@ struct S {
   int const_volatile_member_function(int arg) const volatile { return value + arg; }
   int volatile& mutating_volatile_nothrow_member_function(int arg) volatile noexcept { return value = arg; }
   int const_volatile_nothrow_member_function(int arg) const volatile noexcept { return value + arg; }
+
+  int& mutating_lvalue_ref_member_function(int arg) & { return value = arg; }
+  int const_lvalue_ref_member_function(int arg) const& { return value + arg; }
+  int& mutating_lvalue_ref_nothrow_member_function(int arg) & noexcept { return value = arg; }
+  int const_lvalue_ref_nothrow_member_function(int arg) const& noexcept { return value + arg; }
+
+  int volatile& mutating_volatile_lvalue_ref_member_function(int arg) volatile& { return value = arg; }
+  int const_volatile_lvalue_ref_member_function(int arg) const volatile& { return value + arg; }
+  int volatile& mutating_volatile_lvalue_ref_nothrow_member_function(int arg) volatile& noexcept { return value = arg; }
+  int const_volatile_lvalue_ref_nothrow_member_function(int arg) const volatile& noexcept { return value + arg; }
+
+  int mutating_rvalue_ref_member_function(int arg) && { return value = arg; }
+  int const_rvalue_ref_member_function(int arg) const&& { return value + arg; }
+  int mutating_rvalue_ref_nothrow_member_function(int arg) && noexcept { return value = arg; }
+  int const_rvalue_ref_nothrow_member_function(int arg) const&& noexcept { return value + arg; }
+
+  int mutating_volatile_rvalue_ref_member_function(int arg) volatile&& { return value = arg; }
+  int const_volatile_rvalue_ref_member_function(int arg) const volatile&& { return value + arg; }
+  int mutating_volatile_rvalue_ref_nothrow_member_function(int arg) volatile&& noexcept { return value = arg; }
+  int const_volatile_rvalue_ref_nothrow_member_function(int arg) const volatile&& noexcept { return value + arg; }
 };
 
 struct Derived : S {
@@ -81,6 +101,14 @@ TEST_CASE("invoke")
     CHECK(pf::invoke(&S::const_volatile_member_function, s, 56) == 90);
     CHECK(pf::invoke(&S::mutating_volatile_nothrow_member_function, s, 78) == 78);
     CHECK(pf::invoke(&S::const_volatile_nothrow_member_function, s, 90) == 168);
+    CHECK(pf::invoke(&S::mutating_lvalue_ref_member_function, s, 34) == 34);
+    CHECK(pf::invoke(&S::const_lvalue_ref_member_function, s, 56) == 90);
+    CHECK(pf::invoke(&S::mutating_lvalue_ref_nothrow_member_function, s, 78) == 78);
+    CHECK(pf::invoke(&S::const_lvalue_ref_nothrow_member_function, s, 90) == 168);
+    CHECK(pf::invoke(&S::mutating_volatile_lvalue_ref_member_function, s, 34) == 34);
+    CHECK(pf::invoke(&S::const_volatile_lvalue_ref_member_function, s, 56) == 90);
+    CHECK(pf::invoke(&S::mutating_volatile_lvalue_ref_nothrow_member_function, s, 78) == 78);
+    CHECK(pf::invoke(&S::const_volatile_lvalue_ref_nothrow_member_function, s, 90) == 168);
   }
 
   // member function pointer + object (xvalue)
@@ -93,6 +121,14 @@ TEST_CASE("invoke")
     CHECK(pf::invoke(&S::const_volatile_member_function, S{33}, 4) == 37);
     CHECK(pf::invoke(&S::mutating_volatile_nothrow_member_function, S{33}, 4) == 4);
     CHECK(pf::invoke(&S::const_volatile_nothrow_member_function, S{33}, 4) == 37);
+    CHECK(pf::invoke(&S::mutating_rvalue_ref_member_function, S{33}, 4) == 4);
+    CHECK(pf::invoke(&S::const_rvalue_ref_member_function, S{33}, 4) == 37);
+    CHECK(pf::invoke(&S::mutating_rvalue_ref_nothrow_member_function, S{33}, 4) == 4);
+    CHECK(pf::invoke(&S::const_rvalue_ref_nothrow_member_function, S{33}, 4) == 37);
+    CHECK(pf::invoke(&S::mutating_volatile_rvalue_ref_member_function, S{33}, 4) == 4);
+    CHECK(pf::invoke(&S::const_volatile_rvalue_ref_member_function, S{33}, 4) == 37);
+    CHECK(pf::invoke(&S::mutating_volatile_rvalue_ref_nothrow_member_function, S{33}, 4) == 4);
+    CHECK(pf::invoke(&S::const_volatile_rvalue_ref_nothrow_member_function, S{33}, 4) == 37);
   }
 
   // member function pointer + reference_wrapper (lvalue)
@@ -107,6 +143,14 @@ TEST_CASE("invoke")
     CHECK(pf::invoke(&S::const_volatile_member_function, ref, 56) == 90);
     CHECK(pf::invoke(&S::mutating_volatile_nothrow_member_function, ref, 78) == 78);
     CHECK(pf::invoke(&S::const_volatile_nothrow_member_function, ref, 90) == 168);
+    CHECK(pf::invoke(&S::mutating_lvalue_ref_member_function, ref, 34) == 34);
+    CHECK(pf::invoke(&S::const_lvalue_ref_member_function, ref, 56) == 90);
+    CHECK(pf::invoke(&S::mutating_lvalue_ref_nothrow_member_function, ref, 78) == 78);
+    CHECK(pf::invoke(&S::const_lvalue_ref_nothrow_member_function, ref, 90) == 168);
+    CHECK(pf::invoke(&S::mutating_volatile_lvalue_ref_member_function, ref, 34) == 34);
+    CHECK(pf::invoke(&S::const_volatile_lvalue_ref_member_function, ref, 56) == 90);
+    CHECK(pf::invoke(&S::mutating_volatile_lvalue_ref_nothrow_member_function, ref, 78) == 78);
+    CHECK(pf::invoke(&S::const_volatile_lvalue_ref_nothrow_member_function, ref, 90) == 168);
   }
 
   // member function pointer + reference_wrapper (xvalue)
@@ -120,6 +164,14 @@ TEST_CASE("invoke")
     CHECK(pf::invoke(&S::const_volatile_member_function, std::ref(s), 56) == 90);
     CHECK(pf::invoke(&S::mutating_volatile_nothrow_member_function, std::ref(s), 78) == 78);
     CHECK(pf::invoke(&S::const_volatile_nothrow_member_function, std::ref(s), 90) == 168);
+    CHECK(pf::invoke(&S::mutating_lvalue_ref_member_function, std::ref(s), 34) == 34);
+    CHECK(pf::invoke(&S::const_lvalue_ref_member_function, std::ref(s), 56) == 90);
+    CHECK(pf::invoke(&S::mutating_lvalue_ref_nothrow_member_function, std::ref(s), 78) == 78);
+    CHECK(pf::invoke(&S::const_lvalue_ref_nothrow_member_function, std::ref(s), 90) == 168);
+    CHECK(pf::invoke(&S::mutating_volatile_lvalue_ref_member_function, std::ref(s), 34) == 34);
+    CHECK(pf::invoke(&S::const_volatile_lvalue_ref_member_function, std::ref(s), 56) == 90);
+    CHECK(pf::invoke(&S::mutating_volatile_lvalue_ref_nothrow_member_function, std::ref(s), 78) == 78);
+    CHECK(pf::invoke(&S::const_volatile_lvalue_ref_nothrow_member_function, std::ref(s), 90) == 168);
   }
 
   // member function pointer + pointer
@@ -133,6 +185,14 @@ TEST_CASE("invoke")
     CHECK(pf::invoke(&S::const_volatile_member_function, &s, 56) == 90);
     CHECK(pf::invoke(&S::mutating_volatile_nothrow_member_function, &s, 78) == 78);
     CHECK(pf::invoke(&S::const_volatile_nothrow_member_function, &s, 90) == 168);
+    CHECK(pf::invoke(&S::mutating_lvalue_ref_member_function, &s, 34) == 34);
+    CHECK(pf::invoke(&S::const_lvalue_ref_member_function, &s, 56) == 90);
+    CHECK(pf::invoke(&S::mutating_lvalue_ref_nothrow_member_function, &s, 78) == 78);
+    CHECK(pf::invoke(&S::const_lvalue_ref_nothrow_member_function, &s, 90) == 168);
+    CHECK(pf::invoke(&S::mutating_volatile_lvalue_ref_member_function, &s, 34) == 34);
+    CHECK(pf::invoke(&S::const_volatile_lvalue_ref_member_function, &s, 56) == 90);
+    CHECK(pf::invoke(&S::mutating_volatile_lvalue_ref_nothrow_member_function, &s, 78) == 78);
+    CHECK(pf::invoke(&S::const_volatile_lvalue_ref_nothrow_member_function, &s, 90) == 168);
   }
 
   // member function pointer + pointer-ish (lvalue)
@@ -146,6 +206,14 @@ TEST_CASE("invoke")
     CHECK(pf::invoke(&S::const_volatile_member_function, ptr, 56) == 90);
     CHECK(pf::invoke(&S::mutating_volatile_nothrow_member_function, ptr, 78) == 78);
     CHECK(pf::invoke(&S::const_volatile_nothrow_member_function, ptr, 90) == 168);
+    CHECK(pf::invoke(&S::mutating_lvalue_ref_member_function, ptr, 34) == 34);
+    CHECK(pf::invoke(&S::const_lvalue_ref_member_function, ptr, 56) == 90);
+    CHECK(pf::invoke(&S::mutating_lvalue_ref_nothrow_member_function, ptr, 78) == 78);
+    CHECK(pf::invoke(&S::const_lvalue_ref_nothrow_member_function, ptr, 90) == 168);
+    CHECK(pf::invoke(&S::mutating_volatile_lvalue_ref_member_function, ptr, 34) == 34);
+    CHECK(pf::invoke(&S::const_volatile_lvalue_ref_member_function, ptr, 56) == 90);
+    CHECK(pf::invoke(&S::mutating_volatile_lvalue_ref_nothrow_member_function, ptr, 78) == 78);
+    CHECK(pf::invoke(&S::const_volatile_lvalue_ref_nothrow_member_function, ptr, 90) == 168);
   }
 
   // member function pointer + pointer-ish (xvalue)
@@ -158,6 +226,14 @@ TEST_CASE("invoke")
     CHECK(pf::invoke(&S::const_volatile_member_function, pf::make_unique<S>(33), 4) == 37);
     CHECK(pf::invoke(&S::mutating_volatile_nothrow_member_function, pf::make_unique<S>(33), 4) == 4);
     CHECK(pf::invoke(&S::const_volatile_nothrow_member_function, pf::make_unique<S>(33), 4) == 37);
+    CHECK(pf::invoke(&S::mutating_lvalue_ref_member_function, pf::make_unique<S>(33), 4) == 4);
+    CHECK(pf::invoke(&S::const_lvalue_ref_member_function, pf::make_unique<S>(33), 4) == 37);
+    CHECK(pf::invoke(&S::mutating_lvalue_ref_nothrow_member_function, pf::make_unique<S>(33), 4) == 4);
+    CHECK(pf::invoke(&S::const_lvalue_ref_nothrow_member_function, pf::make_unique<S>(33), 4) == 37);
+    CHECK(pf::invoke(&S::mutating_volatile_lvalue_ref_member_function, pf::make_unique<S>(33), 4) == 4);
+    CHECK(pf::invoke(&S::const_volatile_lvalue_ref_member_function, pf::make_unique<S>(33), 4) == 37);
+    CHECK(pf::invoke(&S::mutating_volatile_lvalue_ref_nothrow_member_function, pf::make_unique<S>(33), 4) == 4);
+    CHECK(pf::invoke(&S::const_volatile_lvalue_ref_nothrow_member_function, pf::make_unique<S>(33), 4) == 37);
   }
 
   // member function pointer + derived class
@@ -167,10 +243,26 @@ TEST_CASE("invoke")
     CHECK(pf::invoke(&S::mutating_member_function, d, 20) == 20);
     CHECK(pf::invoke(&S::const_nothrow_member_function, d, 3) == 23);
     CHECK(pf::invoke(&S::mutating_nothrow_member_function, d, 40) == 40);
-    CHECK(pf::invoke(&S::const_volatile_member_function, d, 5) == 15);
+    CHECK(pf::invoke(&S::const_volatile_member_function, d, 5) == 45);
     CHECK(pf::invoke(&S::mutating_volatile_member_function, d, 20) == 20);
     CHECK(pf::invoke(&S::const_volatile_nothrow_member_function, d, 3) == 23);
     CHECK(pf::invoke(&S::mutating_volatile_nothrow_member_function, d, 40) == 40);
+    CHECK(pf::invoke(&S::const_lvalue_ref_member_function, d, 5) == 45);
+    CHECK(pf::invoke(&S::mutating_lvalue_ref_member_function, d, 20) == 20);
+    CHECK(pf::invoke(&S::const_lvalue_ref_nothrow_member_function, d, 3) == 23);
+    CHECK(pf::invoke(&S::mutating_lvalue_ref_nothrow_member_function, d, 40) == 40);
+    CHECK(pf::invoke(&S::const_volatile_lvalue_ref_member_function, d, 5) == 45);
+    CHECK(pf::invoke(&S::mutating_volatile_lvalue_ref_member_function, d, 20) == 20);
+    CHECK(pf::invoke(&S::const_volatile_lvalue_ref_nothrow_member_function, d, 3) == 23);
+    CHECK(pf::invoke(&S::mutating_volatile_lvalue_ref_nothrow_member_function, d, 40) == 40);
+    CHECK(pf::invoke(&S::mutating_rvalue_ref_member_function, Derived{33}, 4) == 4);
+    CHECK(pf::invoke(&S::const_rvalue_ref_member_function, Derived{33}, 4) == 37);
+    CHECK(pf::invoke(&S::mutating_rvalue_ref_nothrow_member_function, Derived{33}, 4) == 4);
+    CHECK(pf::invoke(&S::const_rvalue_ref_nothrow_member_function, Derived{33}, 4) == 37);
+    CHECK(pf::invoke(&S::mutating_volatile_rvalue_ref_member_function, Derived{33}, 4) == 4);
+    CHECK(pf::invoke(&S::const_volatile_rvalue_ref_member_function, Derived{33}, 4) == 37);
+    CHECK(pf::invoke(&S::mutating_volatile_rvalue_ref_nothrow_member_function, Derived{33}, 4) == 4);
+    CHECK(pf::invoke(&S::const_volatile_rvalue_ref_nothrow_member_function, Derived{33}, 4) == 37);
   }
 
   // member data pointer + object (lvalue)
@@ -249,12 +341,6 @@ TEST_CASE("is_invocable")
   STATIC_REQUIRE(pf::is_invocable<decltype(&normal_function)>::value == false);
   STATIC_REQUIRE(pf::is_invocable<decltype(&normal_function), int, int, int>::value == false);
 
-  // member function pointer
-  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_member_function), S, int>::value == true);
-  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_member_function), S&, int>::value == true);
-  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_member_function), S*, int>::value == true);
-  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_member_function), int, int>::value == false);
-
   // member data pointer
   STATIC_REQUIRE(pf::is_invocable<decltype(&S::value), S>::value == true);
   STATIC_REQUIRE(pf::is_invocable<decltype(&S::value), S&>::value == true);
@@ -264,6 +350,105 @@ TEST_CASE("is_invocable")
   // derived class with base member pointer
   STATIC_REQUIRE(pf::is_invocable<decltype(&S::value), Derived>::value == true);
   STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_member_function), Derived, int>::value == true);
+
+  // member function pointer
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_member_function), S, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_member_function), S&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_member_function), S const&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_member_function), S&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_member_function), S const&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_member_function), S*, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_member_function), int, int>::value == false);
+
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_member_function), S, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_member_function), S&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_member_function), S const&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_member_function), S&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_member_function), S const&&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_member_function), S*, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_member_function), int, int>::value == false);
+
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_member_function), S, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_member_function), S&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_member_function), S const&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_member_function), S&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_member_function), S const&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_member_function), S*, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_member_function), int, int>::value == false);
+
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_volatile_member_function), S, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_volatile_member_function), S&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_volatile_member_function), S const&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_volatile_member_function), S&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_volatile_member_function), S const&&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_volatile_member_function), S*, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_volatile_member_function), int, int>::value == false);
+
+  // lvalue ref qualified member function pointer
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_lvalue_ref_member_function), S, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_lvalue_ref_member_function), S&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_lvalue_ref_member_function), S const&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_lvalue_ref_member_function), S&&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_lvalue_ref_member_function), S const&&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_lvalue_ref_member_function), S*, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_lvalue_ref_member_function), int, int>::value == false);
+
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_lvalue_ref_member_function), S, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_lvalue_ref_member_function), S&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_lvalue_ref_member_function), S const&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_lvalue_ref_member_function), S&&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_lvalue_ref_member_function), S const&&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_lvalue_ref_member_function), S*, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_lvalue_ref_member_function), int, int>::value == false);
+
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_lvalue_ref_member_function), S, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_lvalue_ref_member_function), S&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_lvalue_ref_member_function), S const&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_lvalue_ref_member_function), S&&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_lvalue_ref_member_function), S const&&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_lvalue_ref_member_function), S*, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_lvalue_ref_member_function), int, int>::value == false);
+
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_volatile_lvalue_ref_member_function), S, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_volatile_lvalue_ref_member_function), S&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_volatile_lvalue_ref_member_function), S const&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_volatile_lvalue_ref_member_function), S&&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_volatile_lvalue_ref_member_function), S const&&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_volatile_lvalue_ref_member_function), S*, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_volatile_lvalue_ref_member_function), int, int>::value == false);
+
+  // rvalue ref qualified member function pointer
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_rvalue_ref_member_function), S, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_rvalue_ref_member_function), S&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_rvalue_ref_member_function), S const&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_rvalue_ref_member_function), S&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_rvalue_ref_member_function), S const&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_rvalue_ref_member_function), S*, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_rvalue_ref_member_function), int, int>::value == false);
+
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_rvalue_ref_member_function), S, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_rvalue_ref_member_function), S&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_rvalue_ref_member_function), S const&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_rvalue_ref_member_function), S&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_rvalue_ref_member_function), S const&&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_rvalue_ref_member_function), S*, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_rvalue_ref_member_function), int, int>::value == false);
+
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_rvalue_ref_member_function), S, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_rvalue_ref_member_function), S&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_rvalue_ref_member_function), S const&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_rvalue_ref_member_function), S&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_rvalue_ref_member_function), S const&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_rvalue_ref_member_function), S*, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_volatile_rvalue_ref_member_function), int, int>::value == false);
+
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_volatile_rvalue_ref_member_function), S, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_volatile_rvalue_ref_member_function), S&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_volatile_rvalue_ref_member_function), S const&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_volatile_rvalue_ref_member_function), S&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_volatile_rvalue_ref_member_function), S const&&, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_volatile_rvalue_ref_member_function), S*, int>::value == false);
+  STATIC_REQUIRE(pf::is_invocable<decltype(&S::mutating_volatile_rvalue_ref_member_function), int, int>::value == false);
 
   // not invocable
   STATIC_REQUIRE(pf::is_invocable<int>::value == false);
