@@ -811,14 +811,14 @@ TEST_CASE("is_invocable")
   STATIC_REQUIRE(pf::is_invocable<decltype(&S::lvalue_ref_variadic_member_function), int, int>::value == false);
 
   // P0704R1 (C++20): const&-qualified member functions can be called on rvalues through member function pointers
-#if YK_POLYFILL_CXX_VERSION > 202002L
+#if YK_POLYFILL_CXX_VERSION >= 202002L
   STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_lvalue_ref_variadic_member_function), S, int>::value == true);
 #else
   STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_lvalue_ref_variadic_member_function), S, int>::value == false);
 #endif
   STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_lvalue_ref_variadic_member_function), S&, int>::value == true);
   STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_lvalue_ref_variadic_member_function), S const&, int>::value == true);
-#if YK_POLYFILL_CXX_VERSION > 202002L
+#if YK_POLYFILL_CXX_VERSION >= 202002L
   STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_lvalue_ref_variadic_member_function), S&&, int>::value == true);
   STATIC_REQUIRE(pf::is_invocable<decltype(&S::const_lvalue_ref_variadic_member_function), S const&&, int>::value == true);
 #else
