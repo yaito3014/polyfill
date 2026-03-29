@@ -79,10 +79,12 @@ constexpr auto invoke_impl(T C::* f, U&& u) noexcept(noexcept((*static_cast<U&&>
 template<class MFP>
 struct get_class_from_member_function_pointer {};
 
-#define YK_POLYFILL_DETAIL_GET_CLASS_FROM_MFP(cv_opt, ref_opt, noexcept_opt, variadic_opt)                      \
-  template<class T, class C, class... Params>                                                                   \
-  struct get_class_from_member_function_pointer<T (C::*)(Params..., variadic_opt) cv_opt ref_opt noexcept_opt> { \
-    using type = C;                                                                                             \
+#define YK_POLYFILL_DETAIL_UNPACK(...) __VA_ARGS__
+
+#define YK_POLYFILL_DETAIL_GET_CLASS_FROM_MFP(cv_opt, ref_opt, noexcept_opt, variadic_opt)                                                \
+  template<class T, class C, class... Params>                                                                                             \
+  struct get_class_from_member_function_pointer<T (C::*)(Params... YK_POLYFILL_DETAIL_UNPACK variadic_opt) cv_opt ref_opt noexcept_opt> { \
+    using type = C;                                                                                                                       \
   };
 
 #define YK_POLYFILL_DETAIL_GET_CLASS_FROM_MFP_CV(ref_opt, noexcept_opt, variadic_opt)  \
@@ -97,24 +99,25 @@ struct get_class_from_member_function_pointer {};
   YK_POLYFILL_DETAIL_GET_CLASS_FROM_MFP_CV(&&, noexcept_opt, variadic_opt)
 
 // non-variadic, non-noexcept
-YK_POLYFILL_DETAIL_GET_CLASS_FROM_MFP_CV_REF(, )
+YK_POLYFILL_DETAIL_GET_CLASS_FROM_MFP_CV_REF(, ())
 
 // variadic, non-noexcept
-YK_POLYFILL_DETAIL_GET_CLASS_FROM_MFP_CV_REF(, ...)
+YK_POLYFILL_DETAIL_GET_CLASS_FROM_MFP_CV_REF(, (, ...))
 
 #if __cpp_noexcept_function_type >= 201510L
 
 // non-variadic, noexcept
-YK_POLYFILL_DETAIL_GET_CLASS_FROM_MFP_CV_REF(noexcept, )
+YK_POLYFILL_DETAIL_GET_CLASS_FROM_MFP_CV_REF(noexcept, ())
 
 // variadic, noexcept
-YK_POLYFILL_DETAIL_GET_CLASS_FROM_MFP_CV_REF(noexcept, ...)
+YK_POLYFILL_DETAIL_GET_CLASS_FROM_MFP_CV_REF(noexcept, (, ...))
 
 #endif
 
 #undef YK_POLYFILL_DETAIL_GET_CLASS_FROM_MFP_CV_REF
 #undef YK_POLYFILL_DETAIL_GET_CLASS_FROM_MFP_CV
 #undef YK_POLYFILL_DETAIL_GET_CLASS_FROM_MFP
+#undef YK_POLYFILL_DETAIL_UNPACK
 
 // member function pointer + reference to object
 template<
