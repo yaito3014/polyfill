@@ -8,6 +8,8 @@ else()
     set(YK_POLYFILL_CXX_STANDARD 11)
 endif()
 
+set(YK_POLYFILL_CXX_VERSIONS 11 14 17 20 23 26)
+
 foreach(required_cxx_version ${YK_POLYFILL_CXX_VERSIONS})
     if(${required_cxx_version} GREATER ${YK_POLYFILL_CXX_STANDARD})
         continue()

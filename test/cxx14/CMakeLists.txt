@@ -16,9 +16,10 @@ target_compile_definitions(
     PRIVATE YK_POLYFILL_CATCH2_MAJOR_VERSION=${YK_POLYFILL_CATCH2_MAJOR_VERSION}
 )
 
+target_compile_features(yk_polyfill_cxx14_test PRIVATE cxx_std_14)
 target_link_libraries(
     yk_polyfill_cxx14_test
-    PRIVATE yk::polyfill::cxx14 Catch2::Catch2WithMain
+    PRIVATE yk::polyfill Catch2::Catch2WithMain
 )
 
 add_test(NAME yk_polyfill_cxx14_test COMMAND yk_polyfill_cxx14_test)
