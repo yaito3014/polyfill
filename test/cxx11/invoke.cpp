@@ -35,6 +35,13 @@ struct NothrowConvertible {
   NothrowConvertible(int) noexcept {}
 };
 
+struct InvocationIsThrowing {
+  void mutation_member_function(ThrowingConvertible) {}
+  void const_member_function(ThrowingConvertible) const {}
+  void mutation_nothrow_member_function(ThrowingConvertible) noexcept {}
+  void const_nothrow_member_function(ThrowingConvertible) const noexcept {}
+};
+
 namespace pf = yk::polyfill;
 
 TEST_CASE("invoke")
@@ -228,13 +235,18 @@ TEST_CASE("is_invocable")
 TEST_CASE("is_nothrow_invocable")
 {
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&normal_function), int, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_member_function), S&, int>::value == false);
+
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&InvocationIsThrowing::const_member_function), S&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&InvocationIsThrowing::const_nothrow_member_function), S&, int>::value == false);
 
 #if __cpp_noexcept_function_type >= 201510
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&nothrow_function), int, int>::value == true);
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_nothrow_member_function), S&, int>::value == true);
-  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_nothrow_member_function), S*, int>::value == true);
+
+  // member function pointer itself is marked as noexcept, but invocation is throwing
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&InvocationIsThrowing::const_nothrow_member_function), S&, int>::value == false);
 #endif
-  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_member_function), S&, int>::value == false);
 
   // member data pointer is always noexcept
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::value), S&>::value == true);

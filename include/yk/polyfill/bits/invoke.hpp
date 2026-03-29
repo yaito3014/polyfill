@@ -76,120 +76,89 @@ constexpr auto invoke_impl(T C::* f, U&& u) noexcept -> decltype((*static_cast<U
   return (*static_cast<U&&>(u)).*f;
 }
 
+template<class MFP>
+struct get_class_from_member_function_pointer {};
+
+template<class T, class C, class... Params>
+struct get_class_from_member_function_pointer<T (C::*)(Params...)> {
+  using type = C;
+};
+
+template<class T, class C, class... Params>
+struct get_class_from_member_function_pointer<T (C::*)(Params...) const> {
+  using type = C;
+};
+
+template<class T, class C, class... Params>
+struct get_class_from_member_function_pointer<T (C::*)(Params...) volatile> {
+  using type = C;
+};
+
+template<class T, class C, class... Params>
+struct get_class_from_member_function_pointer<T (C::*)(Params...) const volatile> {
+  using type = C;
+};
+
+#if __cpp_noexcept_function_type >= 201510L
+
+template<class T, class C, class... Params>
+struct get_class_from_member_function_pointer<T (C::*)(Params...) noexcept> {
+  using type = C;
+};
+
+template<class T, class C, class... Params>
+struct get_class_from_member_function_pointer<T (C::*)(Params...) const noexcept> {
+  using type = C;
+};
+
+template<class T, class C, class... Params>
+struct get_class_from_member_function_pointer<T (C::*)(Params...) volatile noexcept> {
+  using type = C;
+};
+
+template<class T, class C, class... Params>
+struct get_class_from_member_function_pointer<T (C::*)(Params...) const volatile noexcept> {
+  using type = C;
+};
+
+#endif
+
 // member function pointer + reference to object
 template<
-    class T, class C, class... Params, class U, class... Args,
-    typename std::enable_if<check_invoke_kind<C, typename remove_cvref<U>::type>::value == invoke_kind::reference_to_object, std::nullptr_t>::type = nullptr>
-constexpr auto invoke_impl(T (C::*f)(Params...), U&& u, Args&&... args) -> decltype((static_cast<U&&>(u).*f)(static_cast<Args&&>(args)...))
+    class MFP, class U, class... Args, typename std::enable_if<std::is_member_function_pointer<MFP>::value, std::nullptr_t>::type = nullptr,
+    typename std::enable_if<
+        check_invoke_kind<typename get_class_from_member_function_pointer<MFP>::type, typename remove_cvref<U>::type>::value
+            == invoke_kind::reference_to_object,
+        std::nullptr_t>::type = nullptr>
+constexpr auto invoke_impl(MFP mfp, U&& u, Args&&... args) noexcept(noexcept((std::forward<U>(u).*mfp)(std::forward<Args>(args)...)))
+    -> decltype((std::forward<U>(u).*mfp)(std::forward<Args>(args)...))
 {
-  return (static_cast<U&&>(u).*f)(static_cast<Args&&>(args)...);
+  return (std::forward<U>(u).*mfp)(std::forward<Args>(args)...);
 }
 
+// member function pointer + reference_wrapper
 template<
-    class T, class C, class... Params, class U, class... Args,
-    typename std::enable_if<check_invoke_kind<C, typename remove_cvref<U>::type>::value == invoke_kind::reference_to_object, std::nullptr_t>::type = nullptr>
-constexpr auto invoke_impl(T (C::*f)(Params...) const, U&& u, Args&&... args) -> decltype((static_cast<U&&>(u).*f)(static_cast<Args&&>(args)...))
+    class MFP, class U, class... Args, typename std::enable_if<std::is_member_function_pointer<MFP>::value, std::nullptr_t>::type = nullptr,
+    typename std::enable_if<
+        check_invoke_kind<typename get_class_from_member_function_pointer<MFP>::type, typename remove_cvref<U>::type>::value == invoke_kind::reference_wrapper,
+        std::nullptr_t>::type = nullptr>
+constexpr auto invoke_impl(MFP mfp, U&& u, Args&&... args) noexcept(noexcept((std::forward<U>(u).get().*mfp)(std::forward<Args>(args)...)))
+    -> decltype((std::forward<U>(u).get().*mfp)(std::forward<Args>(args)...))
 {
-  return (static_cast<U&&>(u).*f)(static_cast<Args&&>(args)...);
+  return (std::forward<U>(u).get().*mfp)(std::forward<Args>(args)...);
 }
-
-#if __cpp_noexcept_function_type >= 201510
-
-template<
-    class T, class C, class... Params, class U, class... Args,
-    typename std::enable_if<check_invoke_kind<C, typename remove_cvref<U>::type>::value == invoke_kind::reference_to_object, std::nullptr_t>::type = nullptr>
-constexpr auto invoke_impl(T (C::*f)(Params...) noexcept, U&& u, Args&&... args) noexcept -> decltype((static_cast<U&&>(u).*f)(static_cast<Args&&>(args)...))
-{
-  return (static_cast<U&&>(u).*f)(static_cast<Args&&>(args)...);
-}
-
-template<
-    class T, class C, class... Params, class U, class... Args,
-    typename std::enable_if<check_invoke_kind<C, typename remove_cvref<U>::type>::value == invoke_kind::reference_to_object, std::nullptr_t>::type = nullptr>
-constexpr auto invoke_impl(T (C::*f)(Params...) const noexcept, U&& u, Args&&... args) noexcept
-    -> decltype((static_cast<U&&>(u).*f)(static_cast<Args&&>(args)...))
-{
-  return (static_cast<U&&>(u).*f)(static_cast<Args&&>(args)...);
-}
-
-#endif
-
-// member function pointer + reference_wrapper to object
-template<
-    class T, class C, class... Params, class U, class... Args,
-    typename std::enable_if<check_invoke_kind<C, typename remove_cvref<U>::type>::value == invoke_kind::reference_wrapper, std::nullptr_t>::type = nullptr>
-constexpr auto invoke_impl(T (C::*f)(Params...), U&& u, Args&&... args) -> decltype((static_cast<U&&>(u).get().*f)(static_cast<Args&&>(args)...))
-{
-  return (static_cast<U&&>(u).get().*f)(static_cast<Args&&>(args)...);
-}
-
-template<
-    class T, class C, class... Params, class U, class... Args,
-    typename std::enable_if<check_invoke_kind<C, typename remove_cvref<U>::type>::value == invoke_kind::reference_wrapper, std::nullptr_t>::type = nullptr>
-constexpr auto invoke_impl(T (C::*f)(Params...) const, U&& u, Args&&... args) -> decltype((static_cast<U&&>(u).get().*f)(static_cast<Args&&>(args)...))
-{
-  return (static_cast<U&&>(u).get().*f)(static_cast<Args&&>(args)...);
-}
-
-#if __cpp_noexcept_function_type >= 201510
-
-template<
-    class T, class C, class... Params, class U, class... Args,
-    typename std::enable_if<check_invoke_kind<C, typename remove_cvref<U>::type>::value == invoke_kind::reference_wrapper, std::nullptr_t>::type = nullptr>
-constexpr auto invoke_impl(T (C::*f)(Params...) noexcept, U&& u, Args&&... args) noexcept
-    -> decltype((static_cast<U&&>(u).get().*f)(static_cast<Args&&>(args)...))
-{
-  return (static_cast<U&&>(u).get().*f)(static_cast<Args&&>(args)...);
-}
-
-template<
-    class T, class C, class... Params, class U, class... Args,
-    typename std::enable_if<check_invoke_kind<C, typename remove_cvref<U>::type>::value == invoke_kind::reference_wrapper, std::nullptr_t>::type = nullptr>
-constexpr auto invoke_impl(T (C::*f)(Params...) const noexcept, U&& u, Args&&... args) noexcept
-    -> decltype((static_cast<U&&>(u).get().*f)(static_cast<Args&&>(args)...))
-{
-  return (static_cast<U&&>(u).get().*f)(static_cast<Args&&>(args)...);
-}
-
-#endif
 
 // member function pointer + other(dereferenceable)
 template<
-    class T, class C, class... Params, class U, class... Args,
-    typename std::enable_if<check_invoke_kind<C, typename remove_cvref<U>::type>::value == invoke_kind::other, std::nullptr_t>::type = nullptr>
-constexpr auto invoke_impl(T (C::*f)(Params...), U&& u, Args&&... args) -> decltype(((*static_cast<U&&>(u)).*f)(static_cast<Args&&>(args)...))
+    class MFP, class U, class... Args, typename std::enable_if<std::is_member_function_pointer<MFP>::value, std::nullptr_t>::type = nullptr,
+    typename std::enable_if<
+        check_invoke_kind<typename get_class_from_member_function_pointer<MFP>::type, typename remove_cvref<U>::type>::value == invoke_kind::other,
+        std::nullptr_t>::type = nullptr>
+constexpr auto invoke_impl(MFP mfp, U&& u, Args&&... args) noexcept(noexcept(((*std::forward<U>(u)).*mfp)(std::forward<Args>(args)...)))
+    -> decltype(((*std::forward<U>(u)).*mfp)(std::forward<Args>(args)...))
 {
-  return ((*static_cast<U&&>(u)).*f)(static_cast<Args&&>(args)...);
+  return ((*std::forward<U>(u)).*mfp)(std::forward<Args>(args)...);
 }
-
-template<
-    class T, class C, class... Params, class U, class... Args,
-    typename std::enable_if<check_invoke_kind<C, typename remove_cvref<U>::type>::value == invoke_kind::other, std::nullptr_t>::type = nullptr>
-constexpr auto invoke_impl(T (C::*f)(Params...) const, U&& u, Args&&... args) -> decltype(((*static_cast<U&&>(u)).*f)(static_cast<Args&&>(args)...))
-{
-  return ((*static_cast<U&&>(u)).*f)(static_cast<Args&&>(args)...);
-}
-
-#if __cpp_noexcept_function_type >= 201510
-
-template<
-    class T, class C, class... Params, class U, class... Args,
-    typename std::enable_if<check_invoke_kind<C, typename remove_cvref<U>::type>::value == invoke_kind::other, std::nullptr_t>::type = nullptr>
-constexpr auto invoke_impl(T (C::*f)(Params...) noexcept, U&& u, Args&&... args) noexcept -> decltype(((*static_cast<U&&>(u)).*f)(static_cast<Args&&>(args)...))
-{
-  return ((*static_cast<U&&>(u)).*f)(static_cast<Args&&>(args)...);
-}
-
-template<
-    class T, class C, class... Params, class U, class... Args,
-    typename std::enable_if<check_invoke_kind<C, typename remove_cvref<U>::type>::value == invoke_kind::other, std::nullptr_t>::type = nullptr>
-constexpr auto invoke_impl(T (C::*f)(Params...) const noexcept, U&& u, Args&&... args) noexcept
-    -> decltype(((*static_cast<U&&>(u)).*f)(static_cast<Args&&>(args)...))
-{
-  return ((*static_cast<U&&>(u)).*f)(static_cast<Args&&>(args)...);
-}
-
-#endif
 
 template<class R>
 struct invoke_r_impl {
@@ -294,4 +263,4 @@ constexpr R invoke_r(F&& f, Args&&... args) noexcept(is_nothrow_invocable_r<R, F
 
 }  // namespace yk
 
-#endif // YK_POLYFILL_BITS_INVOKE_HPP
+#endif  // YK_POLYFILL_BITS_INVOKE_HPP
