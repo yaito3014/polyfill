@@ -71,7 +71,7 @@ constexpr auto invoke_impl(T C::* f, U&& u) noexcept -> decltype(static_cast<U&&
 template<
     class T, class C, class U,
     typename std::enable_if<check_invoke_kind<C, typename remove_cvref<U>::type>::value == invoke_kind::other, std::nullptr_t>::type = nullptr>
-constexpr auto invoke_impl(T C::* f, U&& u) noexcept -> decltype((*static_cast<U&&>(u)).*f)
+constexpr auto invoke_impl(T C::* f, U&& u) noexcept(noexcept((*static_cast<U&&>(u)).*f)) -> decltype((*static_cast<U&&>(u)).*f)
 {
   return (*static_cast<U&&>(u)).*f;
 }
@@ -79,253 +79,42 @@ constexpr auto invoke_impl(T C::* f, U&& u) noexcept -> decltype((*static_cast<U
 template<class MFP>
 struct get_class_from_member_function_pointer {};
 
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params...)> {
-  using type = C;
-};
+#define YK_POLYFILL_DETAIL_GET_CLASS_FROM_MFP(cv_opt, ref_opt, noexcept_opt, variadic_opt)                      \
+  template<class T, class C, class... Params>                                                                   \
+  struct get_class_from_member_function_pointer<T (C::*)(Params... variadic_opt) cv_opt ref_opt noexcept_opt> { \
+    using type = C;                                                                                             \
+  };
 
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params...) const> {
-  using type = C;
-};
+#define YK_POLYFILL_DETAIL_GET_CLASS_FROM_MFP_CV(ref_opt, noexcept_opt, variadic_opt)  \
+  YK_POLYFILL_DETAIL_GET_CLASS_FROM_MFP(, ref_opt, noexcept_opt, variadic_opt)         \
+  YK_POLYFILL_DETAIL_GET_CLASS_FROM_MFP(const, ref_opt, noexcept_opt, variadic_opt)    \
+  YK_POLYFILL_DETAIL_GET_CLASS_FROM_MFP(volatile, ref_opt, noexcept_opt, variadic_opt) \
+  YK_POLYFILL_DETAIL_GET_CLASS_FROM_MFP(const volatile, ref_opt, noexcept_opt, variadic_opt)
 
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params...) volatile> {
-  using type = C;
-};
+#define YK_POLYFILL_DETAIL_GET_CLASS_FROM_MFP_CV_REF(noexcept_opt, variadic_opt) \
+  YK_POLYFILL_DETAIL_GET_CLASS_FROM_MFP_CV(, noexcept_opt, variadic_opt)         \
+  YK_POLYFILL_DETAIL_GET_CLASS_FROM_MFP_CV(&, noexcept_opt, variadic_opt)        \
+  YK_POLYFILL_DETAIL_GET_CLASS_FROM_MFP_CV(&&, noexcept_opt, variadic_opt)
 
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params...) const volatile> {
-  using type = C;
-};
+// non-variadic, non-noexcept
+YK_POLYFILL_DETAIL_GET_CLASS_FROM_MFP_CV_REF(, )
 
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params...) &> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params...) const&> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params...) volatile&> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params...) const volatile&> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params...) &&> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params...) const&&> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params...) volatile&&> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params...) const volatile&&> {
-  using type = C;
-};
-
-// C-style variadic
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params..., ...)> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params..., ...) const> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params..., ...) volatile> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params..., ...) const volatile> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params..., ...) &> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params..., ...) const&> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params..., ...) volatile&> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params..., ...) const volatile&> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params..., ...) &&> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params..., ...) const&&> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params..., ...) volatile&&> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params..., ...) const volatile&&> {
-  using type = C;
-};
+// variadic, non-noexcept
+YK_POLYFILL_DETAIL_GET_CLASS_FROM_MFP_CV_REF(, ...)
 
 #if __cpp_noexcept_function_type >= 201510L
 
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params...) noexcept> {
-  using type = C;
-};
+// non-variadic, noexcept
+YK_POLYFILL_DETAIL_GET_CLASS_FROM_MFP_CV_REF(noexcept, )
 
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params...) const noexcept> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params...) volatile noexcept> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params...) const volatile noexcept> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params...) & noexcept> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params...) const & noexcept> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params...) volatile & noexcept> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params...) const volatile & noexcept> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params...) && noexcept> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params...) const && noexcept> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params...) volatile && noexcept> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params...) const volatile && noexcept> {
-  using type = C;
-};
-
-// C-style variadic noexcept
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params..., ...) noexcept> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params..., ...) const noexcept> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params..., ...) volatile noexcept> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params..., ...) const volatile noexcept> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params..., ...) & noexcept> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params..., ...) const & noexcept> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params..., ...) volatile & noexcept> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params..., ...) const volatile & noexcept> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params..., ...) && noexcept> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params..., ...) const && noexcept> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params..., ...) volatile && noexcept> {
-  using type = C;
-};
-
-template<class T, class C, class... Params>
-struct get_class_from_member_function_pointer<T (C::*)(Params..., ...) const volatile && noexcept> {
-  using type = C;
-};
+// variadic, noexcept
+YK_POLYFILL_DETAIL_GET_CLASS_FROM_MFP_CV_REF(noexcept, ...)
 
 #endif
+
+#undef YK_POLYFILL_DETAIL_GET_CLASS_FROM_MFP_CV_REF
+#undef YK_POLYFILL_DETAIL_GET_CLASS_FROM_MFP_CV
+#undef YK_POLYFILL_DETAIL_GET_CLASS_FROM_MFP
 
 // member function pointer + reference to object
 template<
