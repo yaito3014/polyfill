@@ -963,28 +963,103 @@ TEST_CASE("is_nothrow_invocable")
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::mutating_volatile_rvalue_ref_nothrow_member_function), S, int>::value == true);
 
   // noexcept C-style variadic member functions
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::nothrow_variadic_member_function), S, int>::value == true);
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::nothrow_variadic_member_function), S&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::nothrow_variadic_member_function), S const&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::nothrow_variadic_member_function), S&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::nothrow_variadic_member_function), S const&&, int>::value == false);
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::nothrow_variadic_member_function), S*, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::nothrow_variadic_member_function), int, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_nothrow_variadic_member_function), S, int>::value == true);
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_nothrow_variadic_member_function), S&, int>::value == true);
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_nothrow_variadic_member_function), S const&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_nothrow_variadic_member_function), S&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_nothrow_variadic_member_function), S const&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_nothrow_variadic_member_function), S*, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_nothrow_variadic_member_function), int, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::volatile_nothrow_variadic_member_function), S, int>::value == true);
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::volatile_nothrow_variadic_member_function), S&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::volatile_nothrow_variadic_member_function), S const&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::volatile_nothrow_variadic_member_function), S&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::volatile_nothrow_variadic_member_function), S const&&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::volatile_nothrow_variadic_member_function), S*, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::volatile_nothrow_variadic_member_function), int, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_volatile_nothrow_variadic_member_function), S, int>::value == true);
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_volatile_nothrow_variadic_member_function), S&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_volatile_nothrow_variadic_member_function), S const&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_volatile_nothrow_variadic_member_function), S&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_volatile_nothrow_variadic_member_function), S const&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_volatile_nothrow_variadic_member_function), S*, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_volatile_nothrow_variadic_member_function), int, int>::value == false);
 
   // noexcept C-style variadic lvalue ref qualified member functions
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::lvalue_ref_nothrow_variadic_member_function), S, int>::value == false);
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::lvalue_ref_nothrow_variadic_member_function), S&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::lvalue_ref_nothrow_variadic_member_function), S const&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::lvalue_ref_nothrow_variadic_member_function), S&&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::lvalue_ref_nothrow_variadic_member_function), S const&&, int>::value == false);
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::lvalue_ref_nothrow_variadic_member_function), S*, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::lvalue_ref_nothrow_variadic_member_function), int, int>::value == false);
+#if YK_POLYFILL_P0704R1
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_lvalue_ref_nothrow_variadic_member_function), S, int>::value == true);
+#else
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_lvalue_ref_nothrow_variadic_member_function), S, int>::value == false);
+#endif
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_lvalue_ref_nothrow_variadic_member_function), S&, int>::value == true);
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_lvalue_ref_nothrow_variadic_member_function), S const&, int>::value == true);
+#if YK_POLYFILL_P0704R1
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_lvalue_ref_nothrow_variadic_member_function), S&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_lvalue_ref_nothrow_variadic_member_function), S const&&, int>::value == true);
+#else
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_lvalue_ref_nothrow_variadic_member_function), S&&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_lvalue_ref_nothrow_variadic_member_function), S const&&, int>::value == false);
+#endif
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_lvalue_ref_nothrow_variadic_member_function), S*, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_lvalue_ref_nothrow_variadic_member_function), int, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::volatile_lvalue_ref_nothrow_variadic_member_function), S, int>::value == false);
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::volatile_lvalue_ref_nothrow_variadic_member_function), S&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::volatile_lvalue_ref_nothrow_variadic_member_function), S const&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::volatile_lvalue_ref_nothrow_variadic_member_function), S&&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::volatile_lvalue_ref_nothrow_variadic_member_function), S const&&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::volatile_lvalue_ref_nothrow_variadic_member_function), S*, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::volatile_lvalue_ref_nothrow_variadic_member_function), int, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_volatile_lvalue_ref_nothrow_variadic_member_function), S, int>::value == false);
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_volatile_lvalue_ref_nothrow_variadic_member_function), S&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_volatile_lvalue_ref_nothrow_variadic_member_function), S const&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_volatile_lvalue_ref_nothrow_variadic_member_function), S&&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_volatile_lvalue_ref_nothrow_variadic_member_function), S const&&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_volatile_lvalue_ref_nothrow_variadic_member_function), S*, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_volatile_lvalue_ref_nothrow_variadic_member_function), int, int>::value == false);
 
   // noexcept C-style variadic rvalue ref qualified member functions
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::rvalue_ref_nothrow_variadic_member_function), S, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::rvalue_ref_nothrow_variadic_member_function), S&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::rvalue_ref_nothrow_variadic_member_function), S const&, int>::value == false);
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::rvalue_ref_nothrow_variadic_member_function), S&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::rvalue_ref_nothrow_variadic_member_function), S const&&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::rvalue_ref_nothrow_variadic_member_function), S*, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::rvalue_ref_nothrow_variadic_member_function), int, int>::value == false);
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_rvalue_ref_nothrow_variadic_member_function), S, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_rvalue_ref_nothrow_variadic_member_function), S&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_rvalue_ref_nothrow_variadic_member_function), S const&, int>::value == false);
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_rvalue_ref_nothrow_variadic_member_function), S&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_rvalue_ref_nothrow_variadic_member_function), S const&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_rvalue_ref_nothrow_variadic_member_function), S*, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_rvalue_ref_nothrow_variadic_member_function), int, int>::value == false);
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::volatile_rvalue_ref_nothrow_variadic_member_function), S, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::volatile_rvalue_ref_nothrow_variadic_member_function), S&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::volatile_rvalue_ref_nothrow_variadic_member_function), S const&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::volatile_rvalue_ref_nothrow_variadic_member_function), S&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::volatile_rvalue_ref_nothrow_variadic_member_function), S const&&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::volatile_rvalue_ref_nothrow_variadic_member_function), S*, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::volatile_rvalue_ref_nothrow_variadic_member_function), int, int>::value == false);
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_volatile_rvalue_ref_nothrow_variadic_member_function), S, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_volatile_rvalue_ref_nothrow_variadic_member_function), S&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_volatile_rvalue_ref_nothrow_variadic_member_function), S const&, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_volatile_rvalue_ref_nothrow_variadic_member_function), S&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_volatile_rvalue_ref_nothrow_variadic_member_function), S const&&, int>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_volatile_rvalue_ref_nothrow_variadic_member_function), S*, int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_volatile_rvalue_ref_nothrow_variadic_member_function), int, int>::value == false);
 
   // member function pointer itself is marked as noexcept, but invocation is throwing
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&InvocationIsThrowing::const_nothrow_member_function), S&, int>::value == false);
