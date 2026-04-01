@@ -32,13 +32,11 @@ constexpr auto invoke_impl(F&& f, Args&&... args) noexcept(noexcept(std::forward
 enum class invoke_kind {
   reference_to_object,
   reference_wrapper,
-  other,
+  dereferenceable,
 };
 
 template<class C, class Param, class = void>
-struct check_invoke_kind {
-  static constexpr invoke_kind value = invoke_kind::other;
-};
+struct check_invoke_kind {};
 
 template<class C, class Param>
 struct check_invoke_kind<C, Param, typename std::enable_if<disjunction<std::is_same<C, Param>, std::is_base_of<C, Param>>::value>::type> {
@@ -48,6 +46,15 @@ struct check_invoke_kind<C, Param, typename std::enable_if<disjunction<std::is_s
 template<class C, class Param>
 struct check_invoke_kind<C, Param, typename std::enable_if<is_reference_wrapper<Param>::value>::type> {
   static constexpr invoke_kind value = invoke_kind::reference_wrapper;
+};
+
+template<class C, class Param>
+struct check_invoke_kind<
+    C, Param,
+    typename std::enable_if<disjunction<
+        std::is_same<C, typename remove_cvref<decltype(*std::declval<Param>())>::type>,
+        std::is_base_of<C, typename remove_cvref<decltype(*std::declval<Param>())>::type>>::value>::type> {
+  static constexpr invoke_kind value = invoke_kind::dereferenceable;
 };
 
 // member object pointer + reference to object
@@ -68,10 +75,10 @@ constexpr auto invoke_impl(T C::* f, U&& u) noexcept -> decltype(std::forward<U>
   return std::forward<U>(u).get().*f;
 }
 
-// member object pointer + other(dereferenceable)
+// member object pointer + dereferenceable
 template<
     class T, class C, class U,
-    typename std::enable_if<check_invoke_kind<C, typename remove_cvref<U>::type>::value == invoke_kind::other, std::nullptr_t>::type = nullptr>
+    typename std::enable_if<check_invoke_kind<C, typename remove_cvref<U>::type>::value == invoke_kind::dereferenceable, std::nullptr_t>::type = nullptr>
 constexpr auto invoke_impl(T C::* f, U&& u) noexcept(noexcept((*std::forward<U>(u)).*f)) -> decltype((*std::forward<U>(u)).*f)
 {
   return (*std::forward<U>(u)).*f;
@@ -145,11 +152,11 @@ constexpr auto invoke_impl(MFP mfp, U&& u, Args&&... args) noexcept(noexcept((st
   return (std::forward<U>(u).get().*mfp)(std::forward<Args>(args)...);
 }
 
-// member function pointer + other(dereferenceable)
+// member function pointer + dereferenceable
 template<
     class MFP, class U, class... Args, typename std::enable_if<std::is_member_function_pointer<MFP>::value, std::nullptr_t>::type = nullptr,
     typename std::enable_if<
-        check_invoke_kind<typename get_class_from_member_function_pointer<MFP>::type, typename remove_cvref<U>::type>::value == invoke_kind::other,
+        check_invoke_kind<typename get_class_from_member_function_pointer<MFP>::type, typename remove_cvref<U>::type>::value == invoke_kind::dereferenceable,
         std::nullptr_t>::type = nullptr>
 constexpr auto invoke_impl(MFP mfp, U&& u, Args&&... args) noexcept(noexcept(((*std::forward<U>(u)).*mfp)(std::forward<Args>(args)...)))
     -> decltype(((*std::forward<U>(u)).*mfp)(std::forward<Args>(args)...))
