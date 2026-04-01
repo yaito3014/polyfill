@@ -7,6 +7,7 @@
 
 #include <functional>
 #include <type_traits>
+#include <utility>
 
 namespace yk {
 
@@ -22,10 +23,10 @@ struct is_reference_wrapper<std::reference_wrapper<T>> : true_type {};
 
 // normal case
 template<class F, class... Args, typename std::enable_if<!std::is_member_pointer<F>::value, std::nullptr_t>::type = nullptr>
-constexpr auto invoke_impl(F&& f, Args&&... args) noexcept(noexcept(static_cast<F&&>(f)(static_cast<Args&&>(args)...)))
-    -> decltype(static_cast<F&&>(f)(static_cast<Args&&>(args)...))
+constexpr auto invoke_impl(F&& f, Args&&... args) noexcept(noexcept(std::forward<F>(f)(std::forward<Args>(args)...)))
+    -> decltype(std::forward<F>(f)(std::forward<Args>(args)...))
 {
-  return static_cast<F&&>(f)(static_cast<Args&&>(args)...);
+  return std::forward<F>(f)(std::forward<Args>(args)...);
 }
 
 enum class invoke_kind {
@@ -53,27 +54,27 @@ struct check_invoke_kind<C, Param, typename std::enable_if<is_reference_wrapper<
 template<
     class T, class C, class U,
     typename std::enable_if<check_invoke_kind<C, typename remove_cvref<U>::type>::value == invoke_kind::reference_to_object, std::nullptr_t>::type = nullptr>
-constexpr auto invoke_impl(T C::* f, U&& u) noexcept -> decltype(static_cast<U&&>(u).*f)
+constexpr auto invoke_impl(T C::* f, U&& u) noexcept -> decltype(std::forward<U>(u).*f)
 {
-  return static_cast<U&&>(u).*f;
+  return std::forward<U>(u).*f;
 }
 
 // member object pointer + reference_wrapper
 template<
     class T, class C, class U,
     typename std::enable_if<check_invoke_kind<C, typename remove_cvref<U>::type>::value == invoke_kind::reference_wrapper, std::nullptr_t>::type = nullptr>
-constexpr auto invoke_impl(T C::* f, U&& u) noexcept -> decltype(static_cast<U&&>(u).get().*f)
+constexpr auto invoke_impl(T C::* f, U&& u) noexcept -> decltype(std::forward<U>(u).get().*f)
 {
-  return static_cast<U&&>(u).get().*f;
+  return std::forward<U>(u).get().*f;
 }
 
 // member object pointer + other(dereferenceable)
 template<
     class T, class C, class U,
     typename std::enable_if<check_invoke_kind<C, typename remove_cvref<U>::type>::value == invoke_kind::other, std::nullptr_t>::type = nullptr>
-constexpr auto invoke_impl(T C::* f, U&& u) noexcept(noexcept((*static_cast<U&&>(u)).*f)) -> decltype((*static_cast<U&&>(u)).*f)
+constexpr auto invoke_impl(T C::* f, U&& u) noexcept(noexcept((*std::forward<U>(u)).*f)) -> decltype((*std::forward<U>(u)).*f)
 {
-  return (*static_cast<U&&>(u)).*f;
+  return (*std::forward<U>(u)).*f;
 }
 
 template<class MFP>
@@ -160,22 +161,20 @@ template<class R>
 struct invoke_r_impl {
   template<class F, class... Args>
   static constexpr R apply(F&& f, Args&&... args) noexcept(
-      noexcept(detail::invoke_impl(static_cast<F&&>(f), static_cast<Args&&>(args)...))
-      && is_nothrow_convertible<decltype(detail::invoke_impl(static_cast<F&&>(f), static_cast<Args&&>(args)...)), R>::value
+      noexcept(detail::invoke_impl(std::forward<F>(f), std::forward<Args>(args)...))
+      && is_nothrow_convertible<decltype(detail::invoke_impl(std::forward<F>(f), std::forward<Args>(args)...)), R>::value
   )
   {
-    return detail::invoke_impl(static_cast<F&&>(f), static_cast<Args&&>(args)...);
+    return detail::invoke_impl(std::forward<F>(f), std::forward<Args>(args)...);
   }
 };
 
 template<>
 struct invoke_r_impl<void> {
   template<class F, class... Args>
-  static YK_POLYFILL_CXX14_CONSTEXPR void apply(F&& f, Args&&... args) noexcept(
-      noexcept(detail::invoke_impl(static_cast<F&&>(f), static_cast<Args&&>(args)...))
-  )
+  static YK_POLYFILL_CXX14_CONSTEXPR void apply(F&& f, Args&&... args) noexcept(noexcept(detail::invoke_impl(std::forward<F>(f), std::forward<Args>(args)...)))
   {
-    static_cast<void>(detail::invoke_impl(static_cast<F&&>(f), static_cast<Args&&>(args)...));
+    static_cast<void>(detail::invoke_impl(std::forward<F>(f), std::forward<Args>(args)...));
   }
 };
 
@@ -246,13 +245,13 @@ struct invoke_result : detail::invoke_result_impl<F, void, Args...> {};
 template<class F, class... Args>
 constexpr typename invoke_result<F, Args...>::type invoke(F&& f, Args&&... args) noexcept(is_nothrow_invocable<F, Args...>::value)
 {
-  return detail::invoke_impl(static_cast<F&&>(f), static_cast<Args&&>(args)...);
+  return detail::invoke_impl(std::forward<F>(f), std::forward<Args>(args)...);
 }
 
 template<class R, class F, class... Args>
 constexpr R invoke_r(F&& f, Args&&... args) noexcept(is_nothrow_invocable_r<R, F, Args...>::value)
 {
-  return detail::invoke_r_impl<R>::apply(static_cast<F&&>(f), static_cast<Args&&>(args)...);
+  return detail::invoke_r_impl<R>::apply(std::forward<F>(f), std::forward<Args>(args)...);
 }
 
 }  // namespace polyfill
