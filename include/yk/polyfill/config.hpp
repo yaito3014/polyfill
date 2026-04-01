@@ -1,28 +1,42 @@
 #ifndef YK_ZZ_POLYFILL_CONFIG_HPP
 #define YK_ZZ_POLYFILL_CONFIG_HPP
 
-#if __cplusplus >= 201402L
+#if defined(_MSVC_LANG)
+#define YK_POLYFILL_CXX_VERSION _MSVC_LANG
+#else
+#define YK_POLYFILL_CXX_VERSION __cplusplus
+#endif
+
+#if YK_POLYFILL_CXX_VERSION >= 201402L
 #define YK_POLYFILL_CXX14_CONSTEXPR constexpr
 #else
 #define YK_POLYFILL_CXX14_CONSTEXPR
 #endif
 
-#if __cplusplus >= 201703L
+#if YK_POLYFILL_CXX_VERSION >= 201703L
 #define YK_POLYFILL_CXX17_CONSTEXPR constexpr
 #else
 #define YK_POLYFILL_CXX17_CONSTEXPR
 #endif
 
-#if __cplusplus >= 202002L
+#if YK_POLYFILL_CXX_VERSION >= 202002L
 #define YK_POLYFILL_CXX20_CONSTEXPR constexpr
 #else
 #define YK_POLYFILL_CXX20_CONSTEXPR
 #endif
 
-#if __cplusplus >= 202302L
+#if YK_POLYFILL_CXX_VERSION >= 202302L
 #define YK_POLYFILL_CXX23_CONSTEXPR constexpr
 #else
 #define YK_POLYFILL_CXX23_CONSTEXPR
+#endif
+
+// P0704R1: const&-qualified member functions can be called on rvalues through member function pointers
+// MSVC applies this regardless of language version
+#if defined(_MSC_VER) || YK_POLYFILL_CXX_VERSION >= 202002L
+#define YK_POLYFILL_P0704R1 1
+#else
+#define YK_POLYFILL_P0704R1 0
 #endif
 
 #if __cpp_inline_variables >= 201606L
@@ -31,7 +45,7 @@
 #define YK_POLYFILL_INLINE static
 #endif
 
-#if __cpp_noexcept_function_type >= 201510
+#if __cpp_noexcept_function_type >= 201510L
 #define YK_POLYFILL_CXX17_NOEXCEPT(...) noexcept(__VA_ARGS__)
 #else
 #define YK_POLYFILL_CXX17_NOEXCEPT(...)
@@ -46,7 +60,7 @@
 #define YK_POLYFILL_CXX20_CONSTEXPR_VDESTROY YK_POLYFILL_CXX20_CONSTEXPR
 #endif
 
-#if __cplusplus >= 201703L
+#if YK_POLYFILL_CXX_VERSION >= 201703L
 #define YK_POLYFILL_NODISCARD [[nodiscard]]
 #else
 #define YK_POLYFILL_NODISCARD
