@@ -68,7 +68,7 @@ jobs:
     name: C++${{ matrix.cxx-version }} ${{ matrix.build-type }} (${{ matrix.compiler.name }} ${{ matrix.compiler.version }} on ${{ matrix.os.name }})
     runs-on: ${{ matrix.os.name }}-${{ matrix.os.version }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Init Ubuntu
         if: matrix.os.name == 'ubuntu'
         run: |
