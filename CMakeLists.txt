@@ -12,7 +12,7 @@ set_target_properties(yk_polyfill PROPERTIES EXPORT_NAME polyfill)
 if(MSVC)
     target_compile_options(yk_polyfill INTERFACE /Zc:__cplusplus)
 endif()
-file(GLOB_RECURSE YK_POLYFILL_HEADERS ${YK_POLYFILL_PREFIX}/*.hpp)
+file(GLOB_RECURSE YK_POLYFILL_HEADERS ${YK_POLYFILL_PREFIX}/*.hpp ${YK_POLYFILL_PREFIX}/*.ipp)
 target_sources(
     yk_polyfill
     INTERFACE
