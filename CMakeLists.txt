@@ -75,3 +75,12 @@ export(
     NAMESPACE yk::
     FILE ${CMAKE_CURRENT_BINARY_DIR}/yk-polyfill-targets.cmake
 )
+
+# CPS
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 4.3)
+    install(
+        PACKAGE_INFO yk-polyfill
+        EXPORT yk-polyfill-export
+        PROJECT yk_polyfill
+    )
+endif()
