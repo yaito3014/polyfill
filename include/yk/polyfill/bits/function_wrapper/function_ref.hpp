@@ -3,6 +3,8 @@
 
 #include "yk/polyfill/bits/function_wrapper/common.hpp"
 
+#include <yk/polyfill/type_traits.hpp>  // constant_wrapper
+
 namespace yk {
 
 namespace polyfill {
@@ -11,6 +13,16 @@ template<class Signature>
 class function_ref;
 
 namespace detail {
+
+// Whether T is a specialization of constant_wrapper (always false before C++20,
+// where constant_wrapper does not exist).
+template<class T>
+struct is_specialization_of_constant_wrapper : std::false_type {};
+
+#if __cplusplus >= 202002L
+template<xo::cw_fixed_value X, class C>
+struct is_specialization_of_constant_wrapper<constant_wrapper<X, C>> : std::true_type {};
+#endif
 
 template<bool Const>
 struct cv_int_ref;
@@ -111,6 +123,12 @@ namespace polyfill {
 
 template<class F, typename std::enable_if<std::is_function<F>::value, std::nullptr_t>::type = nullptr>
 function_ref(F*) -> function_ref<F>;
+
+#if __cplusplus >= 202002L
+template<auto c, class F0,
+         typename std::enable_if<std::is_function<typename std::remove_pointer<F0>::type>::value, std::nullptr_t>::type = nullptr>
+function_ref(constant_wrapper<c, F0>) -> function_ref<typename std::remove_pointer<F0>::type>;
+#endif
 
 #endif
 

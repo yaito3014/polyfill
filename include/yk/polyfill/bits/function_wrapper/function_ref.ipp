@@ -74,11 +74,44 @@ public:
   {
   }
 
+#if __cplusplus >= 202002L
+  // Bind a compile-time constant callable (constant_wrapper<c, F>::value); no object is stored.
+  template<auto c, class F, typename std::enable_if<is_invocable_using<F const&>::value, std::nullptr_t>::type = nullptr>
+  constexpr function_ref(constant_wrapper<c, F>) noexcept
+      : entity_(detail::bound_entity::constant_tag{}),
+        thunk_ptr_(&detail::invoker<YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_IS_NOEXCEPT, R,
+                                    Args...>::template invoke_constant<constant_wrapper<c, F>::value>)
+  {
+  }
+
+  // Bind the constant callable to an lvalue object (invoked as f.value(obj, call-args...)).
+  template<auto c, class F, class U, typename std::enable_if<!std::is_rvalue_reference<U&&>::value, std::nullptr_t>::type = nullptr,
+           class T = typename std::remove_reference<U>::type,
+           typename std::enable_if<is_invocable_using<F const&, T YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_CONST&>::value, std::nullptr_t>::type = nullptr>
+  constexpr function_ref(constant_wrapper<c, F>, U&& obj) noexcept
+      : entity_(detail::bound_entity::obj_tag{}, std::forward<U>(obj)),
+        thunk_ptr_(&detail::invoker<YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_IS_NOEXCEPT, R,
+                                    Args...>::template invoke_constant_target<constant_wrapper<c, F>::value, T YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_CONST>)
+  {
+  }
+
+  // Bind the constant callable to a pointer (invoked as f.value(obj, call-args...)).
+  template<auto c, class F, class T,
+           typename std::enable_if<is_invocable_using<F const&, T YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_CONST*>::value, std::nullptr_t>::type = nullptr>
+  constexpr function_ref(constant_wrapper<c, F>, T YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_CONST* obj) noexcept
+      : entity_(detail::bound_entity::ptr_tag{}, obj),
+        thunk_ptr_(&detail::invoker<YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_IS_NOEXCEPT, R,
+                                    Args...>::template invoke_constant_pointer<constant_wrapper<c, F>::value, T YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_CONST*>)
+  {
+  }
+#endif
+
   constexpr function_ref(function_ref const&) noexcept = default;
   YK_POLYFILL_CXX14_CONSTEXPR function_ref& operator=(function_ref const&) noexcept = default;
 
   template<class T, typename std::enable_if<!std::is_same<T, function_ref>::value, std::nullptr_t>::type = nullptr,
-           typename std::enable_if<!std::is_pointer<T>::value, std::nullptr_t>::type = nullptr>
+           typename std::enable_if<!std::is_pointer<T>::value, std::nullptr_t>::type = nullptr,
+           typename std::enable_if<!detail::is_specialization_of_constant_wrapper<T>::value, std::nullptr_t>::type = nullptr>
   function_ref& operator=(T) = delete;
 
   R operator()(Args... args) const YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_NOEXCEPT { return thunk_ptr_(entity_, std::forward<Args>(args)...); }

@@ -34,6 +34,24 @@ union bound_entity {
   YK_POLYFILL_CXX17_CONSTEXPR bound_entity(obj_tag, Obj&& obj) : obj_ptr(static_cast<void const*>(std::addressof(obj)))
   {
   }
+
+#if __cplusplus >= 201703L
+  // Stores a pointer value directly (as opposed to obj_tag, which stores addressof(obj)).
+  struct ptr_tag {
+    explicit ptr_tag() = default;
+  };
+
+  template<class T>
+  constexpr bound_entity(ptr_tag, T* p) : obj_ptr(static_cast<void const*>(p))
+  {
+  }
+
+  struct constant_tag {
+    explicit constant_tag() = default;
+  };
+
+  constexpr bound_entity(constant_tag) : obj_ptr(nullptr) {}
+#endif
 };
 
 template<bool Noexcept, class R, class... Args>
@@ -49,6 +67,29 @@ struct invoker {
   {
     return polyfill::invoke_r<R>(*static_cast<Obj*>(const_cast<void*>(entity.obj_ptr)), std::forward<Args>(args)...);
   }
+
+#if __cplusplus >= 201703L
+  // Invokes the compile-time constant callable C, which is not stored in bound-entity.
+  template<auto C>
+  static R invoke_constant(bound_entity, Args&&... args) noexcept(Noexcept)
+  {
+    return polyfill::invoke_r<R>(C, std::forward<Args>(args)...);
+  }
+
+  // Invokes C with a bound object whose address is stored in bound-entity (obj_tag).
+  template<auto C, class Obj>
+  static R invoke_constant_target(bound_entity entity, Args&&... args) noexcept(Noexcept)
+  {
+    return polyfill::invoke_r<R>(C, *static_cast<Obj*>(const_cast<void*>(entity.obj_ptr)), std::forward<Args>(args)...);
+  }
+
+  // Invokes C with a bound pointer stored directly in bound-entity (ptr_tag).
+  template<auto C, class Ptr>
+  static R invoke_constant_pointer(bound_entity entity, Args&&... args) noexcept(Noexcept)
+  {
+    return polyfill::invoke_r<R>(C, static_cast<Ptr>(const_cast<void*>(entity.obj_ptr)), std::forward<Args>(args)...);
+  }
+#endif
 };
 
 }  // namespace detail
