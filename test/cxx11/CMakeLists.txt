@@ -24,6 +24,7 @@ target_sources(
         constexpr_swap.cpp
         exchange.cpp
         is_convertible_without_narrowing.cpp
+        invocable_traits.cpp
         optional.cpp
         toptional.cpp
         variant.cpp
