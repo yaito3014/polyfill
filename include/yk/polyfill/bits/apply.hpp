@@ -3,7 +3,7 @@
 
 #include <yk/polyfill/bits/core_traits.hpp>
 
-#include <yk/polyfill/functional.hpp>
+#include <yk/polyfill/bits/invoke.hpp>
 #include <yk/polyfill/utility.hpp>
 
 #include <tuple>
