@@ -3,6 +3,7 @@ add_executable(yk_polyfill_cxx17_test)
 target_sources(
     yk_polyfill_cxx17_test
     PRIVATE
+        constant_wrapper.cpp
         optional.cpp
         toptional.cpp
         variant.cpp
