@@ -52,6 +52,7 @@ public:
   }
 
   template<class F, typename std::enable_if<!std::is_same<typename remove_cvref<F>::type, function_ref>::value, std::nullptr_t>::type = nullptr,
+           typename std::enable_if<!std::is_function<typename remove_cvref<F>::type>::value, std::nullptr_t>::type = nullptr,
            typename std::enable_if<!std::is_member_pointer<typename remove_cvref<F>::type>::value, std::nullptr_t>::type = nullptr,
            class T = typename std::remove_reference<F>::type,
            typename std::enable_if<is_invocable_using<T YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_CONST&>::value, std::nullptr_t>::type = nullptr,
