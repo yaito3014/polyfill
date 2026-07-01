@@ -83,7 +83,8 @@ struct cw_deduced_signature<F, T, typename std::enable_if<std::is_pointer<F>::va
 };
 
 template<class F, class T>
-struct cw_deduced_signature<F, T, typename std::enable_if<std::is_member_object_pointer<F>::value>::type> {
+struct cw_deduced_signature<
+    F, T, typename std::enable_if<std::is_member_object_pointer<F>::value, std::void_t<typename polyfill::invoke_result<F, T&>::type>>::type> {
   using result = typename polyfill::invoke_result<F, T&>::type;
   using type = result() noexcept;
 };
