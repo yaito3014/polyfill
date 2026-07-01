@@ -111,3 +111,39 @@ TEST_CASE("function_ref")
     CHECK(ref(21) == 42);
   }
 }
+
+TEST_CASE("function_ref cross-specialization conversion")
+{
+  // const -> non-const: is-convertible-from-specialization is true, so the target
+  // adopts the source's bound entity instead of wrapping it; this stays valid even
+  // when the source function_ref is a temporary.
+  {
+    pf::function_ref<int(int)> const ref = pf::function_ref<int(int) const>(doubles);
+    CHECK(ref(21) == 42);
+  }
+  {
+    DifferentForConstness func;
+    pf::function_ref<int(int)> const ref = pf::function_ref<int(int) const>(func);
+    CHECK(ref(21) == 42);  // the source specialization selected the const operator()
+  }
+  {
+    pf::function_ref<int(int) const> const src = doubles;
+    pf::function_ref<int(int)> const ref = src;
+    CHECK(ref(21) == 42);
+  }
+
+  // non-const -> const: is-convertible-from-specialization is false, so the source is
+  // wrapped like any other callable (valid from an lvalue).
+  {
+    pf::function_ref<int(int)> const src = doubles;
+    pf::function_ref<int(int) const> const ref = src;
+    CHECK(ref(21) == 42);
+  }
+
+  // same specialization uses the copy constructor, not the converting one.
+  {
+    pf::function_ref<int(int)> const src = doubles;
+    pf::function_ref<int(int)> const ref = src;
+    CHECK(ref(21) == 42);
+  }
+}
