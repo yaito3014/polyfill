@@ -130,35 +130,7 @@ struct subscript<X, I> {
 
 }  // namespace detail
 
-namespace xo {
-
-template<class T>
-struct cw_fixed_value {
-  T data;
-
-  using type = T;
-  constexpr cw_fixed_value(type v) noexcept : data(v) {}
-};
-
-template<class T, std::size_t Extent>
-struct cw_fixed_value<T[Extent]> {
-  T data[Extent];
-
-  using type = T[Extent];
-  constexpr cw_fixed_value(T (&arr)[Extent]) noexcept
-  {
-    for (std::size_t i = 0; i < Extent; ++i) {
-      data[i] = arr[i];
-    }
-  }
-};
-
-template<class T, std::size_t Extent>
-cw_fixed_value(T (&)[Extent]) -> cw_fixed_value<T[Extent]>;
-
-}  // namespace xo
-
-template<xo::cw_fixed_value X, class = typename decltype(xo::cw_fixed_value(X))::type>
+template<auto X, class = decltype(X)>
 struct constant_wrapper;
 
 namespace xo {
@@ -297,12 +269,14 @@ struct cw_operators {
 
 }  // namespace xo
 
-template<xo::cw_fixed_value X, class>
+template<auto X, class T>
 struct constant_wrapper : public xo::cw_operators {
-  static constexpr auto const& value = X.data;
+  static constexpr decltype(auto) value = (X);
 
   using type = constant_wrapper;
-  using value_type = typename decltype(X)::type;
+  using value_type = decltype(X);
+
+  static_assert(std::is_same<T, value_type>::value, "constant_wrapper's second template argument must be its value_type");
 
   template<xo::constexpr_param R>
   [[nodiscard]] constexpr auto operator=(R) const noexcept
@@ -317,7 +291,7 @@ struct constant_wrapper : public xo::cw_operators {
   constexpr operator decltype(auto)() const noexcept { return value; }
 };
 
-template<xo::cw_fixed_value X>
+template<auto X>
 inline constexpr auto cw = constant_wrapper<X>{};
 
 #endif
