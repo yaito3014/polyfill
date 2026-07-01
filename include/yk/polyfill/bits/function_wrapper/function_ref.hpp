@@ -19,7 +19,7 @@ template<class T>
 struct is_specialization_of_constant_wrapper : std::false_type {};
 
 #if __cplusplus >= 202002L
-template<xo::cw_fixed_value X, class C>
+template<auto X, class C>
 struct is_specialization_of_constant_wrapper<constant_wrapper<X, C>> : std::true_type {};
 
 // [func.wrap.ref.ctor] mandate: if the constant callable is a (member) pointer it must
