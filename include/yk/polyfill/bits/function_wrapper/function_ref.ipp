@@ -60,7 +60,7 @@ public:
   YK_POLYFILL_CXX17_CONSTEXPR function_ref(F&& f) noexcept
       : entity_(detail::bound_entity::obj_tag{}, std::forward<F>(f)),
         thunk_ptr_(&detail::invoker<YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_IS_NOEXCEPT, R,
-                                    Args...>::template invoke_obj<YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_CONST T>)
+                                    Args...>::template invoke_obj<T YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_CONST>)
   {
   }
 
