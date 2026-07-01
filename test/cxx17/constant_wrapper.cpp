@@ -16,6 +16,13 @@ int fn(int x) { return 2 * x; }
 
 TEST_CASE("constant_wrapper")
 {
+  // unary
+  STATIC_REQUIRE(+pf::cw<5> == pf::cw<5>);
+  STATIC_REQUIRE(-pf::cw<5> == pf::cw<-5>);
+  STATIC_REQUIRE(~pf::cw<5> == pf::cw<~5>);
+  STATIC_REQUIRE(!pf::cw<0> == pf::cw<true>);
+  STATIC_REQUIRE(!pf::cw<5> == pf::cw<false>);
+
   // arithmetic
   STATIC_REQUIRE(pf::cw<12> + pf::cw<34> == pf::cw<46>);
   STATIC_REQUIRE(pf::cw<12> - pf::cw<34> == pf::cw<-22>);

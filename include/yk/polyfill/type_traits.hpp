@@ -149,7 +149,7 @@ concept constexpr_param = is_constexpr_param<T>::value;
 
 #define YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_UNARY_OPERATOR(op)                                      \
   template<class T, typename std::enable_if<is_constexpr_param<T>::value, std::nullptr_t>::type = nullptr> \
-  [[nodiscard]] friend constexpr auto operator op(T) noexcept -> constant_wrapper<+(T::value)>             \
+  [[nodiscard]] friend constexpr auto operator op(T) noexcept -> constant_wrapper<(op T::value)>           \
   {                                                                                                        \
     return {};                                                                                             \
   }
