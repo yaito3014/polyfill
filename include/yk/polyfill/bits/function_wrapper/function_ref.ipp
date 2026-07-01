@@ -4,8 +4,10 @@
 
 #ifdef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_CONST
 #define YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_CONST const
+#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_IS_CONST true
 #else
 #define YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_CONST
+#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_IS_CONST false
 #endif
 
 #ifdef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
@@ -32,38 +34,49 @@ private:
 #endif
       ;
 
+  template<class F>
+  using is_convertible_from_specialization =
+      detail::is_convertible_from_function_ref_specialization<F, YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_IS_CONST,
+                                                              YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_IS_NOEXCEPT, R, Args...>;
+
+  template<class>
+  friend class function_ref;
+
 public:
-  template<
-      class F, typename std::enable_if<std::is_function<F>::value, std::nullptr_t>::type = nullptr,
-      typename std::enable_if<is_invocable_using<F>::value, std::nullptr_t>::type = nullptr>
+  template<class F, typename std::enable_if<std::is_function<F>::value, std::nullptr_t>::type = nullptr,
+           typename std::enable_if<is_invocable_using<F>::value, std::nullptr_t>::type = nullptr>
   function_ref(F* f) noexcept
       : entity_(detail::bound_entity::func_tag{}, f),
         thunk_ptr_(&detail::invoker<YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_IS_NOEXCEPT, R, Args...>::template invoke_func<F>)
   {
   }
 
-  // NOTE: Per the standard, T = remove_reference_t<F> preserves const from the source object.
-  // This means a non-const signature R(Args...) accepts const objects and invokes their const operator().
-  // The non-const qualifier is "const-transparent" (don't add const), not "non-const-only" (reject const).
-  // Expressing "non-const-only" would require a hypothetical R(Args...) mutable function type.
-  template<
-      class F, typename std::enable_if<!std::is_same<typename remove_cvref<F>::type, function_ref>::value, std::nullptr_t>::type = nullptr,
-      typename std::enable_if<!std::is_member_pointer<typename remove_cvref<F>::type>::value, std::nullptr_t>::type = nullptr,
-      class T = typename std::remove_reference<F>::type,
-      typename std::enable_if<is_invocable_using<T YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_CONST&>::value, std::nullptr_t>::type = nullptr>
+  template<class F, typename std::enable_if<!std::is_same<typename remove_cvref<F>::type, function_ref>::value, std::nullptr_t>::type = nullptr,
+           typename std::enable_if<!std::is_member_pointer<typename remove_cvref<F>::type>::value, std::nullptr_t>::type = nullptr,
+           class T = typename std::remove_reference<F>::type,
+           typename std::enable_if<is_invocable_using<T YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_CONST&>::value, std::nullptr_t>::type = nullptr,
+           typename std::enable_if<!is_convertible_from_specialization<typename std::remove_cv<T>::type>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX17_CONSTEXPR function_ref(F&& f) noexcept
       : entity_(detail::bound_entity::obj_tag{}, std::forward<F>(f)),
-        thunk_ptr_(&detail::invoker<YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_IS_NOEXCEPT, R, Args...>::template invoke_obj<
-                   YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_CONST T>)
+        thunk_ptr_(&detail::invoker<YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_IS_NOEXCEPT, R,
+                                    Args...>::template invoke_obj<YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_CONST T>)
+  {
+  }
+
+  template<class F, typename std::enable_if<!std::is_same<typename remove_cvref<F>::type, function_ref>::value, std::nullptr_t>::type = nullptr,
+           typename std::enable_if<!std::is_member_pointer<typename remove_cvref<F>::type>::value, std::nullptr_t>::type = nullptr,
+           class T = typename std::remove_reference<F>::type,
+           typename std::enable_if<is_invocable_using<T YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_CONST&>::value, std::nullptr_t>::type = nullptr,
+           typename std::enable_if<is_convertible_from_specialization<typename std::remove_cv<T>::type>::value, std::nullptr_t>::type = nullptr>
+  constexpr function_ref(F&& f) noexcept : entity_(std::forward<F>(f).entity_), thunk_ptr_(std::forward<F>(f).thunk_ptr_)
   {
   }
 
   constexpr function_ref(function_ref const&) noexcept = default;
   YK_POLYFILL_CXX14_CONSTEXPR function_ref& operator=(function_ref const&) noexcept = default;
 
-  template<
-      class T, typename std::enable_if<!std::is_same<T, function_ref>::value, std::nullptr_t>::type = nullptr,
-      typename std::enable_if<!std::is_pointer<T>::value, std::nullptr_t>::type = nullptr>
+  template<class T, typename std::enable_if<!std::is_same<T, function_ref>::value, std::nullptr_t>::type = nullptr,
+           typename std::enable_if<!std::is_pointer<T>::value, std::nullptr_t>::type = nullptr>
   function_ref& operator=(T) = delete;
 
   R operator()(Args... args) const YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_NOEXCEPT { return thunk_ptr_(entity_, std::forward<Args>(args)...); }
@@ -78,6 +91,7 @@ private:
 }  // namespace yk
 
 #undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_CONST
+#undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_IS_CONST
 #undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_NOEXCEPT
 #undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_IS_NOEXCEPT
 

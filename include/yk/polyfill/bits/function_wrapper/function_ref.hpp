@@ -10,6 +10,63 @@ namespace polyfill {
 template<class Signature>
 class function_ref;
 
+namespace detail {
+
+template<bool Const>
+struct cv_int_ref;
+
+template<>
+struct cv_int_ref</* Const = */ false> {
+  using type = int&;
+};
+
+template<>
+struct cv_int_ref</* Const = */ true> {
+  using type = int const&;
+};
+
+template<bool Noexcept, class R, class... Args>
+struct fn_ref {
+  using type = R (&)(Args...);
+};
+
+#if __cpp_noexcept_function_type >= 201510L
+template<class R, class... Args>
+struct fn_ref</* Noexcept = */ true, R, Args...> {
+  using type = R (&)(Args...) noexcept;
+};
+#endif
+
+template<bool CurConst, bool CurNoexcept, bool Cv2Const, bool Noex2, class R, class... Args>
+struct function_ref_spec_convertible
+    : conjunction<std::is_convertible<typename fn_ref<Noex2, R, Args...>::type, typename fn_ref<CurNoexcept, R, Args...>::type>,
+                  std::is_convertible<typename cv_int_ref<CurConst>::type, typename cv_int_ref<Cv2Const>::type>> {};
+
+template<class F, bool CurConst, bool CurNoexcept, class R, class... Args>
+struct is_convertible_from_function_ref_specialization : std::false_type {};
+
+template<bool CurConst, bool CurNoexcept, class R, class... Args>
+struct is_convertible_from_function_ref_specialization<function_ref<R(Args...)>, CurConst, CurNoexcept, R, Args...>
+    : function_ref_spec_convertible<CurConst, CurNoexcept, /* Cv2Const = */ false, /* Noex2 = */ false, R, Args...> {};
+
+template<bool CurConst, bool CurNoexcept, class R, class... Args>
+struct is_convertible_from_function_ref_specialization<function_ref<R(Args...) const>, CurConst, CurNoexcept, R, Args...>
+    : function_ref_spec_convertible<CurConst, CurNoexcept, /* Cv2Const = */ true, /* Noex2 = */ false, R, Args...> {};
+
+#if __cpp_noexcept_function_type >= 201510L
+
+template<bool CurConst, bool CurNoexcept, class R, class... Args>
+struct is_convertible_from_function_ref_specialization<function_ref<R(Args...) noexcept>, CurConst, CurNoexcept, R, Args...>
+    : function_ref_spec_convertible<CurConst, CurNoexcept, /* Cv2Const = */ false, /* Noex2 = */ true, R, Args...> {};
+
+template<bool CurConst, bool CurNoexcept, class R, class... Args>
+struct is_convertible_from_function_ref_specialization<function_ref<R(Args...) const noexcept>, CurConst, CurNoexcept, R, Args...>
+    : function_ref_spec_convertible<CurConst, CurNoexcept, /* Cv2Const = */ true, /* Noex2 = */ true, R, Args...> {};
+
+#endif
+
+}  // namespace detail
+
 }  // namespace polyfill
 
 }  // namespace yk
