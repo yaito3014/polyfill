@@ -3,6 +3,7 @@
 
 #include "yk/polyfill/bits/function_wrapper/common.hpp"
 
+#include <yk/polyfill/extension/invocable_traits.hpp>
 #include <yk/polyfill/type_traits.hpp>  // constant_wrapper
 
 namespace yk {
@@ -14,14 +15,45 @@ class function_ref;
 
 namespace detail {
 
-// Whether T is a specialization of constant_wrapper (always false before C++20,
-// where constant_wrapper does not exist).
 template<class T>
 struct is_specialization_of_constant_wrapper : std::false_type {};
 
 #if __cplusplus >= 202002L
 template<xo::cw_fixed_value X, class C>
 struct is_specialization_of_constant_wrapper<constant_wrapper<X, C>> : std::true_type {};
+
+template<class Sig>
+struct drop_first_param;
+template<class R, class First, class... Rest>
+struct drop_first_param<R(First, Rest...)> {
+  using type = R(Rest...);
+};
+template<class R, class First, class... Rest>
+struct drop_first_param<R(First, Rest...) noexcept> {
+  using type = R(Rest...) noexcept;
+};
+
+// The function_ref signature deduced by the two-argument constant_wrapper guide
+// [func.wrap.ref.deduct].
+template<class F, class T, class = void>
+struct cw_deduced_signature {};
+
+template<class F, class T>
+struct cw_deduced_signature<F, T, typename std::enable_if<std::is_member_function_pointer<F>::value>::type> {
+  using type = typename extension::invocable_traits<F>::function_type;
+};
+
+// A free function's leading parameter is the bound object, so drop it.
+template<class F, class T>
+struct cw_deduced_signature<F, T, typename std::enable_if<std::is_pointer<F>::value && std::is_function<typename std::remove_pointer<F>::type>::value>::type> {
+  using type = typename drop_first_param<typename extension::invocable_traits<F>::function_type>::type;
+};
+
+template<class F, class T>
+struct cw_deduced_signature<F, T, typename std::enable_if<std::is_member_object_pointer<F>::value>::type> {
+  using result = typename polyfill::invoke_result<F, T&>::type;
+  using type = result() noexcept;
+};
 #endif
 
 template<bool Const>
@@ -125,9 +157,11 @@ template<class F, typename std::enable_if<std::is_function<F>::value, std::nullp
 function_ref(F*) -> function_ref<F>;
 
 #if __cplusplus >= 202002L
-template<auto c, class F0,
-         typename std::enable_if<std::is_function<typename std::remove_pointer<F0>::type>::value, std::nullptr_t>::type = nullptr>
+template<auto c, class F0, typename std::enable_if<std::is_function<typename std::remove_pointer<F0>::type>::value, std::nullptr_t>::type = nullptr>
 function_ref(constant_wrapper<c, F0>) -> function_ref<typename std::remove_pointer<F0>::type>;
+
+template<auto c, class F, class T, class Sig = typename detail::cw_deduced_signature<F, T>::type>
+function_ref(constant_wrapper<c, F>, T&&) -> function_ref<Sig>;
 #endif
 
 #endif

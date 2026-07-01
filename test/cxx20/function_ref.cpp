@@ -12,7 +12,11 @@ int doubles(int x) { return 2 * x; }
 struct S {
   int mem(int x) { return 3 * x; }
   int cmem(int x) const { return 4 * x; }
+  int val = 7;
 };
+
+int freefn(S&, int x) { return 5 * x; }
+int freefn_noexcept(S&, int x) noexcept { return 6 * x; }
 
 }  // namespace
 
@@ -54,5 +58,36 @@ TEST_CASE("function_ref constant_wrapper")
     S const s;
     pf::function_ref<int(int) const> const ref{pf::cw<&S::cmem>, &s};
     CHECK(ref(10) == 40);
+  }
+}
+
+TEST_CASE("function_ref constant_wrapper two-argument CTAD")
+{
+  // member function pointer -> function_ref<int(int)>
+  {
+    S s;
+    pf::function_ref ref{pf::cw<&S::mem>, s};
+    STATIC_REQUIRE(std::is_same_v<decltype(ref), pf::function_ref<int(int)>>);
+    CHECK(ref(14) == 42);
+  }
+  // free function pointer: leading (bound) parameter is dropped
+  {
+    S s;
+    pf::function_ref ref{pf::cw<&freefn>, s};
+    STATIC_REQUIRE(std::is_same_v<decltype(ref), pf::function_ref<int(int)>>);
+    CHECK(ref(8) == 40);
+  }
+  {
+    S s;
+    pf::function_ref ref{pf::cw<&freefn_noexcept>, s};
+    STATIC_REQUIRE(std::is_same_v<decltype(ref), pf::function_ref<int(int) noexcept>>);
+    CHECK(ref(7) == 42);
+  }
+  // member object pointer -> function_ref<int&() noexcept>
+  {
+    S s;
+    pf::function_ref ref{pf::cw<&S::val>, s};
+    STATIC_REQUIRE(std::is_same_v<decltype(ref), pf::function_ref<int&() noexcept>>);
+    CHECK(ref() == 7);
   }
 }
