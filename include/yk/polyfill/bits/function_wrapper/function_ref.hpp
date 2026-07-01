@@ -22,6 +22,39 @@ struct is_specialization_of_constant_wrapper : std::false_type {};
 template<xo::cw_fixed_value X, class C>
 struct is_specialization_of_constant_wrapper<constant_wrapper<X, C>> : std::true_type {};
 
+// [func.wrap.ref.ctor] mandate: if the constant callable is a (member) pointer it must
+// not be null. The comparison is only formed in that case.
+template<auto c, class F, bool = std::is_pointer<F>::value || std::is_member_pointer<F>::value>
+struct cw_value_nonnull : std::true_type {};
+template<auto c, class F>
+struct cw_value_nonnull<c, F, true> : std::integral_constant<bool, constant_wrapper<c, F>::value != nullptr> {};
+
+// Whether T satisfies constant_wrapper's exposition-only constexpr-param concept.
+template<class T, class = void>
+struct cw_is_constexpr_param : std::false_type {};
+template<class T>
+struct cw_is_constexpr_param<T, std::void_t<constant_wrapper<T::value>>> : std::true_type {};
+
+// Second [func.wrap.ref.ctor] mandate of the no-object constructor: if every argument
+// type is a constant (constexpr-param), the callable invoked with their constant values
+// must not itself be constant-wrappable.
+template<class Enable, auto Callable, class... ArgCw>
+struct cw_invoke_result_wrappable : std::false_type {};
+template<auto Callable, class... ArgCw>
+struct cw_invoke_result_wrappable<std::void_t<constant_wrapper<polyfill::invoke(Callable, ArgCw::value...)>>, Callable, ArgCw...> : std::true_type {};
+
+template<class... Args>
+constexpr bool cw_all_args_constant() noexcept
+{
+  return sizeof...(Args) != 0 && (cw_is_constexpr_param<typename remove_cvref<Args>::type>::value && ...);
+}
+
+template<auto c, class F, bool Applies, class... Args>
+struct cw_constant_call_mandate : std::true_type {};
+template<auto c, class F, class... Args>
+struct cw_constant_call_mandate<c, F, true, Args...>
+    : std::integral_constant<bool, !cw_invoke_result_wrappable<void, constant_wrapper<c, F>::value, typename remove_cvref<Args>::type...>::value> {};
+
 template<class Sig>
 struct drop_first_param;
 template<class R, class First, class... Rest>

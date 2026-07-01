@@ -52,7 +52,8 @@ public:
   }
 
   template<class F, typename std::enable_if<!std::is_same<typename remove_cvref<F>::type, function_ref>::value, std::nullptr_t>::type = nullptr,
-           // The is_function check below is non-standard, but major vendors (e.g. libstdc++) add the condition to delegate function lvalues to the overload above
+           // The is_function check below is non-standard, but major vendors (e.g. libstdc++) add the condition to delegate function lvalues to the overload
+           // above
            typename std::enable_if<!std::is_function<typename remove_cvref<F>::type>::value, std::nullptr_t>::type = nullptr,
            typename std::enable_if<!std::is_member_pointer<typename remove_cvref<F>::type>::value, std::nullptr_t>::type = nullptr,
            class T = typename std::remove_reference<F>::type,
@@ -79,30 +80,39 @@ public:
   template<auto c, class F, typename std::enable_if<is_invocable_using<F const&>::value, std::nullptr_t>::type = nullptr>
   constexpr function_ref(constant_wrapper<c, F>) noexcept
       : entity_(detail::bound_entity::constant_tag{}),
-        thunk_ptr_(&detail::invoker<YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_IS_NOEXCEPT, R,
-                                    Args...>::template invoke_constant<constant_wrapper<c, F>::value>)
+        thunk_ptr_(
+            &detail::invoker<YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_IS_NOEXCEPT, R, Args...>::template invoke_constant<constant_wrapper<c, F>::value>)
   {
+    static_assert(detail::cw_value_nonnull<c, F>::value, "the constant callable must not be a null (member) pointer");
+    static_assert(detail::cw_constant_call_mandate<c, F, detail::cw_all_args_constant<Args...>(), Args...>::value,
+                  "a constant callable that folds to a constant when invoked with all-constant arguments cannot be wrapped");
   }
 
   // Bind the constant callable to an lvalue object (invoked as f.value(obj, call-args...)).
-  template<auto c, class F, class U, typename std::enable_if<!std::is_rvalue_reference<U&&>::value, std::nullptr_t>::type = nullptr,
-           class T = typename std::remove_reference<U>::type,
-           typename std::enable_if<is_invocable_using<F const&, T YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_CONST&>::value, std::nullptr_t>::type = nullptr>
+  template<
+      auto c, class F, class U, typename std::enable_if<!std::is_rvalue_reference<U&&>::value, std::nullptr_t>::type = nullptr,
+      class T = typename std::remove_reference<U>::type,
+      typename std::enable_if<is_invocable_using<F const&, T YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_CONST&>::value, std::nullptr_t>::type = nullptr>
   constexpr function_ref(constant_wrapper<c, F>, U&& obj) noexcept
       : entity_(detail::bound_entity::obj_tag{}, std::forward<U>(obj)),
-        thunk_ptr_(&detail::invoker<YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_IS_NOEXCEPT, R,
-                                    Args...>::template invoke_constant_target<constant_wrapper<c, F>::value, T YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_CONST>)
+        thunk_ptr_(
+            &detail::invoker<YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_IS_NOEXCEPT, R,
+                             Args...>::template invoke_constant_target<constant_wrapper<c, F>::value, T YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_CONST>)
   {
+    static_assert(detail::cw_value_nonnull<c, F>::value, "the constant callable must not be a null (member) pointer");
   }
 
   // Bind the constant callable to a pointer (invoked as f.value(obj, call-args...)).
-  template<auto c, class F, class T,
-           typename std::enable_if<is_invocable_using<F const&, T YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_CONST*>::value, std::nullptr_t>::type = nullptr>
+  template<
+      auto c, class F, class T,
+      typename std::enable_if<is_invocable_using<F const&, T YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_CONST*>::value, std::nullptr_t>::type = nullptr>
   constexpr function_ref(constant_wrapper<c, F>, T YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_CONST* obj) noexcept
       : entity_(detail::bound_entity::ptr_tag{}, obj),
-        thunk_ptr_(&detail::invoker<YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_IS_NOEXCEPT, R,
-                                    Args...>::template invoke_constant_pointer<constant_wrapper<c, F>::value, T YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_CONST*>)
+        thunk_ptr_(
+            &detail::invoker<YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_IS_NOEXCEPT, R,
+                             Args...>::template invoke_constant_pointer<constant_wrapper<c, F>::value, T YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_CONST*>)
   {
+    static_assert(detail::cw_value_nonnull<c, F>::value, "the constant callable must not be a null (member) pointer");
   }
 #endif
 

@@ -18,6 +18,10 @@ struct S {
 int freefn(S&, int x) { return 5 * x; }
 int freefn_noexcept(S&, int x) noexcept { return 6 * x; }
 
+struct Doubler {
+  constexpr int operator()(int x) const { return 2 * x; }
+};
+
 }  // namespace
 
 TEST_CASE("function_ref constant_wrapper")
@@ -31,6 +35,12 @@ TEST_CASE("function_ref constant_wrapper")
   // CTAD: function_ref(constant_wrapper<c, F0>) -> function_ref<remove_pointer_t<F0>>
   {
     pf::function_ref ref = pf::cw<&doubles>;
+    CHECK(ref(21) == 42);
+  }
+
+  // stateless functor constant (F is not a pointer, so the null-pointer mandate is vacuous)
+  {
+    pf::function_ref<int(int)> const ref = pf::cw<Doubler{}>;
     CHECK(ref(21) == 42);
   }
 
