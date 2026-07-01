@@ -52,8 +52,8 @@ public:
   }
 
   template<class F, typename std::enable_if<!std::is_same<typename remove_cvref<F>::type, function_ref>::value, std::nullptr_t>::type = nullptr,
-           // The is_function check below is non-standard, but major vendors (e.g. libstdc++) add the condition to delegate function lvalues to the overload
-           // above
+           // The is_function check below is non-standard, but major vendors (e.g. libstdc++)
+           // add the condition to delegate function lvalues to the overload above
            typename std::enable_if<!std::is_function<typename remove_cvref<F>::type>::value, std::nullptr_t>::type = nullptr,
            typename std::enable_if<!std::is_member_pointer<typename remove_cvref<F>::type>::value, std::nullptr_t>::type = nullptr,
            class T = typename std::remove_reference<F>::type,
