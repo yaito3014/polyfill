@@ -119,30 +119,6 @@ void as_const(T const&&) = delete;
 // features individually (concepts, three-way comparison, explicit object parameters).
 #if __cplusplus >= 201703L
 
-namespace detail {
-
-template<class X, class... Is>
-struct subscript;
-
-#if __cpp_multidimensional_subscript >= 202211L
-
-template<class X, class... Is>
-struct subscript {
-  static constexpr auto value = X::value[Is::value...];
-};
-
-#else
-
-// fallback specialization for pre-C++23
-template<class X, class I>
-struct subscript<X, I> {
-  static constexpr auto value = X::value[I::value];
-};
-
-#endif
-
-}  // namespace detail
-
 template<auto X, class = decltype(X)>
 struct constant_wrapper;
 
@@ -268,11 +244,21 @@ struct cw_operators {
     return constant_wrapper<T::value(Args::value...)>{};
   }
 
+#if __cpp_multidimensional_subscript >= 202211L
   template<constexpr_param T, constexpr_param... Args>
-  [[nodiscard]] constexpr auto operator[](this T, Args...) noexcept -> constant_wrapper<detail::subscript<T, Args...>::value>
+  [[nodiscard]] constexpr auto operator[](this T, Args...) noexcept
   {
-    return {};
+    return constant_wrapper<[] { return T::value[Args::value...]; }()>{};
   }
+#else
+  // pack expansion inside [] requires multidimensional subscript, so fall back to a
+  // single index when only the explicit object parameter is available.
+  template<constexpr_param T, constexpr_param I>
+  [[nodiscard]] constexpr auto operator[](this T, I) noexcept
+  {
+    return constant_wrapper<[] { return T::value[I::value]; }()>{};
+  }
+#endif
 
   YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_FIX_OPERATOR(++)
   YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_FIX_OPERATOR(--)
