@@ -115,89 +115,51 @@ constexpr typename std::add_const<T>::type& as_const(T& x) noexcept
 template<class T>
 void as_const(T const&&) = delete;
 
-// assume all C++20 features available
-#if __cplusplus >= 202002L
+// constant_wrapper core requires C++17 (auto NTTP); richer pieces are gated on newer
+// features individually (concepts, three-way comparison, explicit object parameters).
+#if __cplusplus >= 201703L
 
-namespace detail {
-
-template<class X, class... Is>
-struct subscript;
-
-#if __cpp_multidimensional_subscript >= 202211L
-
-template<class X, class... Is>
-struct subscript {
-  static constexpr auto value = X::value[Is::value...];
-};
-
-#else
-
-// fallback specialization for pre-C++23
-template<class X, class I>
-struct subscript<X, I> {
-  static constexpr auto value = X::value[I::value];
-};
-
-#endif
-
-}  // namespace detail
-
-namespace xo {
-
-template<class T>
-struct cw_fixed_value {
-  T data;
-
-  using type = T;
-  constexpr cw_fixed_value(type v) noexcept : data(v) {}
-};
-
-template<class T, std::size_t Extent>
-struct cw_fixed_value<T[Extent]> {
-  T data[Extent];
-
-  using type = T[Extent];
-  constexpr cw_fixed_value(T (&arr)[Extent]) noexcept
-  {
-    for (std::size_t i = 0; i < Extent; ++i) {
-      data[i] = arr[i];
-    }
-  }
-};
-
-template<class T, std::size_t Extent>
-cw_fixed_value(T (&)[Extent]) -> cw_fixed_value<T[Extent]>;
-
-}  // namespace xo
-
-template<xo::cw_fixed_value X, class = typename decltype(xo::cw_fixed_value(X))::type>
+template<auto X, class = decltype(X)>
 struct constant_wrapper;
 
 namespace xo {
 
-template<class T>
-concept constexpr_param = requires { typename constant_wrapper<T::value>; };
+template<class T, class = void>
+struct is_constexpr_param : std::false_type {};
 
-#define YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_UNARY_OPERATOR(op)                          \
-  template<constexpr_param T>                                                                  \
-  [[nodiscard]] friend constexpr auto operator op(T) noexcept -> constant_wrapper<+(T::value)> \
-  {                                                                                            \
-    return {};                                                                                 \
+template<class T>
+struct is_constexpr_param<T, std::void_t<constant_wrapper<T::value>>> : std::true_type {};
+
+#if __cpp_concepts >= 201907L
+template<class T>
+concept constexpr_param = is_constexpr_param<T>::value;
+#endif
+
+#define YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_UNARY_OPERATOR(op)                                      \
+  template<class T, typename std::enable_if<is_constexpr_param<T>::value, std::nullptr_t>::type = nullptr> \
+  [[nodiscard]] friend constexpr auto operator op(T) noexcept -> constant_wrapper<(op T::value)>           \
+  {                                                                                                        \
+    return {};                                                                                             \
   }
 
 #define YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_BINARY_OPERATOR(op)                                       \
-  template<constexpr_param T, constexpr_param U>                                                             \
+  template<class T, class U,                                                                                 \
+           typename std::enable_if<is_constexpr_param<T>::value && is_constexpr_param<U>::value,             \
+                                   std::nullptr_t>::type = nullptr>                                          \
   [[nodiscard]] friend constexpr auto operator op(T, U) noexcept -> constant_wrapper<(T::value op U::value)> \
   {                                                                                                          \
     return {};                                                                                               \
   }
 
-#define YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_LOGICAL_OPERATOR(op)                                                 \
-  template<constexpr_param T, constexpr_param U>                                                                        \
-    requires (!std::is_constructible_v<bool, decltype(T::value)> || !std::is_constructible_v<bool, decltype(U::value)>) \
-  [[nodiscard]] friend constexpr auto operator op(T, U) noexcept -> constant_wrapper<(T::value op U::value)>            \
-  {                                                                                                                     \
-    return {};                                                                                                          \
+#define YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_LOGICAL_OPERATOR(op)                                      \
+  template<class T, class U,                                                                                 \
+           typename std::enable_if<is_constexpr_param<T>::value && is_constexpr_param<U>::value              \
+                                       && (!std::is_constructible<bool, decltype(T::value)>::value           \
+                                           || !std::is_constructible<bool, decltype(U::value)>::value),      \
+                                   std::nullptr_t>::type = nullptr>                                          \
+  [[nodiscard]] friend constexpr auto operator op(T, U) noexcept -> constant_wrapper<(T::value op U::value)> \
+  {                                                                                                          \
+    return {};                                                                                               \
   }
 
 #if __cpp_explicit_this_parameter >= 202110L
@@ -254,7 +216,9 @@ struct cw_operators {
   YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_BINARY_OPERATOR(|)
   YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_BINARY_OPERATOR(^)
 
+#if __cpp_impl_three_way_comparison >= 201907L
   YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_BINARY_OPERATOR(<=>)
+#endif
   YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_BINARY_OPERATOR(<)
   YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_BINARY_OPERATOR(<=)
   YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_BINARY_OPERATOR(==)
@@ -262,8 +226,9 @@ struct cw_operators {
   YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_BINARY_OPERATOR(>)
   YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_BINARY_OPERATOR(>=)
 
-  template<constexpr_param T, constexpr_param U>
-  friend constexpr auto operator,(T, U) noexcept = delete;
+  template<class T, class U>
+  friend constexpr auto operator,(T, U) noexcept
+      -> typename std::enable_if<is_constexpr_param<T>::value && is_constexpr_param<U>::value>::type = delete;
 
   YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_BINARY_OPERATOR(->*)
 
@@ -279,11 +244,21 @@ struct cw_operators {
     return constant_wrapper<T::value(Args::value...)>{};
   }
 
+#if __cpp_multidimensional_subscript >= 202211L
   template<constexpr_param T, constexpr_param... Args>
-  [[nodiscard]] constexpr auto operator[](this T, Args...) noexcept -> constant_wrapper<detail::subscript<T, Args...>::value>
+  [[nodiscard]] constexpr auto operator[](this T, Args...) noexcept
   {
-    return {};
+    return constant_wrapper<[] { return T::value[Args::value...]; }()>{};
   }
+#else
+  // pack expansion inside [] requires multidimensional subscript, so fall back to a
+  // single index when only the explicit object parameter is available.
+  template<constexpr_param T, constexpr_param I>
+  [[nodiscard]] constexpr auto operator[](this T, I) noexcept
+  {
+    return constant_wrapper<[] { return T::value[I::value]; }()>{};
+  }
+#endif
 
   YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_FIX_OPERATOR(++)
   YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_FIX_OPERATOR(--)
@@ -309,13 +284,17 @@ struct cw_operators {
 
 }  // namespace xo
 
-template<xo::cw_fixed_value X, class>
+template<auto X, class T>
 struct constant_wrapper : public xo::cw_operators {
-  static constexpr auto const& value = X.data;
+  static constexpr decltype(auto) value = (X);
 
   using type = constant_wrapper;
-  using value_type = typename decltype(X)::type;
+  using value_type = decltype(X);
 
+  static_assert(std::is_same<T, value_type>::value, "constant_wrapper's second template argument must be its value_type");
+
+  // Uses a lambda in a template-argument to compute the assigned value, so it requires C++20.
+#if __cplusplus >= 202002L
   template<xo::constexpr_param R>
   [[nodiscard]] constexpr auto operator=(R) const noexcept
     requires requires(value_type x) { x = R::value; }
@@ -325,11 +304,12 @@ struct constant_wrapper : public xo::cw_operators {
       return v = R::value;
     }()>{};
   }
+#endif
 
   constexpr operator decltype(auto)() const noexcept { return value; }
 };
 
-template<xo::cw_fixed_value X>
+template<auto X>
 inline constexpr auto cw = constant_wrapper<X>{};
 
 #endif
