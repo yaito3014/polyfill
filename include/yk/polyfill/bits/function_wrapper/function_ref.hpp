@@ -18,7 +18,7 @@ namespace detail {
 template<class T>
 struct is_specialization_of_constant_wrapper : std::false_type {};
 
-#if __cplusplus >= 202002L
+#if __cplusplus >= 201703L
 template<auto X, class C>
 struct is_specialization_of_constant_wrapper<constant_wrapper<X, C>> : std::true_type {};
 
@@ -190,7 +190,7 @@ namespace polyfill {
 template<class F, typename std::enable_if<std::is_function<F>::value, std::nullptr_t>::type = nullptr>
 function_ref(F*) -> function_ref<F>;
 
-#if __cplusplus >= 202002L
+#if __cplusplus >= 201703L
 template<auto c, class F0, typename std::enable_if<std::is_function<typename std::remove_pointer<F0>::type>::value, std::nullptr_t>::type = nullptr>
 function_ref(constant_wrapper<c, F0>) -> function_ref<typename std::remove_pointer<F0>::type>;
 
