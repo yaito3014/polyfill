@@ -4,7 +4,7 @@
 #include "yk/polyfill/bits/function_wrapper/common.hpp"
 
 #include <yk/polyfill/extension/invocable_traits.hpp>
-#include <yk/polyfill/type_traits.hpp>  // constant_wrapper
+#include <yk/polyfill/utility.hpp>  // constant_wrapper
 
 namespace yk {
 
