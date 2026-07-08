@@ -7,6 +7,8 @@
 #include <yk/polyfill/functional.hpp>
 #include <yk/polyfill/utility.hpp>
 
+#include <type_traits>
+
 namespace pf = yk::polyfill;
 
 namespace {
@@ -21,6 +23,20 @@ struct S {
 
 int freefn(S&, int x) { return 5 * x; }
 int freefn_noexcept(S&, int x) noexcept { return 6 * x; }
+
+// ref-qualified member functions and an unrelated type, to probe the deduction-guide boundary.
+struct RefQual {
+  int lmem(int x) & { return 3 * x; }
+  int rmem(int) && { return 0; }
+};
+struct Unrelated {};
+
+// Whether the two-argument constant_wrapper deduction guide [func.wrap.ref.deduct] applies,
+// i.e. whether cw_deduced_signature<F, T> yields a signature.
+template<class F, class T, class = void>
+struct guide_applies : std::false_type {};
+template<class F, class T>
+struct guide_applies<F, T, std::void_t<typename pf::detail::cw_deduced_signature<F, T>::type>> : std::true_type {};
 
 struct NoexceptCallable {
   int operator()(int x) const noexcept { return 2 * x; }
@@ -200,5 +216,26 @@ TEST_CASE("function_ref constant_wrapper two-argument CTAD")
     pf::function_ref ref{pf::cw<&S::val>, s};
     STATIC_REQUIRE(std::is_same_v<decltype(ref), pf::function_ref<int&() noexcept>>);
     CHECK(ref() == 7);
+  }
+}
+
+TEST_CASE("function_ref constant_wrapper two-argument CTAD boundary")
+{
+  // [func.wrap.ref.deduct]: the member-function form is R(G::*)(A...) cv opt& noexcept(E).
+  // An lvalue-ref-qualified member function is of that form; an rvalue-ref-qualified one is not.
+  STATIC_REQUIRE(guide_applies<decltype(&RefQual::lmem), RefQual>::value);
+  STATIC_REQUIRE_FALSE(guide_applies<decltype(&RefQual::rmem), RefQual>::value);
+
+  // The member-object form deduces only when F is invocable with T&, so binding an unrelated
+  // object drops the guide (rather than hard-erroring).
+  STATIC_REQUIRE(guide_applies<decltype(&S::val), S>::value);
+  STATIC_REQUIRE_FALSE(guide_applies<decltype(&S::val), Unrelated>::value);
+
+  // the lvalue-ref-qualified member function still deduces and invokes through CTAD.
+  {
+    RefQual rq;
+    pf::function_ref ref{pf::cw<&RefQual::lmem>, rq};
+    STATIC_REQUIRE(std::is_same_v<decltype(ref), pf::function_ref<int(int)>>);
+    CHECK(ref(14) == 42);
   }
 }
