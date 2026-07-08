@@ -71,8 +71,17 @@ struct drop_first_param<R(First, Rest...) noexcept> {
 template<class F, class T, class = void>
 struct cw_deduced_signature {};
 
+// invocable_traits exposes is_rvalue_reference only for member function pointers, so gate the
+// access behind is_member_function_pointer rather than reading it in an unevaluated conjunction.
+template<class F, bool = std::is_member_function_pointer<F>::value>
+struct is_rvalue_ref_memfn : std::false_type {};
+template<class F>
+struct is_rvalue_ref_memfn<F, true> : std::integral_constant<bool, extension::invocable_traits<F>::is_rvalue_reference> {};
+
+// [func.wrap.ref.deduct] restricts this to R(G::*)(A...) cv opt& noexcept(E), so an
+// rvalue-ref-qualified member function is not of the required form.
 template<class F, class T>
-struct cw_deduced_signature<F, T, typename std::enable_if<std::is_member_function_pointer<F>::value>::type> {
+struct cw_deduced_signature<F, T, typename std::enable_if<std::is_member_function_pointer<F>::value && !is_rvalue_ref_memfn<F>::value>::type> {
   using type = typename extension::invocable_traits<F>::function_type;
 };
 

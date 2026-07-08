@@ -119,7 +119,7 @@ public:
   constexpr function_ref(function_ref const&) noexcept = default;
   YK_POLYFILL_CXX14_CONSTEXPR function_ref& operator=(function_ref const&) noexcept = default;
 
-  template<class T, typename std::enable_if<!std::is_same<T, function_ref>::value, std::nullptr_t>::type = nullptr,
+  template<class T, typename std::enable_if<!is_convertible_from_specialization<T>::value, std::nullptr_t>::type = nullptr,
            typename std::enable_if<!std::is_pointer<T>::value, std::nullptr_t>::type = nullptr,
            typename std::enable_if<!detail::is_specialization_of_constant_wrapper<T>::value, std::nullptr_t>::type = nullptr>
   function_ref& operator=(T) = delete;

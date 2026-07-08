@@ -11,6 +11,10 @@ namespace pf = yk::polyfill;
 namespace {
 
 int doubles(int x) { return 2 * x; }
+int triples(int x) { return 3 * x; }
+
+int void_ret_probe = 0;
+int set_probe(int x) { void_ret_probe = x; return 2 * x; }
 
 struct DifferentForConstness {
   int operator()(int x) const { return 2 * x; }
@@ -110,6 +114,15 @@ TEST_CASE("function_ref")
     pf::function_ref<int(int)> const ref = &doubles;
     CHECK(ref(21) == 42);
   }
+
+  // void return type from a function pointer: the non-void result is discarded
+  // (the thunk must go through invoke_r<void>, not call the pointer directly).
+  {
+    void_ret_probe = 0;
+    pf::function_ref<void(int)> const ref = &set_probe;
+    ref(21);
+    CHECK(void_ret_probe == 21);
+  }
 }
 
 TEST_CASE("function_ref cross-specialization conversion")
@@ -145,5 +158,15 @@ TEST_CASE("function_ref cross-specialization conversion")
     pf::function_ref<int(int)> const src = doubles;
     pf::function_ref<int(int)> const ref = src;
     CHECK(ref(21) == 42);
+  }
+
+  // assignment from a convertible different specialization is allowed: the deleted
+  // operator=(T) is constrained on !is-convertible-from-specialization<T>, so the
+  // conversion (const -> non-const) goes through rather than being deleted.
+  {
+    pf::function_ref<int(int)> ref = doubles;
+    pf::function_ref<int(int) const> const src = triples;
+    ref = src;
+    CHECK(ref(14) == 42);  // now invokes triples through the adopted specialization
   }
 }
