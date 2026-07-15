@@ -83,4 +83,9 @@ if(CMAKE_VERSION VERSION_GREATER_EQUAL 4.3)
         EXPORT yk-polyfill-export
         PROJECT yk_polyfill
     )
+    export(
+        PACKAGE_INFO yk-polyfill
+        EXPORT yk-polyfill-export
+        PROJECT yk_polyfill
+    )
 endif()
