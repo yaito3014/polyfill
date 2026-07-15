@@ -59,7 +59,7 @@ struct invoker {
   template<class Func>
   static R invoke_func(bound_entity entity, Args&&... args) noexcept(Noexcept)
   {
-    return reinterpret_cast<Func*>(entity.func_ptr)(std::forward<Args>(args)...);
+    return polyfill::invoke_r<R>(reinterpret_cast<Func*>(entity.func_ptr), std::forward<Args>(args)...);
   }
 
   template<class Obj>
