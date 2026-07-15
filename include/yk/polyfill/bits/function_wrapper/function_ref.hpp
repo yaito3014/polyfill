@@ -16,32 +16,32 @@ class function_ref;
 namespace detail {
 
 template<class T>
-struct is_specialization_of_constant_wrapper : std::false_type {};
+struct is_specialization_of_constant_wrapper : false_type {};
 
 #if __cplusplus >= 201703L
 template<auto X, class C>
-struct is_specialization_of_constant_wrapper<constant_wrapper<X, C>> : std::true_type {};
+struct is_specialization_of_constant_wrapper<constant_wrapper<X, C>> : true_type {};
 
 // [func.wrap.ref.ctor] mandate: if the constant callable is a (member) pointer it must
 // not be null. The comparison is only formed in that case.
 template<auto c, class F, bool = std::is_pointer<F>::value || std::is_member_pointer<F>::value>
-struct cw_value_nonnull : std::true_type {};
+struct cw_value_nonnull : true_type {};
 template<auto c, class F>
-struct cw_value_nonnull<c, F, true> : std::integral_constant<bool, constant_wrapper<c, F>::value != nullptr> {};
+struct cw_value_nonnull<c, F, true> : bool_constant<constant_wrapper<c, F>::value != nullptr> {};
 
 // Whether T satisfies constant_wrapper's exposition-only constexpr-param concept.
 template<class T, class = void>
-struct cw_is_constexpr_param : std::false_type {};
+struct cw_is_constexpr_param : false_type {};
 template<class T>
-struct cw_is_constexpr_param<T, std::void_t<constant_wrapper<T::value>>> : std::true_type {};
+struct cw_is_constexpr_param<T, void_t<constant_wrapper<T::value>>> : true_type {};
 
 // Second [func.wrap.ref.ctor] mandate of the no-object constructor: if every argument
 // type is a constant (constexpr-param), the callable invoked with their constant values
 // must not itself be constant-wrappable.
 template<class Enable, auto Callable, class... ArgCw>
-struct cw_invoke_result_wrappable : std::false_type {};
+struct cw_invoke_result_wrappable : false_type {};
 template<auto Callable, class... ArgCw>
-struct cw_invoke_result_wrappable<std::void_t<constant_wrapper<polyfill::invoke(Callable, ArgCw::value...)>>, Callable, ArgCw...> : std::true_type {};
+struct cw_invoke_result_wrappable<void_t<constant_wrapper<polyfill::invoke(Callable, ArgCw::value...)>>, Callable, ArgCw...> : true_type {};
 
 template<class... Args>
 constexpr bool cw_all_args_constant() noexcept
@@ -50,10 +50,10 @@ constexpr bool cw_all_args_constant() noexcept
 }
 
 template<auto c, class F, bool Applies, class... Args>
-struct cw_constant_call_mandate : std::true_type {};
+struct cw_constant_call_mandate : true_type {};
 template<auto c, class F, class... Args>
 struct cw_constant_call_mandate<c, F, true, Args...>
-    : std::integral_constant<bool, !cw_invoke_result_wrappable<void, constant_wrapper<c, F>::value, typename remove_cvref<Args>::type...>::value> {};
+    : bool_constant<!cw_invoke_result_wrappable<void, constant_wrapper<c, F>::value, typename remove_cvref<Args>::type...>::value> {};
 
 template<class Sig>
 struct drop_first_param;
@@ -74,9 +74,9 @@ struct cw_deduced_signature {};
 // invocable_traits exposes is_rvalue_reference only for member function pointers, so gate the
 // access behind is_member_function_pointer rather than reading it in an unevaluated conjunction.
 template<class F, bool = std::is_member_function_pointer<F>::value>
-struct is_rvalue_ref_memfn : std::false_type {};
+struct is_rvalue_ref_memfn : false_type {};
 template<class F>
-struct is_rvalue_ref_memfn<F, true> : std::integral_constant<bool, extension::invocable_traits<F>::is_rvalue_reference> {};
+struct is_rvalue_ref_memfn<F, true> : bool_constant<extension::invocable_traits<F>::is_rvalue_reference> {};
 
 // [func.wrap.ref.deduct] restricts this to R(G::*)(A...) cv opt& noexcept(E), so an
 // rvalue-ref-qualified member function is not of the required form.
@@ -93,7 +93,7 @@ struct cw_deduced_signature<F, T, typename std::enable_if<std::is_pointer<F>::va
 
 template<class F, class T>
 struct cw_deduced_signature<
-    F, T, typename std::enable_if<std::is_member_object_pointer<F>::value, std::void_t<typename polyfill::invoke_result<F, T&>::type>>::type> {
+    F, T, typename std::enable_if<std::is_member_object_pointer<F>::value, void_t<typename polyfill::invoke_result<F, T&>::type>>::type> {
   using result = typename polyfill::invoke_result<F, T&>::type;
   using type = result() noexcept;
 };
@@ -130,7 +130,7 @@ struct function_ref_spec_convertible
                   std::is_convertible<typename cv_int_ref<CurConst>::type, typename cv_int_ref<Cv2Const>::type>> {};
 
 template<class F, bool CurConst, bool CurNoexcept, class R, class... Args>
-struct is_convertible_from_function_ref_specialization : std::false_type {};
+struct is_convertible_from_function_ref_specialization : false_type {};
 
 template<bool CurConst, bool CurNoexcept, class R, class... Args>
 struct is_convertible_from_function_ref_specialization<function_ref<R(Args...)>, CurConst, CurNoexcept, R, Args...>

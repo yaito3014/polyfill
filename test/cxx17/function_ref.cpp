@@ -34,9 +34,9 @@ struct Unrelated {};
 // Whether the two-argument constant_wrapper deduction guide [func.wrap.ref.deduct] applies,
 // i.e. whether cw_deduced_signature<F, T> yields a signature.
 template<class F, class T, class = void>
-struct guide_applies : std::false_type {};
+struct guide_applies : pf::false_type {};
 template<class F, class T>
-struct guide_applies<F, T, std::void_t<typename pf::detail::cw_deduced_signature<F, T>::type>> : std::true_type {};
+struct guide_applies<F, T, pf::void_t<typename pf::detail::cw_deduced_signature<F, T>::type>> : pf::true_type {};
 
 struct NoexceptCallable {
   int operator()(int x) const noexcept { return 2 * x; }

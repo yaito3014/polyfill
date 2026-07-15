@@ -125,10 +125,10 @@ struct constant_wrapper;
 namespace xo {
 
 template<class T, class = void>
-struct is_constexpr_param : std::false_type {};
+struct is_constexpr_param : false_type {};
 
 template<class T>
-struct is_constexpr_param<T, std::void_t<constant_wrapper<T::value>>> : std::true_type {};
+struct is_constexpr_param<T, void_t<constant_wrapper<T::value>>> : true_type {};
 
 #if __cpp_concepts >= 201907L
 template<class T>
