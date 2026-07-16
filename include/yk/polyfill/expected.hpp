@@ -1041,9 +1041,9 @@ public:
 private:
   // rvalue accessors on the storage (private base), reached through explicit std::move.
   YK_POLYFILL_CXX14_CONSTEXPR T&& base_get_value() && noexcept { return std::move(static_cast<base_type&>(*this).get_value()); }
-  YK_POLYFILL_CXX14_CONSTEXPR T const&& base_get_value() const&& noexcept { return std::move(static_cast<base_type const&>(*this).get_value()); }
+  constexpr T const&& base_get_value() const&& noexcept { return std::move(static_cast<base_type const&>(*this).get_value()); }
   YK_POLYFILL_CXX14_CONSTEXPR E&& base_get_error() && noexcept { return std::move(static_cast<base_type&>(*this).get_error()); }
-  YK_POLYFILL_CXX14_CONSTEXPR E const&& base_get_error() const&& noexcept { return std::move(static_cast<base_type const&>(*this).get_error()); }
+  constexpr E const&& base_get_error() const&& noexcept { return std::move(static_cast<base_type const&>(*this).get_error()); }
 
   // this holds a value, rhs holds an error; leave this holding rhs's error and rhs holding this's value.
   YK_POLYFILL_CXX20_CONSTEXPR void swap_value_error(expected& rhs, true_type /* E is nothrow move constructible */)
@@ -1407,7 +1407,7 @@ public:
 
 private:
   YK_POLYFILL_CXX14_CONSTEXPR E&& base_get_error() && noexcept { return std::move(static_cast<base_type&>(*this).get_error()); }
-  YK_POLYFILL_CXX14_CONSTEXPR E const&& base_get_error() const&& noexcept { return std::move(static_cast<base_type const&>(*this).get_error()); }
+  constexpr E const&& base_get_error() const&& noexcept { return std::move(static_cast<base_type const&>(*this).get_error()); }
 };
 
 // comparisons
