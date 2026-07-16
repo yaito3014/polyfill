@@ -33,6 +33,8 @@ struct FromInt {
   FromInt(int x) : v(x) {}
 };
 
+int times_two(int x) { return 2 * x; }
+
 // copy/move constructible + assignable, but with a potentially-throwing move constructor.
 struct ThrowMove {
   int tag = 0;
@@ -495,4 +497,135 @@ TEST_CASE("expected move-only value")
   moved = std::move(err);
   CHECK(!moved.has_value());
   CHECK(moved.error() == 9);
+}
+
+TEST_CASE("expected rvalue observers")
+{
+  // value() rvalue overloads
+  {
+    pf::expected<std::string, int> e(pf::in_place, "hello");
+    STATIC_REQUIRE(std::is_same<decltype(std::move(e).value()), std::string&&>::value);
+    std::string s = std::move(e).value();
+    CHECK(s == "hello");
+  }
+  {
+    pf::expected<std::string, int> const e(pf::in_place, "world");
+    STATIC_REQUIRE(std::is_same<decltype(std::move(e).value()), std::string const&&>::value);
+  }
+
+  // value() rvalue throws with moved error
+  {
+    pf::expected<int, std::string> u(pf::unexpect, "rval-err");
+    bool caught = false;
+    try {
+      std::move(u).value();
+    } catch (pf::bad_expected_access<std::string> const& ex) {
+      caught = true;
+      CHECK(ex.error() == "rval-err");
+    }
+    CHECK(caught);
+  }
+
+  // error() rvalue overloads
+  {
+    pf::expected<int, std::string> e(pf::unexpect, "err");
+    STATIC_REQUIRE(std::is_same<decltype(std::move(e).error()), std::string&&>::value);
+    std::string s = std::move(e).error();
+    CHECK(s == "err");
+  }
+  {
+    pf::expected<int, std::string> const e(pf::unexpect, "cerr");
+    STATIC_REQUIRE(std::is_same<decltype(std::move(e).error()), std::string const&&>::value);
+  }
+
+  // operator* rvalue overloads
+  {
+    pf::expected<std::string, int> e(pf::in_place, "deref");
+    STATIC_REQUIRE(std::is_same<decltype(*std::move(e)), std::string&&>::value);
+    std::string s = *std::move(e);
+    CHECK(s == "deref");
+  }
+  {
+    pf::expected<std::string, int> const e(pf::in_place, "cderef");
+    STATIC_REQUIRE(std::is_same<decltype(*std::move(e)), std::string const&&>::value);
+  }
+}
+
+TEST_CASE("expected<void> rvalue observers")
+{
+  // value() rvalue on void (just must not throw)
+  {
+    pf::expected<void, int> e;
+    std::move(e).value();
+  }
+
+  // value() rvalue throws with moved error
+  {
+    pf::expected<void, std::string> u(pf::unexpect, "void-rval");
+    bool caught = false;
+    try {
+      std::move(u).value();
+    } catch (pf::bad_expected_access<std::string> const& ex) {
+      caught = true;
+      CHECK(ex.error() == "void-rval");
+    }
+    CHECK(caught);
+  }
+
+  // error() rvalue overloads
+  {
+    pf::expected<void, std::string> e(pf::unexpect, "verr");
+    STATIC_REQUIRE(std::is_same<decltype(std::move(e).error()), std::string&&>::value);
+    std::string s = std::move(e).error();
+    CHECK(s == "verr");
+  }
+  {
+    pf::expected<void, std::string> const e(pf::unexpect, "vcerr");
+    STATIC_REQUIRE(std::is_same<decltype(std::move(e).error()), std::string const&&>::value);
+  }
+}
+
+TEST_CASE("expected transform with function pointer")
+{
+  pf::expected<int, std::string> e(pf::in_place, 5);
+  auto r = e.transform(times_two);
+  CHECK(r.has_value());
+  CHECK(*r == 10);
+
+  pf::expected<int, std::string> u(pf::unexpect, "nope");
+  auto r2 = u.transform(times_two);
+  CHECK(!r2.has_value());
+  CHECK(r2.error() == "nope");
+}
+
+TEST_CASE("expected monadic rvalue overloads")
+{
+  // and_then on rvalue
+  {
+    pf::expected<std::string, int> e(pf::in_place, "hi");
+    auto r = std::move(e).and_then([](std::string&& s) { return pf::expected<std::size_t, int>(pf::in_place, s.size()); });
+    CHECK(r.has_value());
+    CHECK(*r == 2u);
+  }
+  // or_else on rvalue
+  {
+    pf::expected<int, std::string> u(pf::unexpect, "err");
+    auto r = std::move(u).or_else([](std::string&& s) { return pf::expected<int, std::string>(pf::in_place, static_cast<int>(s.size())); });
+    CHECK(r.has_value());
+    CHECK(*r == 3);
+  }
+  // transform on rvalue
+  {
+    pf::expected<std::string, int> e(pf::in_place, "test");
+    auto r = std::move(e).transform([](std::string&& s) { return s.size(); });
+    CHECK(r.has_value());
+    CHECK(*r == 4u);
+  }
+  // transform_error on rvalue
+  {
+    pf::expected<int, std::string> u(pf::unexpect, "boom");
+    auto r = std::move(u).transform_error([](std::string&& s) { return s.size(); });
+    CHECK(!r.has_value());
+    CHECK(r.error() == 4u);
+  }
 }
