@@ -846,7 +846,8 @@ public:
   {
     static_assert(std::is_copy_constructible<E>::value, "E must be copy constructible");
     if (has_value()) return this->get_value();
-    throw bad_expected_access<E>(this->get_error());
+    // [expected.object.obs]: throws bad_expected_access(as_const(error()))
+    throw bad_expected_access<E>(static_cast<E const&>(this->get_error()));
   }
   YK_POLYFILL_CXX14_CONSTEXPR T const& value() const&
   {

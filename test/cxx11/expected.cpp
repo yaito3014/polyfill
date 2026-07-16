@@ -576,6 +576,29 @@ TEST_CASE("expected value-forwarding ctor defaults U to remove_cv_t<T>")
   CHECK(InitCounter::copies == 0);
 }
 
+namespace {
+
+// copy ctor usable only from const lvalues; value()& must copy the error via as_const
+struct ConstOnlyCopy {
+  ConstOnlyCopy() = default;
+  ConstOnlyCopy(ConstOnlyCopy&) = delete;
+  ConstOnlyCopy(ConstOnlyCopy const&) = default;
+};
+
+}  // namespace
+
+TEST_CASE("expected value() throws bad_expected_access copied via as_const")
+{
+  pf::expected<int, ConstOnlyCopy> u(pf::unexpect);
+  bool caught = false;
+  try {
+    u.value();
+  } catch (pf::bad_expected_access<ConstOnlyCopy> const&) {
+    caught = true;
+  }
+  CHECK(caught);
+}
+
 TEST_CASE("expected converting construction with bool value type")
 {
   // [expected.object.cons] applies the converts-from-any-cvref check only "if T is not cv bool",
