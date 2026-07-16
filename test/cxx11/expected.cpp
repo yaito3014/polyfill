@@ -489,6 +489,93 @@ TEST_CASE("expected swap constraints")
   STATIC_REQUIRE(pf::is_swappable<pf::expected<ThrowMove, int>>::value);
 }
 
+TEST_CASE("expected with cv-qualified void")
+{
+  // the standard's void specialization is constrained by is_void_v<T>, covering all cv-void
+  STATIC_REQUIRE(std::is_same<pf::expected<void const, int>::value_type, void const>::value);
+  STATIC_REQUIRE(std::is_same<pf::expected<void volatile, int>::value_type, void volatile>::value);
+
+  pf::expected<void const, int> e;
+  CHECK(e.has_value());
+
+  pf::expected<void const, int> u(pf::unexpect, 4);
+  CHECK(!u.has_value());
+  CHECK(u.error() == 4);
+
+  u.emplace();
+  CHECK(u.has_value());
+
+  pf::expected<void const volatile, int> cv = pf::unexpected<int>(7);
+  CHECK(!cv.has_value());
+  CHECK(cv.error() == 7);
+
+  // comparison across differently cv-qualified void
+  pf::expected<void, int> plain;
+  CHECK(plain == e);
+  CHECK(plain != pf::expected<void volatile, int>(pf::unexpect, 1));
+
+  // monadics; or_else requires the same (cv-qualified) value_type
+  auto t = e.transform([]() { return 5; });
+  CHECK(*t == 5);
+  auto o = pf::expected<void const, int>(pf::unexpect, 2).or_else([](int x) { return pf::expected<void const, int>(pf::unexpect, x + 1); });
+  CHECK(o.error() == 3);
+}
+
+namespace {
+
+struct MoveOnlyErr {
+  MoveOnlyErr() = default;
+  MoveOnlyErr(MoveOnlyErr&&) = default;
+  MoveOnlyErr& operator=(MoveOnlyErr&&) = default;
+};
+
+struct AndThenFn {
+  pf::expected<int, MoveOnlyErr> operator()(int) const;
+};
+
+template<class Exp, class F, class = void>
+struct has_lvalue_and_then : pf::false_type {};
+
+template<class Exp, class F>
+struct has_lvalue_and_then<Exp, F, pf::void_t<decltype(std::declval<Exp&>().and_then(std::declval<F>()))>> : pf::true_type {};
+
+}  // namespace
+
+TEST_CASE("expected monadic constraints")
+{
+  // [expected.object.monadic]: and_then &/const& is constrained on is_constructible<E, decltype(error())>,
+  // so with a move-only E the lvalue overload must drop out rather than hard-error.
+  STATIC_REQUIRE_FALSE(has_lvalue_and_then<pf::expected<int, MoveOnlyErr>, AndThenFn>::value);
+
+  struct CopyableFn {
+    pf::expected<int, int> operator()(int) const;
+  };
+  STATIC_REQUIRE(has_lvalue_and_then<pf::expected<int, int>, CopyableFn>::value);
+}
+
+namespace {
+
+struct InitCounter {
+  static int copies;
+  static int moves;
+  InitCounter(std::initializer_list<int>) {}
+  InitCounter(InitCounter const&) { ++copies; }
+  InitCounter(InitCounter&&) { ++moves; }
+};
+int InitCounter::copies = 0;
+int InitCounter::moves = 0;
+
+}  // namespace
+
+TEST_CASE("expected value-forwarding ctor defaults U to remove_cv_t<T>")
+{
+  // with U defaulting to T (= InitCounter const) the temporary would be const and get copied
+  pf::expected<InitCounter const, int> e({1, 2, 3});
+  CHECK(e.has_value());
+  CHECK(InitCounter::moves == 1);
+  CHECK(InitCounter::copies == 0);
+}
+
 TEST_CASE("expected converting construction with bool value type")
 {
   // [expected.object.cons] applies the converts-from-any-cvref check only "if T is not cv bool",

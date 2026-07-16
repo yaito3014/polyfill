@@ -552,9 +552,9 @@ struct expected_can_convert {
                                 && !constructs_from_any_cvref<unexpected<E>, expected<U, G>>::value;
 };
 
-template<class E, class G, class GF>
+template<class U, class E, class G, class GF>
 struct expected_void_can_convert {
-  static constexpr bool value = std::is_constructible<E, GF>::value && !constructs_from_any_cvref<unexpected<E>, expected<void, G>>::value;
+  static constexpr bool value = std::is_constructible<E, GF>::value && !constructs_from_any_cvref<unexpected<E>, expected<U, G>>::value;
 };
 
 // transform helpers: build expected<U, E2> from invoking f, U possibly void
@@ -670,7 +670,7 @@ public:
     }
   }
 
-  template<class U = T, typename std::enable_if<
+  template<class U = typename std::remove_cv<T>::type, typename std::enable_if<
                             !std::is_same<typename remove_cvref<U>::type, in_place_t>::value && !std::is_same<typename remove_cvref<U>::type, expected>::value
                                 && !detail::is_unexpected<typename remove_cvref<U>::type>::value && std::is_constructible<T, U>::value
                                 && (!std::is_same<typename std::remove_cv<T>::type, bool>::value || !detail::is_expected<typename remove_cvref<U>::type>::value)
@@ -680,7 +680,7 @@ public:
   {
   }
 
-  template<class U = T, typename std::enable_if<
+  template<class U = typename std::remove_cv<T>::type, typename std::enable_if<
                             !std::is_same<typename remove_cvref<U>::type, in_place_t>::value && !std::is_same<typename remove_cvref<U>::type, expected>::value
                                 && !detail::is_unexpected<typename remove_cvref<U>::type>::value && std::is_constructible<T, U>::value
                                 && (!std::is_same<typename std::remove_cv<T>::type, bool>::value || !detail::is_expected<typename remove_cvref<U>::type>::value)
@@ -740,7 +740,7 @@ public:
 
   // assignment (copy/move assignment are implicit)
 
-  template<class U = T, typename std::enable_if<!std::is_same<typename remove_cvref<U>::type, expected>::value
+  template<class U = typename std::remove_cv<T>::type, typename std::enable_if<!std::is_same<typename remove_cvref<U>::type, expected>::value
                                                     && !detail::is_unexpected<typename remove_cvref<U>::type>::value && std::is_constructible<T, U>::value
                                                     && std::is_assignable<T&, U>::value
                                                     && (std::is_nothrow_constructible<T, U>::value || std::is_nothrow_move_constructible<T>::value
@@ -844,21 +844,26 @@ public:
 
   YK_POLYFILL_CXX14_CONSTEXPR T& value() &
   {
+    static_assert(std::is_copy_constructible<E>::value, "E must be copy constructible");
     if (has_value()) return this->get_value();
     throw bad_expected_access<E>(this->get_error());
   }
   YK_POLYFILL_CXX14_CONSTEXPR T const& value() const&
   {
+    static_assert(std::is_copy_constructible<E>::value, "E must be copy constructible");
     if (has_value()) return this->get_value();
     throw bad_expected_access<E>(this->get_error());
   }
   YK_POLYFILL_CXX14_CONSTEXPR T&& value() &&
   {
+    static_assert(std::is_copy_constructible<E>::value && std::is_constructible<E, E&&>::value, "E must be copy constructible and constructible from E&&");
     if (has_value()) return std::move(this->get_value());
     throw bad_expected_access<E>(std::move(this->get_error()));
   }
   YK_POLYFILL_CXX14_CONSTEXPR T const&& value() const&&
   {
+    static_assert(std::is_copy_constructible<E>::value && std::is_constructible<E, E const&&>::value,
+                  "E must be copy constructible and constructible from E const&&");
     if (has_value()) return std::move(this->get_value());
     throw bad_expected_access<E>(std::move(this->get_error()));
   }
@@ -898,7 +903,7 @@ public:
 
   // monadic operations
 
-  template<class F>
+  template<class F, class E2 = E, typename std::enable_if<std::is_constructible<E2, E2&>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX14_CONSTEXPR auto and_then(F&& f) & -> typename remove_cvref<typename invoke_result<F, T&>::type>::type
   {
     using U = typename remove_cvref<typename invoke_result<F, T&>::type>::type;
@@ -908,7 +913,7 @@ public:
     return U(unexpect, this->get_error());
   }
 
-  template<class F>
+  template<class F, class E2 = E, typename std::enable_if<std::is_constructible<E2, E2 const&>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX14_CONSTEXPR auto and_then(F&& f) const& -> typename remove_cvref<typename invoke_result<F, T const&>::type>::type
   {
     using U = typename remove_cvref<typename invoke_result<F, T const&>::type>::type;
@@ -918,7 +923,7 @@ public:
     return U(unexpect, this->get_error());
   }
 
-  template<class F>
+  template<class F, class E2 = E, typename std::enable_if<std::is_constructible<E2, E2&&>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX14_CONSTEXPR auto and_then(F&& f) && -> typename remove_cvref<typename invoke_result<F, T&&>::type>::type
   {
     using U = typename remove_cvref<typename invoke_result<F, T&&>::type>::type;
@@ -928,7 +933,7 @@ public:
     return U(unexpect, std::move(this->get_error()));
   }
 
-  template<class F>
+  template<class F, class E2 = E, typename std::enable_if<std::is_constructible<E2, E2 const&&>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX14_CONSTEXPR auto and_then(F&& f) const&& -> typename remove_cvref<typename invoke_result<F, T const&&>::type>::type
   {
     using U = typename remove_cvref<typename invoke_result<F, T const&&>::type>::type;
@@ -938,7 +943,7 @@ public:
     return U(unexpect, std::move(this->get_error()));
   }
 
-  template<class F>
+  template<class F, class T2 = T, typename std::enable_if<std::is_constructible<T2, T2&>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX14_CONSTEXPR auto or_else(F&& f) & -> typename remove_cvref<typename invoke_result<F, E&>::type>::type
   {
     using G = typename remove_cvref<typename invoke_result<F, E&>::type>::type;
@@ -948,7 +953,7 @@ public:
     return polyfill::invoke(std::forward<F>(f), this->get_error());
   }
 
-  template<class F>
+  template<class F, class T2 = T, typename std::enable_if<std::is_constructible<T2, T2 const&>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX14_CONSTEXPR auto or_else(F&& f) const& -> typename remove_cvref<typename invoke_result<F, E const&>::type>::type
   {
     using G = typename remove_cvref<typename invoke_result<F, E const&>::type>::type;
@@ -958,7 +963,7 @@ public:
     return polyfill::invoke(std::forward<F>(f), this->get_error());
   }
 
-  template<class F>
+  template<class F, class T2 = T, typename std::enable_if<std::is_constructible<T2, T2&&>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX14_CONSTEXPR auto or_else(F&& f) && -> typename remove_cvref<typename invoke_result<F, E&&>::type>::type
   {
     using G = typename remove_cvref<typename invoke_result<F, E&&>::type>::type;
@@ -968,7 +973,7 @@ public:
     return polyfill::invoke(std::forward<F>(f), std::move(this->get_error()));
   }
 
-  template<class F>
+  template<class F, class T2 = T, typename std::enable_if<std::is_constructible<T2, T2 const&&>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX14_CONSTEXPR auto or_else(F&& f) const&& -> typename remove_cvref<typename invoke_result<F, E const&&>::type>::type
   {
     using G = typename remove_cvref<typename invoke_result<F, E const&&>::type>::type;
@@ -978,7 +983,7 @@ public:
     return polyfill::invoke(std::forward<F>(f), std::move(this->get_error()));
   }
 
-  template<class F>
+  template<class F, class E2 = E, typename std::enable_if<std::is_constructible<E2, E2&>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) & -> expected<typename std::remove_cv<typename invoke_result<F, T&>::type>::type, E>
   {
     using U = typename std::remove_cv<typename invoke_result<F, T&>::type>::type;
@@ -986,7 +991,7 @@ public:
     return expected<U, E>(unexpect, this->get_error());
   }
 
-  template<class F>
+  template<class F, class E2 = E, typename std::enable_if<std::is_constructible<E2, E2 const&>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) const& -> expected<typename std::remove_cv<typename invoke_result<F, T const&>::type>::type, E>
   {
     using U = typename std::remove_cv<typename invoke_result<F, T const&>::type>::type;
@@ -994,7 +999,7 @@ public:
     return expected<U, E>(unexpect, this->get_error());
   }
 
-  template<class F>
+  template<class F, class E2 = E, typename std::enable_if<std::is_constructible<E2, E2&&>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) && -> expected<typename std::remove_cv<typename invoke_result<F, T&&>::type>::type, E>
   {
     using U = typename std::remove_cv<typename invoke_result<F, T&&>::type>::type;
@@ -1003,7 +1008,7 @@ public:
     return expected<U, E>(unexpect, std::move(this->get_error()));
   }
 
-  template<class F>
+  template<class F, class E2 = E, typename std::enable_if<std::is_constructible<E2, E2 const&&>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) const&& -> expected<typename std::remove_cv<typename invoke_result<F, T const&&>::type>::type, E>
   {
     using U = typename std::remove_cv<typename invoke_result<F, T const&&>::type>::type;
@@ -1012,7 +1017,7 @@ public:
     return expected<U, E>(unexpect, std::move(this->get_error()));
   }
 
-  template<class F>
+  template<class F, class T2 = T, typename std::enable_if<std::is_constructible<T2, T2&>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX14_CONSTEXPR auto transform_error(F&& f) & -> expected<T, typename std::remove_cv<typename invoke_result<F, E&>::type>::type>
   {
     using G = typename std::remove_cv<typename invoke_result<F, E&>::type>::type;
@@ -1020,7 +1025,7 @@ public:
     return expected<T, G>(unexpect, polyfill::invoke(std::forward<F>(f), this->get_error()));
   }
 
-  template<class F>
+  template<class F, class T2 = T, typename std::enable_if<std::is_constructible<T2, T2 const&>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX14_CONSTEXPR auto transform_error(F&& f) const& -> expected<T, typename std::remove_cv<typename invoke_result<F, E const&>::type>::type>
   {
     using G = typename std::remove_cv<typename invoke_result<F, E const&>::type>::type;
@@ -1028,7 +1033,7 @@ public:
     return expected<T, G>(unexpect, polyfill::invoke(std::forward<F>(f), this->get_error()));
   }
 
-  template<class F>
+  template<class F, class T2 = T, typename std::enable_if<std::is_constructible<T2, T2&&>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX14_CONSTEXPR auto transform_error(F&& f) && -> expected<T, typename std::remove_cv<typename invoke_result<F, E&&>::type>::type>
   {
     using G = typename std::remove_cv<typename invoke_result<F, E&&>::type>::type;
@@ -1036,7 +1041,7 @@ public:
     return expected<T, G>(unexpect, polyfill::invoke(std::forward<F>(f), std::move(this->get_error())));
   }
 
-  template<class F>
+  template<class F, class T2 = T, typename std::enable_if<std::is_constructible<T2, T2 const&&>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX14_CONSTEXPR auto transform_error(F&& f) const&& -> expected<T, typename std::remove_cv<typename invoke_result<F, E const&&>::type>::type>
   {
     using G = typename std::remove_cv<typename invoke_result<F, E const&&>::type>::type;
@@ -1082,341 +1087,38 @@ private:
 };
 
 //
-// expected<void, E>
+// expected<cv void, E> [expected.void]
 //
+// The standard defines one partial specialization constrained by is_void_v<T>; without C++20
+// constraints, stamp it out once per cv-qualification of void via expected_void.ipp.
 
-template<class E>
-class expected<void, E> : private detail::cond_trivial_smf<detail::expected_void_storage_base<E>, E> {
-private:
-  using base_type = detail::cond_trivial_smf<detail::expected_void_storage_base<E>, E>;
+}  // namespace polyfill
 
-  static_assert(std::is_object<E>::value && !std::is_array<E>::value && !std::is_const<E>::value && !std::is_volatile<E>::value,
-                "E must be a valid unexpected type");
+}  // namespace yk
 
-public:
-  using value_type = void;
-  using error_type = E;
-  using unexpected_type = unexpected<E>;
+#define YK_POLYFILL_INCLUDE_EXPECTED
 
-  template<class U>
-  using rebind = expected<U, error_type>;
+#define YK_POLYFILL_EXPECTED_VOID_CV
+#include <yk/polyfill/bits/expected_void.ipp>
+#undef YK_POLYFILL_EXPECTED_VOID_CV
 
-  constexpr expected() noexcept : base_type(in_place) {}
+#define YK_POLYFILL_EXPECTED_VOID_CV const
+#include <yk/polyfill/bits/expected_void.ipp>
+#undef YK_POLYFILL_EXPECTED_VOID_CV
 
-  // copy/move constructors are implicit (provided by cond_trivial_smf base)
+#define YK_POLYFILL_EXPECTED_VOID_CV volatile
+#include <yk/polyfill/bits/expected_void.ipp>
+#undef YK_POLYFILL_EXPECTED_VOID_CV
 
-  template<
-      class U, class G,
-      typename std::enable_if<std::is_void<U>::value && detail::expected_void_can_convert<E, G, G const&>::value && std::is_convertible<G const&, E>::value,
-                              std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX20_CONSTEXPR expected(expected<U, G> const& rhs) noexcept(std::is_nothrow_constructible<E, G const&>::value) : base_type()
-  {
-    if (!rhs.has_value()) {
-      this->construct_error(rhs.error());
-    }
-  }
+#define YK_POLYFILL_EXPECTED_VOID_CV const volatile
+#include <yk/polyfill/bits/expected_void.ipp>
+#undef YK_POLYFILL_EXPECTED_VOID_CV
 
-  template<
-      class U, class G,
-      typename std::enable_if<std::is_void<U>::value && detail::expected_void_can_convert<E, G, G const&>::value && !std::is_convertible<G const&, E>::value,
-                              std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX20_CONSTEXPR explicit expected(expected<U, G> const& rhs) noexcept(std::is_nothrow_constructible<E, G const&>::value) : base_type()
-  {
-    if (!rhs.has_value()) {
-      this->construct_error(rhs.error());
-    }
-  }
+#undef YK_POLYFILL_INCLUDE_EXPECTED
 
-  template<class U, class G,
-           typename std::enable_if<std::is_void<U>::value && detail::expected_void_can_convert<E, G, G>::value && std::is_convertible<G, E>::value,
-                                   std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX20_CONSTEXPR expected(expected<U, G>&& rhs) noexcept(std::is_nothrow_constructible<E, G>::value) : base_type()
-  {
-    if (!rhs.has_value()) {
-      this->construct_error(std::move(rhs).error());
-    }
-  }
+namespace yk {
 
-  template<class U, class G,
-           typename std::enable_if<std::is_void<U>::value && detail::expected_void_can_convert<E, G, G>::value && !std::is_convertible<G, E>::value,
-                                   std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX20_CONSTEXPR explicit expected(expected<U, G>&& rhs) noexcept(std::is_nothrow_constructible<E, G>::value) : base_type()
-  {
-    if (!rhs.has_value()) {
-      this->construct_error(std::move(rhs).error());
-    }
-  }
-
-  template<class G,
-           typename std::enable_if<std::is_constructible<E, G const&>::value && std::is_convertible<G const&, E>::value, std::nullptr_t>::type = nullptr>
-  constexpr expected(unexpected<G> const& e) noexcept(std::is_nothrow_constructible<E, G const&>::value) : base_type(unexpect, e.error())
-  {
-  }
-
-  template<class G,
-           typename std::enable_if<std::is_constructible<E, G const&>::value && !std::is_convertible<G const&, E>::value, std::nullptr_t>::type = nullptr>
-  constexpr explicit expected(unexpected<G> const& e) noexcept(std::is_nothrow_constructible<E, G const&>::value) : base_type(unexpect, e.error())
-  {
-  }
-
-  template<class G, typename std::enable_if<std::is_constructible<E, G>::value && std::is_convertible<G, E>::value, std::nullptr_t>::type = nullptr>
-  constexpr expected(unexpected<G>&& e) noexcept(std::is_nothrow_constructible<E, G>::value) : base_type(unexpect, std::move(e).error())
-  {
-  }
-
-  template<class G, typename std::enable_if<std::is_constructible<E, G>::value && !std::is_convertible<G, E>::value, std::nullptr_t>::type = nullptr>
-  constexpr explicit expected(unexpected<G>&& e) noexcept(std::is_nothrow_constructible<E, G>::value) : base_type(unexpect, std::move(e).error())
-  {
-  }
-
-  constexpr explicit expected(in_place_t) noexcept : base_type(in_place) {}
-
-  template<class... Args, typename std::enable_if<std::is_constructible<E, Args...>::value, std::nullptr_t>::type = nullptr>
-  constexpr explicit expected(unexpect_t, Args&&... args) noexcept(std::is_nothrow_constructible<E, Args...>::value)
-      : base_type(unexpect, std::forward<Args>(args)...)
-  {
-  }
-
-  template<class U, class... Args, typename std::enable_if<std::is_constructible<E, std::initializer_list<U>&, Args...>::value, std::nullptr_t>::type = nullptr>
-  constexpr explicit expected(unexpect_t, std::initializer_list<U> il, Args&&... args)
-      noexcept(std::is_nothrow_constructible<E, std::initializer_list<U>&, Args...>::value)
-      : base_type(unexpect, il, std::forward<Args>(args)...)
-  {
-  }
-
-  // assignment (copy/move assignment are implicit)
-
-  template<class G,
-           typename std::enable_if<std::is_constructible<E, G const&>::value && std::is_assignable<E&, G const&>::value, std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX20_CONSTEXPR expected& operator=(unexpected<G> const& e)
-  {
-    if (has_value()) {
-      this->construct_error(e.error());
-    } else {
-      this->get_error() = e.error();
-    }
-    return *this;
-  }
-
-  template<class G, typename std::enable_if<std::is_constructible<E, G>::value && std::is_assignable<E&, G>::value, std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX20_CONSTEXPR expected& operator=(unexpected<G>&& e)
-  {
-    if (has_value()) {
-      this->construct_error(std::move(e).error());
-    } else {
-      this->get_error() = std::move(e).error();
-    }
-    return *this;
-  }
-
-  YK_POLYFILL_CXX20_CONSTEXPR void emplace() noexcept { this->destroy(); }
-
-  // [expected.void.swap]
-  template<class E2 = E,
-           typename std::enable_if<is_swappable<E2>::value && std::is_move_constructible<E2>::value, std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX20_CONSTEXPR void swap(expected& rhs) noexcept(std::is_nothrow_move_constructible<E>::value && is_nothrow_swappable<E>::value)
-  {
-    if (rhs.has_value()) {
-      if (!has_value()) {
-        rhs.construct_error(std::move(this->get_error()));
-        this->destroy();
-      }
-    } else {
-      if (has_value()) {
-        this->construct_error(std::move(rhs.get_error()));
-        rhs.destroy();
-      } else {
-        using std::swap;
-        swap(this->get_error(), rhs.get_error());
-      }
-    }
-  }
-
-  // observers
-
-  YK_POLYFILL_NODISCARD constexpr explicit operator bool() const noexcept { return has_value(); }
-  YK_POLYFILL_NODISCARD constexpr bool has_value() const noexcept { return base_type::has_value(); }
-
-  YK_POLYFILL_CXX14_CONSTEXPR void operator*() const noexcept {}
-
-  YK_POLYFILL_CXX14_CONSTEXPR void value() const&
-  {
-    if (!has_value()) throw bad_expected_access<E>(this->get_error());
-  }
-  YK_POLYFILL_CXX14_CONSTEXPR void value() &&
-  {
-    if (!has_value()) throw bad_expected_access<E>(std::move(this->get_error()));
-  }
-
-  YK_POLYFILL_NODISCARD constexpr E const& error() const& noexcept { return this->get_error(); }
-  YK_POLYFILL_NODISCARD YK_POLYFILL_CXX14_CONSTEXPR E& error() & noexcept { return this->get_error(); }
-  YK_POLYFILL_NODISCARD constexpr E const&& error() const&& noexcept { return std::move(*this).base_get_error(); }
-  YK_POLYFILL_NODISCARD YK_POLYFILL_CXX14_CONSTEXPR E&& error() && noexcept { return std::move(*this).base_get_error(); }
-
-  template<class G = E>
-  YK_POLYFILL_CXX14_CONSTEXPR E error_or(G&& e) const&
-  {
-    static_assert(std::is_copy_constructible<E>::value && std::is_convertible<G, E>::value, "E must be copy constructible and the argument convertible to E");
-    return has_value() ? static_cast<E>(std::forward<G>(e)) : this->get_error();
-  }
-
-  template<class G = E>
-  YK_POLYFILL_CXX14_CONSTEXPR E error_or(G&& e) &&
-  {
-    static_assert(std::is_move_constructible<E>::value && std::is_convertible<G, E>::value, "E must be move constructible and the argument convertible to E");
-    return has_value() ? static_cast<E>(std::forward<G>(e)) : std::move(this->get_error());
-  }
-
-  // monadic operations
-
-  template<class F>
-  YK_POLYFILL_CXX14_CONSTEXPR auto and_then(F&& f) & -> typename remove_cvref<typename invoke_result<F>::type>::type
-  {
-    using U = typename remove_cvref<typename invoke_result<F>::type>::type;
-    static_assert(detail::is_expected<U>::value, "result of F must be a specialization of expected");
-    static_assert(std::is_same<typename U::error_type, E>::value, "F's expected result must have the same error_type");
-    if (has_value()) return polyfill::invoke(std::forward<F>(f));
-    return U(unexpect, this->get_error());
-  }
-
-  template<class F>
-  YK_POLYFILL_CXX14_CONSTEXPR auto and_then(F&& f) const& -> typename remove_cvref<typename invoke_result<F>::type>::type
-  {
-    using U = typename remove_cvref<typename invoke_result<F>::type>::type;
-    static_assert(detail::is_expected<U>::value, "result of F must be a specialization of expected");
-    static_assert(std::is_same<typename U::error_type, E>::value, "F's expected result must have the same error_type");
-    if (has_value()) return polyfill::invoke(std::forward<F>(f));
-    return U(unexpect, this->get_error());
-  }
-
-  template<class F>
-  YK_POLYFILL_CXX14_CONSTEXPR auto and_then(F&& f) && -> typename remove_cvref<typename invoke_result<F>::type>::type
-  {
-    using U = typename remove_cvref<typename invoke_result<F>::type>::type;
-    static_assert(detail::is_expected<U>::value, "result of F must be a specialization of expected");
-    static_assert(std::is_same<typename U::error_type, E>::value, "F's expected result must have the same error_type");
-    if (has_value()) return polyfill::invoke(std::forward<F>(f));
-    return U(unexpect, std::move(this->get_error()));
-  }
-
-  template<class F>
-  YK_POLYFILL_CXX14_CONSTEXPR auto and_then(F&& f) const&& -> typename remove_cvref<typename invoke_result<F>::type>::type
-  {
-    using U = typename remove_cvref<typename invoke_result<F>::type>::type;
-    static_assert(detail::is_expected<U>::value, "result of F must be a specialization of expected");
-    static_assert(std::is_same<typename U::error_type, E>::value, "F's expected result must have the same error_type");
-    if (has_value()) return polyfill::invoke(std::forward<F>(f));
-    return U(unexpect, std::move(this->get_error()));
-  }
-
-  template<class F>
-  YK_POLYFILL_CXX14_CONSTEXPR auto or_else(F&& f) & -> typename remove_cvref<typename invoke_result<F, E&>::type>::type
-  {
-    using G = typename remove_cvref<typename invoke_result<F, E&>::type>::type;
-    static_assert(detail::is_expected<G>::value, "result of F must be a specialization of expected");
-    static_assert(std::is_void<typename G::value_type>::value, "F's expected result must have void value_type");
-    if (has_value()) return G();
-    return polyfill::invoke(std::forward<F>(f), this->get_error());
-  }
-
-  template<class F>
-  YK_POLYFILL_CXX14_CONSTEXPR auto or_else(F&& f) const& -> typename remove_cvref<typename invoke_result<F, E const&>::type>::type
-  {
-    using G = typename remove_cvref<typename invoke_result<F, E const&>::type>::type;
-    static_assert(detail::is_expected<G>::value, "result of F must be a specialization of expected");
-    static_assert(std::is_void<typename G::value_type>::value, "F's expected result must have void value_type");
-    if (has_value()) return G();
-    return polyfill::invoke(std::forward<F>(f), this->get_error());
-  }
-
-  template<class F>
-  YK_POLYFILL_CXX14_CONSTEXPR auto or_else(F&& f) && -> typename remove_cvref<typename invoke_result<F, E&&>::type>::type
-  {
-    using G = typename remove_cvref<typename invoke_result<F, E&&>::type>::type;
-    static_assert(detail::is_expected<G>::value, "result of F must be a specialization of expected");
-    static_assert(std::is_void<typename G::value_type>::value, "F's expected result must have void value_type");
-    if (has_value()) return G();
-    return polyfill::invoke(std::forward<F>(f), std::move(this->get_error()));
-  }
-
-  template<class F>
-  YK_POLYFILL_CXX14_CONSTEXPR auto or_else(F&& f) const&& -> typename remove_cvref<typename invoke_result<F, E const&&>::type>::type
-  {
-    using G = typename remove_cvref<typename invoke_result<F, E const&&>::type>::type;
-    static_assert(detail::is_expected<G>::value, "result of F must be a specialization of expected");
-    static_assert(std::is_void<typename G::value_type>::value, "F's expected result must have void value_type");
-    if (has_value()) return G();
-    return polyfill::invoke(std::forward<F>(f), std::move(this->get_error()));
-  }
-
-  template<class F>
-  YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) & -> expected<typename std::remove_cv<typename invoke_result<F>::type>::type, E>
-  {
-    using U = typename std::remove_cv<typename invoke_result<F>::type>::type;
-    if (has_value()) return detail::expected_transform_make<expected<U, E>>(bool_constant<std::is_void<U>::value>{}, std::forward<F>(f));
-    return expected<U, E>(unexpect, this->get_error());
-  }
-
-  template<class F>
-  YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) const& -> expected<typename std::remove_cv<typename invoke_result<F>::type>::type, E>
-  {
-    using U = typename std::remove_cv<typename invoke_result<F>::type>::type;
-    if (has_value()) return detail::expected_transform_make<expected<U, E>>(bool_constant<std::is_void<U>::value>{}, std::forward<F>(f));
-    return expected<U, E>(unexpect, this->get_error());
-  }
-
-  template<class F>
-  YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) && -> expected<typename std::remove_cv<typename invoke_result<F>::type>::type, E>
-  {
-    using U = typename std::remove_cv<typename invoke_result<F>::type>::type;
-    if (has_value()) return detail::expected_transform_make<expected<U, E>>(bool_constant<std::is_void<U>::value>{}, std::forward<F>(f));
-    return expected<U, E>(unexpect, std::move(this->get_error()));
-  }
-
-  template<class F>
-  YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) const&& -> expected<typename std::remove_cv<typename invoke_result<F>::type>::type, E>
-  {
-    using U = typename std::remove_cv<typename invoke_result<F>::type>::type;
-    if (has_value()) return detail::expected_transform_make<expected<U, E>>(bool_constant<std::is_void<U>::value>{}, std::forward<F>(f));
-    return expected<U, E>(unexpect, std::move(this->get_error()));
-  }
-
-  template<class F>
-  YK_POLYFILL_CXX14_CONSTEXPR auto transform_error(F&& f) & -> expected<void, typename std::remove_cv<typename invoke_result<F, E&>::type>::type>
-  {
-    using G = typename std::remove_cv<typename invoke_result<F, E&>::type>::type;
-    if (has_value()) return expected<void, G>();
-    return expected<void, G>(unexpect, polyfill::invoke(std::forward<F>(f), this->get_error()));
-  }
-
-  template<class F>
-  YK_POLYFILL_CXX14_CONSTEXPR auto transform_error(F&& f) const& -> expected<void, typename std::remove_cv<typename invoke_result<F, E const&>::type>::type>
-  {
-    using G = typename std::remove_cv<typename invoke_result<F, E const&>::type>::type;
-    if (has_value()) return expected<void, G>();
-    return expected<void, G>(unexpect, polyfill::invoke(std::forward<F>(f), this->get_error()));
-  }
-
-  template<class F>
-  YK_POLYFILL_CXX14_CONSTEXPR auto transform_error(F&& f) && -> expected<void, typename std::remove_cv<typename invoke_result<F, E&&>::type>::type>
-  {
-    using G = typename std::remove_cv<typename invoke_result<F, E&&>::type>::type;
-    if (has_value()) return expected<void, G>();
-    return expected<void, G>(unexpect, polyfill::invoke(std::forward<F>(f), std::move(this->get_error())));
-  }
-
-  template<class F>
-  YK_POLYFILL_CXX14_CONSTEXPR auto transform_error(F&& f) const&& -> expected<void, typename std::remove_cv<typename invoke_result<F, E const&&>::type>::type>
-  {
-    using G = typename std::remove_cv<typename invoke_result<F, E const&&>::type>::type;
-    if (has_value()) return expected<void, G>();
-    return expected<void, G>(unexpect, polyfill::invoke(std::forward<F>(f), std::move(this->get_error())));
-  }
-
-private:
-  YK_POLYFILL_CXX14_CONSTEXPR E&& base_get_error() && noexcept { return static_cast<base_type&&>(*this).get_error(); }
-  constexpr E const&& base_get_error() const&& noexcept { return static_cast<base_type const&&>(*this).get_error(); }
-};
+namespace polyfill {
 
 // comparisons
 //
@@ -1437,10 +1139,12 @@ operator==(expected<T1, E1> const& lhs, expected<T2, E2> const& rhs)
   return static_cast<bool>(lhs.error() == rhs.error());
 }
 
-template<class E1, class E2>
+template<class T1, class E1, class T2, class E2>
 YK_POLYFILL_CXX14_CONSTEXPR
-    typename std::enable_if<std::is_convertible<decltype(std::declval<E1 const&>() == std::declval<E2 const&>()), bool>::value, bool>::type
-    operator==(expected<void, E1> const& lhs, expected<void, E2> const& rhs)
+    typename std::enable_if<std::is_void<T1>::value && std::is_void<T2>::value
+                                && std::is_convertible<decltype(std::declval<E1 const&>() == std::declval<E2 const&>()), bool>::value,
+                            bool>::type
+    operator==(expected<T1, E1> const& lhs, expected<T2, E2> const& rhs)
 {
   if (lhs.has_value() != rhs.has_value()) return false;
   if (lhs.has_value()) return true;
@@ -1475,10 +1179,12 @@ YK_POLYFILL_CXX14_CONSTEXPR typename std::enable_if<!std::is_void<T1>::value && 
   return !(lhs == rhs);
 }
 
-template<class E1, class E2>
+template<class T1, class E1, class T2, class E2>
 YK_POLYFILL_CXX14_CONSTEXPR
-    typename std::enable_if<std::is_convertible<decltype(std::declval<E1 const&>() == std::declval<E2 const&>()), bool>::value, bool>::type
-    operator!=(expected<void, E1> const& lhs, expected<void, E2> const& rhs)
+    typename std::enable_if<std::is_void<T1>::value && std::is_void<T2>::value
+                                && std::is_convertible<decltype(std::declval<E1 const&>() == std::declval<E2 const&>()), bool>::value,
+                            bool>::type
+    operator!=(expected<T1, E1> const& lhs, expected<T2, E2> const& rhs)
 {
   return !(lhs == rhs);
 }
