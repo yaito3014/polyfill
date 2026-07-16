@@ -46,6 +46,16 @@ struct ThrowMove {
   ThrowMove& operator=(ThrowMove&&) = default;
 };
 
+// Whether polyfill's own free swap participates for T. Qualified, so only that overload is
+// considered: std::swap gained its is_move_constructible/is_move_assignable constraint only in
+// C++17, and MSVC honors that gating, so an unqualified probe cannot observe the constraint
+// below C++17. See test/cxx17/expected.cpp for the end-to-end is_swappable check.
+template<class T, class = void>
+struct has_polyfill_swap : pf::false_type {};
+
+template<class T>
+struct has_polyfill_swap<T, pf::void_t<decltype(pf::swap(std::declval<T&>(), std::declval<T&>()))>> : pf::true_type {};
+
 // throws from copy/move only while armed; move is non-noexcept so reinit uses the backup rung.
 struct Bomb {
   int tag = 0;
@@ -472,9 +482,10 @@ TEST_CASE("expected swap constraints")
   // [expected.object.swap] also requires
   // (is_nothrow_move_constructible<T> || is_nothrow_move_constructible<E>).
   // Neither arm qualifies here, so swap must drop out rather than hard-error.
-  STATIC_REQUIRE_FALSE(pf::is_swappable<pf::expected<ThrowMove, ThrowMove>>::value);
+  STATIC_REQUIRE_FALSE(has_polyfill_swap<pf::expected<ThrowMove, ThrowMove>>::value);
 
   // one nothrow-move-constructible arm restores swappability
+  STATIC_REQUIRE(has_polyfill_swap<pf::expected<ThrowMove, int>>::value);
   STATIC_REQUIRE(pf::is_swappable<pf::expected<ThrowMove, int>>::value);
 }
 
