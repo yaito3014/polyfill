@@ -7,6 +7,7 @@ target_sources(
         optional.cpp
         toptional.cpp
         variant.cpp
+        expected.cpp
 )
 
 set_target_properties(yk_polyfill_cxx14_test PROPERTIES CXX_EXTENSIONS OFF)

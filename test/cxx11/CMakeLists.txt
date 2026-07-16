@@ -31,6 +31,7 @@ target_sources(
         indirect.cpp
         polymorphic.cpp
         function_ref.cpp
+        expected.cpp
 )
 
 set_target_properties(yk_polyfill_cxx11_test PROPERTIES CXX_EXTENSIONS OFF)
