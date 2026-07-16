@@ -545,7 +545,10 @@ struct expected_assign_guard<false> {
 
 template<class T, class E, class U, class G, class UF, class GF>
 struct expected_can_convert {
-  static constexpr bool value = std::is_constructible<T, UF>::value && std::is_constructible<E, GF>::value && !converts_from_any_cvref<T, expected<U, G>>::value
+  // [expected.object.cons] applies the converts-from-any-cvref check only "if T is not cv bool";
+  // the unexpected-side check has no such carve-out.
+  static constexpr bool value = std::is_constructible<T, UF>::value && std::is_constructible<E, GF>::value
+                                && (std::is_same<typename std::remove_cv<T>::type, bool>::value || !converts_from_any_cvref<T, expected<U, G>>::value)
                                 && !constructs_from_any_cvref<unexpected<E>, expected<U, G>>::value;
 };
 
@@ -800,12 +803,15 @@ public:
 
   // swap
 
+  // [expected.object.swap]
+  template<class T2 = T, class E2 = E,
+           typename std::enable_if<is_swappable<T2>::value && is_swappable<E2>::value && std::is_move_constructible<T2>::value
+                                       && std::is_move_constructible<E2>::value
+                                       && (std::is_nothrow_move_constructible<T2>::value || std::is_nothrow_move_constructible<E2>::value),
+                                   std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR void swap(expected& rhs) noexcept(std::is_nothrow_move_constructible<T>::value && is_nothrow_swappable<T>::value
                                                                 && std::is_nothrow_move_constructible<E>::value && is_nothrow_swappable<E>::value)
   {
-    static_assert(is_swappable<T>::value && is_swappable<E>::value && std::is_move_constructible<T>::value && std::is_move_constructible<E>::value
-                      && (std::is_nothrow_move_constructible<T>::value || std::is_nothrow_move_constructible<E>::value),
-                  "expected::swap requirements not met");
     if (rhs.has_value()) {
       if (has_value()) {
         using std::swap;
@@ -1205,9 +1211,11 @@ public:
 
   YK_POLYFILL_CXX20_CONSTEXPR void emplace() noexcept { this->destroy(); }
 
+  // [expected.void.swap]
+  template<class E2 = E,
+           typename std::enable_if<is_swappable<E2>::value && std::is_move_constructible<E2>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR void swap(expected& rhs) noexcept(std::is_nothrow_move_constructible<E>::value && is_nothrow_swappable<E>::value)
   {
-    static_assert(is_swappable<E>::value && std::is_move_constructible<E>::value, "expected<void, E>::swap requirements not met");
     if (rhs.has_value()) {
       if (!has_value()) {
         rhs.construct_error(std::move(this->get_error()));
@@ -1528,8 +1536,13 @@ YK_POLYFILL_CXX14_CONSTEXPR
 
 #endif
 
+// Mirrors the member swap constraints: [expected.void.swap] for void T (E alone),
+// [expected.object.swap] otherwise (both arms, plus the nothrow-move clause).
 template<class T, class E,
-         typename std::enable_if<(std::is_void<T>::value || std::is_move_constructible<T>::value) && std::is_move_constructible<E>::value,
+         typename std::enable_if<is_swappable<E>::value && std::is_move_constructible<E>::value
+                                     && (std::is_void<T>::value
+                                         || (is_swappable<T>::value && std::is_move_constructible<T>::value
+                                             && (std::is_nothrow_move_constructible<T>::value || std::is_nothrow_move_constructible<E>::value))),
                                  std::nullptr_t>::type = nullptr>
 YK_POLYFILL_CXX20_CONSTEXPR void swap(expected<T, E>& lhs, expected<T, E>& rhs) noexcept(noexcept(lhs.swap(rhs)))
 {

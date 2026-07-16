@@ -464,6 +464,37 @@ TEST_CASE("expected assignment SMF deletion")
   STATIC_REQUIRE(std::is_copy_assignable<pf::expected<ThrowMove, int>>::value);
 }
 
+TEST_CASE("expected swap constraints")
+{
+  STATIC_REQUIRE(pf::is_swappable<pf::expected<int, std::string>>::value);
+  STATIC_REQUIRE(pf::is_swappable<pf::expected<void, int>>::value);
+
+  // [expected.object.swap] also requires
+  // (is_nothrow_move_constructible<T> || is_nothrow_move_constructible<E>).
+  // Neither arm qualifies here, so swap must drop out rather than hard-error.
+  STATIC_REQUIRE_FALSE(pf::is_swappable<pf::expected<ThrowMove, ThrowMove>>::value);
+
+  // one nothrow-move-constructible arm restores swappability
+  STATIC_REQUIRE(pf::is_swappable<pf::expected<ThrowMove, int>>::value);
+}
+
+TEST_CASE("expected converting construction with bool value type")
+{
+  // [expected.object.cons] applies the converts-from-any-cvref check only "if T is not cv bool",
+  // so expected<bool, E> stays constructible from another expected despite operator bool.
+  STATIC_REQUIRE(std::is_constructible<pf::expected<bool, int>, pf::expected<int, int>>::value);
+
+  pf::expected<int, int> src(pf::in_place, 1);
+  pf::expected<bool, int> dst(src);
+  CHECK(dst.has_value());
+  CHECK(*dst == true);
+
+  pf::expected<int, int> err(pf::unexpect, 4);
+  pf::expected<bool, int> derr(err);
+  CHECK(!derr.has_value());
+  CHECK(derr.error() == 4);
+}
+
 TEST_CASE("expected reinit strong guarantee on throwing arm switch")
 {
   pf::expected<Bomb, int> a(pf::unexpect, 7);
