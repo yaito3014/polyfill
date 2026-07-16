@@ -33,8 +33,6 @@ struct FromInt {
   FromInt(int x) : v(x) {}
 };
 
-int times_two(int x) { return 2 * x; }
-
 // copy/move constructible + assignable, but with a potentially-throwing move constructor.
 struct ThrowMove {
   int tag = 0;

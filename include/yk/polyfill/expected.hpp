@@ -62,10 +62,10 @@ public:
 
   char const* what() const noexcept override { return "bad access to expected without expected value"; }
 
-  [[nodiscard]] E& error() & noexcept { return error_; }
-  [[nodiscard]] E const& error() const& noexcept { return error_; }
-  [[nodiscard]] E&& error() && noexcept { return std::move(error_); }
-  [[nodiscard]] E const&& error() const&& noexcept { return std::move(error_); }
+  YK_POLYFILL_NODISCARD E& error() & noexcept { return error_; }
+  YK_POLYFILL_NODISCARD E const& error() const& noexcept { return error_; }
+  YK_POLYFILL_NODISCARD E&& error() && noexcept { return std::move(error_); }
+  YK_POLYFILL_NODISCARD E const&& error() const&& noexcept { return std::move(error_); }
 
 private:
   E error_;
@@ -104,10 +104,10 @@ public:
   {
   }
 
-  [[nodiscard]] constexpr E const& error() const& noexcept { return error_; }
-  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR E& error() & noexcept { return error_; }
-  [[nodiscard]] constexpr E const&& error() const&& noexcept { return std::move(error_); }
-  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR E&& error() && noexcept { return std::move(error_); }
+  YK_POLYFILL_NODISCARD constexpr E const& error() const& noexcept { return error_; }
+  YK_POLYFILL_NODISCARD YK_POLYFILL_CXX14_CONSTEXPR E& error() & noexcept { return error_; }
+  YK_POLYFILL_NODISCARD constexpr E const&& error() const&& noexcept { return std::move(error_); }
+  YK_POLYFILL_NODISCARD YK_POLYFILL_CXX14_CONSTEXPR E&& error() && noexcept { return std::move(error_); }
 
   template<class E2 = E, typename std::enable_if<is_swappable<E2>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX14_CONSTEXPR void swap(unexpected& other) noexcept(is_nothrow_swappable<E>::value)
@@ -307,17 +307,17 @@ struct expected_storage_base : expected_destruct_base<T, E> {
   using base = expected_destruct_base<T, E>;
   using base::base;
 
-  [[nodiscard]] constexpr bool has_value() const noexcept { return base::state_ == expected_state::has_value; }
+  YK_POLYFILL_NODISCARD constexpr bool has_value() const noexcept { return base::state_ == expected_state::has_value; }
 
-  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR T& get_value() & noexcept { return base::val_; }
-  [[nodiscard]] constexpr T const& get_value() const& noexcept { return base::val_; }
-  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR T&& get_value() && noexcept { return std::move(base::val_); }
-  [[nodiscard]] constexpr T const&& get_value() const&& noexcept { return std::move(base::val_); }
+  YK_POLYFILL_NODISCARD YK_POLYFILL_CXX14_CONSTEXPR T& get_value() & noexcept { return base::val_; }
+  YK_POLYFILL_NODISCARD constexpr T const& get_value() const& noexcept { return base::val_; }
+  YK_POLYFILL_NODISCARD YK_POLYFILL_CXX14_CONSTEXPR T&& get_value() && noexcept { return std::move(base::val_); }
+  YK_POLYFILL_NODISCARD constexpr T const&& get_value() const&& noexcept { return std::move(base::val_); }
 
-  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR E& get_error() & noexcept { return base::unex_; }
-  [[nodiscard]] constexpr E const& get_error() const& noexcept { return base::unex_; }
-  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR E&& get_error() && noexcept { return std::move(base::unex_); }
-  [[nodiscard]] constexpr E const&& get_error() const&& noexcept { return std::move(base::unex_); }
+  YK_POLYFILL_NODISCARD YK_POLYFILL_CXX14_CONSTEXPR E& get_error() & noexcept { return base::unex_; }
+  YK_POLYFILL_NODISCARD constexpr E const& get_error() const& noexcept { return base::unex_; }
+  YK_POLYFILL_NODISCARD YK_POLYFILL_CXX14_CONSTEXPR E&& get_error() && noexcept { return std::move(base::unex_); }
+  YK_POLYFILL_NODISCARD constexpr E const&& get_error() const&& noexcept { return std::move(base::unex_); }
 
   template<class... Args>
   YK_POLYFILL_CXX20_CONSTEXPR void construct_value(Args&&... args) noexcept(std::is_nothrow_constructible<T, Args...>::value)
@@ -466,12 +466,12 @@ struct expected_void_storage_base : expected_void_destruct_base<E> {
   using base = expected_void_destruct_base<E>;
   using base::base;
 
-  [[nodiscard]] constexpr bool has_value() const noexcept { return base::has_val_; }
+  YK_POLYFILL_NODISCARD constexpr bool has_value() const noexcept { return base::has_val_; }
 
-  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR E& get_error() & noexcept { return base::unex_; }
-  [[nodiscard]] constexpr E const& get_error() const& noexcept { return base::unex_; }
-  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR E&& get_error() && noexcept { return std::move(base::unex_); }
-  [[nodiscard]] constexpr E const&& get_error() const&& noexcept { return std::move(base::unex_); }
+  YK_POLYFILL_NODISCARD YK_POLYFILL_CXX14_CONSTEXPR E& get_error() & noexcept { return base::unex_; }
+  YK_POLYFILL_NODISCARD constexpr E const& get_error() const& noexcept { return base::unex_; }
+  YK_POLYFILL_NODISCARD YK_POLYFILL_CXX14_CONSTEXPR E&& get_error() && noexcept { return std::move(base::unex_); }
+  YK_POLYFILL_NODISCARD constexpr E const&& get_error() const&& noexcept { return std::move(base::unex_); }
 
   YK_POLYFILL_CXX20_CONSTEXPR void construct_valueless_value() noexcept { base::has_val_ = true; }
 
@@ -825,16 +825,16 @@ public:
 
   // observers
 
-  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR T const* operator->() const noexcept { return std::addressof(this->get_value()); }
-  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR T* operator->() noexcept { return std::addressof(this->get_value()); }
+  YK_POLYFILL_NODISCARD YK_POLYFILL_CXX14_CONSTEXPR T const* operator->() const noexcept { return std::addressof(this->get_value()); }
+  YK_POLYFILL_NODISCARD YK_POLYFILL_CXX14_CONSTEXPR T* operator->() noexcept { return std::addressof(this->get_value()); }
 
-  [[nodiscard]] constexpr T const& operator*() const& noexcept { return this->get_value(); }
-  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR T& operator*() & noexcept { return this->get_value(); }
-  [[nodiscard]] constexpr T const&& operator*() const&& noexcept { return std::move(*this).base_get_value(); }
-  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR T&& operator*() && noexcept { return std::move(*this).base_get_value(); }
+  YK_POLYFILL_NODISCARD constexpr T const& operator*() const& noexcept { return this->get_value(); }
+  YK_POLYFILL_NODISCARD YK_POLYFILL_CXX14_CONSTEXPR T& operator*() & noexcept { return this->get_value(); }
+  YK_POLYFILL_NODISCARD constexpr T const&& operator*() const&& noexcept { return std::move(*this).base_get_value(); }
+  YK_POLYFILL_NODISCARD YK_POLYFILL_CXX14_CONSTEXPR T&& operator*() && noexcept { return std::move(*this).base_get_value(); }
 
-  [[nodiscard]] constexpr explicit operator bool() const noexcept { return has_value(); }
-  [[nodiscard]] constexpr bool has_value() const noexcept { return base_type::has_value(); }
+  YK_POLYFILL_NODISCARD constexpr explicit operator bool() const noexcept { return has_value(); }
+  YK_POLYFILL_NODISCARD constexpr bool has_value() const noexcept { return base_type::has_value(); }
 
   YK_POLYFILL_CXX14_CONSTEXPR T& value() &
   {
@@ -857,10 +857,10 @@ public:
     throw bad_expected_access<E>(std::move(this->get_error()));
   }
 
-  [[nodiscard]] constexpr E const& error() const& noexcept { return this->get_error(); }
-  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR E& error() & noexcept { return this->get_error(); }
-  [[nodiscard]] constexpr E const&& error() const&& noexcept { return std::move(*this).base_get_error(); }
-  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR E&& error() && noexcept { return std::move(*this).base_get_error(); }
+  YK_POLYFILL_NODISCARD constexpr E const& error() const& noexcept { return this->get_error(); }
+  YK_POLYFILL_NODISCARD YK_POLYFILL_CXX14_CONSTEXPR E& error() & noexcept { return this->get_error(); }
+  YK_POLYFILL_NODISCARD constexpr E const&& error() const&& noexcept { return std::move(*this).base_get_error(); }
+  YK_POLYFILL_NODISCARD YK_POLYFILL_CXX14_CONSTEXPR E&& error() && noexcept { return std::move(*this).base_get_error(); }
 
   template<class U = typename std::remove_cv<T>::type>
   YK_POLYFILL_CXX14_CONSTEXPR T value_or(U&& v) const&
@@ -1226,8 +1226,8 @@ public:
 
   // observers
 
-  [[nodiscard]] constexpr explicit operator bool() const noexcept { return has_value(); }
-  [[nodiscard]] constexpr bool has_value() const noexcept { return base_type::has_value(); }
+  YK_POLYFILL_NODISCARD constexpr explicit operator bool() const noexcept { return has_value(); }
+  YK_POLYFILL_NODISCARD constexpr bool has_value() const noexcept { return base_type::has_value(); }
 
   YK_POLYFILL_CXX14_CONSTEXPR void operator*() const noexcept {}
 
@@ -1240,10 +1240,10 @@ public:
     if (!has_value()) throw bad_expected_access<E>(std::move(this->get_error()));
   }
 
-  [[nodiscard]] constexpr E const& error() const& noexcept { return this->get_error(); }
-  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR E& error() & noexcept { return this->get_error(); }
-  [[nodiscard]] constexpr E const&& error() const&& noexcept { return std::move(*this).base_get_error(); }
-  [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR E&& error() && noexcept { return std::move(*this).base_get_error(); }
+  YK_POLYFILL_NODISCARD constexpr E const& error() const& noexcept { return this->get_error(); }
+  YK_POLYFILL_NODISCARD YK_POLYFILL_CXX14_CONSTEXPR E& error() & noexcept { return this->get_error(); }
+  YK_POLYFILL_NODISCARD constexpr E const&& error() const&& noexcept { return std::move(*this).base_get_error(); }
+  YK_POLYFILL_NODISCARD YK_POLYFILL_CXX14_CONSTEXPR E&& error() && noexcept { return std::move(*this).base_get_error(); }
 
   template<class G = E>
   YK_POLYFILL_CXX14_CONSTEXPR E error_or(G&& e) const&
@@ -1460,8 +1460,8 @@ YK_POLYFILL_CXX14_CONSTEXPR
 
 template<class T1, class E1, class T2, class E2>
 YK_POLYFILL_CXX14_CONSTEXPR typename std::enable_if<!std::is_void<T1>::value && !std::is_void<T2>::value
-                                                        && std::is_convertible<decltype(std::declval<T1 const&>() != std::declval<T2 const&>()), bool>::value
-                                                        && std::is_convertible<decltype(std::declval<E1 const&>() != std::declval<E2 const&>()), bool>::value,
+                                                        && std::is_convertible<decltype(std::declval<T1 const&>() == std::declval<T2 const&>()), bool>::value
+                                                        && std::is_convertible<decltype(std::declval<E1 const&>() == std::declval<E2 const&>()), bool>::value,
                                                     bool>::type operator!=(expected<T1, E1> const& lhs, expected<T2, E2> const& rhs)
 {
   return !(lhs == rhs);
@@ -1469,7 +1469,7 @@ YK_POLYFILL_CXX14_CONSTEXPR typename std::enable_if<!std::is_void<T1>::value && 
 
 template<class E1, class E2>
 YK_POLYFILL_CXX14_CONSTEXPR
-    typename std::enable_if<std::is_convertible<decltype(std::declval<E1 const&>() != std::declval<E2 const&>()), bool>::value, bool>::type
+    typename std::enable_if<std::is_convertible<decltype(std::declval<E1 const&>() == std::declval<E2 const&>()), bool>::value, bool>::type
     operator!=(expected<void, E1> const& lhs, expected<void, E2> const& rhs)
 {
   return !(lhs == rhs);
