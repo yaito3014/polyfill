@@ -840,3 +840,35 @@ TEST_CASE("expected with const value type")
   CHECK(u.has_value());
   CHECK(*u == 4);
 }
+
+namespace {
+
+struct CopyMoveCounter {
+  static int copies;
+  static int moves;
+  int v;
+  explicit CopyMoveCounter(int x) : v(x) {}
+  CopyMoveCounter(CopyMoveCounter const& o) : v(o.v) { ++copies; }
+  CopyMoveCounter(CopyMoveCounter&& o) noexcept : v(o.v)
+  {
+    o.v = -1;
+    ++moves;
+  }
+};
+int CopyMoveCounter::copies = 0;
+int CopyMoveCounter::moves = 0;
+
+}  // namespace
+
+TEST_CASE("expected<const T> move construction copies the const value")
+{
+  // the source arm is const T, so std::move of it is const T&& and selects the copy constructor
+  pf::expected<CopyMoveCounter const, std::string> a(pf::in_place, 7);
+  CopyMoveCounter::copies = 0;
+  CopyMoveCounter::moves = 0;
+  pf::expected<CopyMoveCounter const, std::string> b(std::move(a));
+  CHECK(CopyMoveCounter::copies == 1);
+  CHECK(CopyMoveCounter::moves == 0);
+  CHECK(a->v == 7);
+  CHECK(b->v == 7);
+}

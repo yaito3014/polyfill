@@ -407,13 +407,14 @@ struct expected_storage_base : expected_destruct_base<T, E> {
 
 private:
   // Construct the active arm from other, preserving its value category (copy vs move) via Other&&.
+  // Read through the accessors, not val_ (remove_cv_t<T>), so a const T source stays const T&&.
   template<class Other>
   YK_POLYFILL_CXX20_CONSTEXPR void construct_from(Other&& other)
   {
     if (other.has_value()) {
-      construct_value(std::forward<Other>(other).val_);
+      construct_value(std::forward<Other>(other).get_value());
     } else {
-      construct_error(std::forward<Other>(other).unex_);
+      construct_error(std::forward<Other>(other).get_error());
     }
   }
 
@@ -422,13 +423,13 @@ private:
   YK_POLYFILL_CXX20_CONSTEXPR void assign_from(Other&& other)
   {
     if (has_value() && other.has_value()) {
-      base::val_ = std::forward<Other>(other).val_;
+      get_value() = std::forward<Other>(other).get_value();
     } else if (!has_value() && !other.has_value()) {
-      base::unex_ = std::forward<Other>(other).unex_;
+      get_error() = std::forward<Other>(other).get_error();
     } else if (has_value() && !other.has_value()) {
-      reinit_to_error(std::forward<Other>(other).unex_);
+      reinit_to_error(std::forward<Other>(other).get_error());
     } else {
-      reinit_to_value(std::forward<Other>(other).val_);
+      reinit_to_value(std::forward<Other>(other).get_value());
     }
   }
 
