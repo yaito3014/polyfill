@@ -94,10 +94,11 @@ public:
   // does not suppress them); leaving them implicit keeps them constexpr where E permits
   // without tripping C++11's rule that a constexpr member function is implicitly const.
 
-  template<class Err = E,
-           typename std::enable_if<!std::is_same<typename remove_cvref<Err>::type, unexpected>::value
-                                       && !std::is_same<typename remove_cvref<Err>::type, in_place_t>::value && std::is_constructible<E, Err>::value,
-                                   std::nullptr_t>::type = nullptr>
+  template<
+      class Err = E, typename std::enable_if<
+                         !std::is_same<typename remove_cvref<Err>::type, unexpected>::value
+                             && !std::is_same<typename remove_cvref<Err>::type, in_place_t>::value && std::is_constructible<E, Err>::value,
+                         std::nullptr_t>::type = nullptr>
   constexpr explicit unexpected(Err&& e) noexcept(std::is_nothrow_constructible<E, Err>::value) : error_(std::forward<Err>(e))
   {
   }
@@ -108,8 +109,9 @@ public:
   }
 
   template<class U, class... Args, typename std::enable_if<std::is_constructible<E, std::initializer_list<U>&, Args...>::value, std::nullptr_t>::type = nullptr>
-  constexpr explicit unexpected(in_place_t, std::initializer_list<U> il, Args&&... args)
-      noexcept(std::is_nothrow_constructible<E, std::initializer_list<U>&, Args...>::value)
+  constexpr explicit unexpected(in_place_t, std::initializer_list<U> il, Args&&... args) noexcept(
+      std::is_nothrow_constructible<E, std::initializer_list<U>&, Args...>::value
+  )
       : error_(il, std::forward<Args>(args)...)
   {
   }
@@ -290,8 +292,9 @@ struct reinit_expected_impl;
 template<>
 struct reinit_expected_impl<reinit_strategy::destroy_then_construct> {
   template<class T, class E, class New, class Old, class... Args>
-  static YK_POLYFILL_CXX20_CONSTEXPR void apply(expected_storage_base<T, E>& self, New* newp, Old* oldp, expected_state new_state, expected_state,
-                                                Args&&... args) noexcept
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(
+      expected_storage_base<T, E>& self, New* newp, Old* oldp, expected_state new_state, expected_state, Args&&... args
+  ) noexcept
   {
     oldp->~Old();
     self.state_ = expected_state::valueless;
@@ -303,8 +306,9 @@ struct reinit_expected_impl<reinit_strategy::destroy_then_construct> {
 template<>
 struct reinit_expected_impl<reinit_strategy::temporary_then_move> {
   template<class T, class E, class New, class Old, class... Args>
-  static YK_POLYFILL_CXX20_CONSTEXPR void apply(expected_storage_base<T, E>& self, New* newp, Old* oldp, expected_state new_state, expected_state,
-                                                Args&&... args)
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(
+      expected_storage_base<T, E>& self, New* newp, Old* oldp, expected_state new_state, expected_state, Args&&... args
+  )
   {
     New tmp(std::forward<Args>(args)...);
     oldp->~Old();
@@ -317,8 +321,9 @@ struct reinit_expected_impl<reinit_strategy::temporary_then_move> {
 template<>
 struct reinit_expected_impl<reinit_strategy::backup_then_restore> {
   template<class T, class E, class New, class Old, class... Args>
-  static YK_POLYFILL_CXX20_CONSTEXPR void apply(expected_storage_base<T, E>& self, New* newp, Old* oldp, expected_state new_state, expected_state old_state,
-                                                Args&&... args)
+  static YK_POLYFILL_CXX20_CONSTEXPR void apply(
+      expected_storage_base<T, E>& self, New* newp, Old* oldp, expected_state new_state, expected_state old_state, Args&&... args
+  )
   {
     Old tmp(std::move(*oldp));
     oldp->~Old();
@@ -383,17 +388,19 @@ struct expected_storage_base : expected_destruct_base<T, E> {
 
   YK_POLYFILL_CXX20_CONSTEXPR void _copy_construct(expected_storage_base const& other) { construct_from(other); }
 
-  YK_POLYFILL_CXX20_CONSTEXPR void _move_construct(expected_storage_base&& other)
-      noexcept(std::is_nothrow_move_constructible<T>::value && std::is_nothrow_move_constructible<E>::value)
+  YK_POLYFILL_CXX20_CONSTEXPR void _move_construct(expected_storage_base&& other) noexcept(
+      std::is_nothrow_move_constructible<T>::value && std::is_nothrow_move_constructible<E>::value
+  )
   {
     construct_from(std::move(other));
   }
 
   YK_POLYFILL_CXX20_CONSTEXPR void _copy_assign(expected_storage_base const& other) { assign_from(other); }
 
-  YK_POLYFILL_CXX20_CONSTEXPR void _move_assign(expected_storage_base&& other)
-      noexcept(std::is_nothrow_move_constructible<T>::value && std::is_nothrow_move_assignable<T>::value && std::is_nothrow_move_constructible<E>::value
-               && std::is_nothrow_move_assignable<E>::value)
+  YK_POLYFILL_CXX20_CONSTEXPR void _move_assign(expected_storage_base&& other) noexcept(
+      std::is_nothrow_move_constructible<T>::value && std::is_nothrow_move_assignable<T>::value && std::is_nothrow_move_constructible<E>::value
+      && std::is_nothrow_move_assignable<E>::value
+  )
   {
     assign_from(std::move(other));
   }
@@ -535,8 +542,9 @@ struct expected_void_storage_base : expected_void_destruct_base<E> {
 
   YK_POLYFILL_CXX20_CONSTEXPR void _copy_assign(expected_void_storage_base const& other) { assign_from(other); }
 
-  YK_POLYFILL_CXX20_CONSTEXPR void _move_assign(expected_void_storage_base&& other)
-      noexcept(std::is_nothrow_move_constructible<E>::value && std::is_nothrow_move_assignable<E>::value)
+  YK_POLYFILL_CXX20_CONSTEXPR void _move_assign(expected_void_storage_base&& other) noexcept(
+      std::is_nothrow_move_constructible<E>::value && std::is_nothrow_move_assignable<E>::value
+  )
   {
     assign_from(std::move(other));
   }
@@ -620,9 +628,10 @@ private:
   static_assert(!std::is_same<typename std::remove_cv<T>::type, in_place_t>::value, "T must not be in_place_t");
   static_assert(!std::is_same<typename std::remove_cv<T>::type, unexpect_t>::value, "T must not be unexpect_t");
   static_assert(!detail::is_unexpected<typename std::remove_cv<T>::type>::value, "T must not be a specialization of unexpected");
-  static_assert(std::is_object<E>::value && !std::is_array<E>::value && !std::is_const<E>::value && !std::is_volatile<E>::value
-                    && !detail::is_unexpected<E>::value,
-                "E must be a valid unexpected type");
+  static_assert(
+      std::is_object<E>::value && !std::is_array<E>::value && !std::is_const<E>::value && !std::is_volatile<E>::value && !detail::is_unexpected<E>::value,
+      "E must be a valid unexpected type"
+  );
 
 public:
   using value_type = T;
@@ -641,27 +650,15 @@ public:
 
   // copy/move constructors are implicit (provided by cond_trivial_smf base)
 
-  template<class U, class G,
-           typename std::enable_if<detail::expected_can_convert<T, E, U, G, U const&, G const&>::value && std::is_convertible<U const&, T>::value
-                                       && std::is_convertible<G const&, E>::value,
-                                   std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX20_CONSTEXPR expected(expected<U, G> const& rhs)
-      noexcept(std::is_nothrow_constructible<T, U const&>::value && std::is_nothrow_constructible<E, G const&>::value)
-      : base_type()
-  {
-    if (rhs.has_value()) {
-      this->construct_value(*rhs);
-    } else {
-      this->construct_error(rhs.error());
-    }
-  }
-
-  template<class U, class G,
-           typename std::enable_if<detail::expected_can_convert<T, E, U, G, U const&, G const&>::value
-                                       && !(std::is_convertible<U const&, T>::value && std::is_convertible<G const&, E>::value),
-                                   std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX20_CONSTEXPR explicit expected(expected<U, G> const& rhs)
-      noexcept(std::is_nothrow_constructible<T, U const&>::value && std::is_nothrow_constructible<E, G const&>::value)
+  template<
+      class U, class G,
+      typename std::enable_if<
+          detail::expected_can_convert<T, E, U, G, U const&, G const&>::value && std::is_convertible<U const&, T>::value
+              && std::is_convertible<G const&, E>::value,
+          std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX20_CONSTEXPR expected(expected<U, G> const& rhs) noexcept(
+      std::is_nothrow_constructible<T, U const&>::value && std::is_nothrow_constructible<E, G const&>::value
+  )
       : base_type()
   {
     if (rhs.has_value()) {
@@ -673,8 +670,27 @@ public:
 
   template<
       class U, class G,
-      typename std::enable_if<detail::expected_can_convert<T, E, U, G, U, G>::value && std::is_convertible<U, T>::value && std::is_convertible<G, E>::value,
-                              std::nullptr_t>::type = nullptr>
+      typename std::enable_if<
+          detail::expected_can_convert<T, E, U, G, U const&, G const&>::value
+              && !(std::is_convertible<U const&, T>::value && std::is_convertible<G const&, E>::value),
+          std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX20_CONSTEXPR explicit expected(expected<U, G> const& rhs) noexcept(
+      std::is_nothrow_constructible<T, U const&>::value && std::is_nothrow_constructible<E, G const&>::value
+  )
+      : base_type()
+  {
+    if (rhs.has_value()) {
+      this->construct_value(*rhs);
+    } else {
+      this->construct_error(rhs.error());
+    }
+  }
+
+  template<
+      class U, class G,
+      typename std::enable_if<
+          detail::expected_can_convert<T, E, U, G, U, G>::value && std::is_convertible<U, T>::value && std::is_convertible<G, E>::value, std::nullptr_t>::type =
+          nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR expected(expected<U, G>&& rhs) noexcept(std::is_nothrow_constructible<T, U>::value && std::is_nothrow_constructible<E, G>::value)
       : base_type()
   {
@@ -687,10 +703,12 @@ public:
 
   template<
       class U, class G,
-      typename std::enable_if<detail::expected_can_convert<T, E, U, G, U, G>::value && !(std::is_convertible<U, T>::value && std::is_convertible<G, E>::value),
-                              std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX20_CONSTEXPR explicit expected(expected<U, G>&& rhs)
-      noexcept(std::is_nothrow_constructible<T, U>::value && std::is_nothrow_constructible<E, G>::value)
+      typename std::enable_if<
+          detail::expected_can_convert<T, E, U, G, U, G>::value && !(std::is_convertible<U, T>::value && std::is_convertible<G, E>::value),
+          std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX20_CONSTEXPR explicit expected(expected<U, G>&& rhs) noexcept(
+      std::is_nothrow_constructible<T, U>::value && std::is_nothrow_constructible<E, G>::value
+  )
       : base_type()
   {
     if (rhs.has_value()) {
@@ -700,36 +718,40 @@ public:
     }
   }
 
-  template<class U = typename std::remove_cv<T>::type, typename std::enable_if<
-                            !std::is_same<typename remove_cvref<U>::type, in_place_t>::value && !std::is_same<typename remove_cvref<U>::type, expected>::value
-                                && !std::is_same<typename remove_cvref<U>::type, unexpect_t>::value
-                                && !detail::is_unexpected<typename remove_cvref<U>::type>::value && std::is_constructible<T, U>::value
-                                && (!std::is_same<typename std::remove_cv<T>::type, bool>::value || !detail::is_expected<typename remove_cvref<U>::type>::value)
-                                && std::is_convertible<U, T>::value,
-                            std::nullptr_t>::type = nullptr>
+  template<
+      class U = typename std::remove_cv<T>::type,
+      typename std::enable_if<
+          !std::is_same<typename remove_cvref<U>::type, in_place_t>::value && !std::is_same<typename remove_cvref<U>::type, expected>::value
+              && !std::is_same<typename remove_cvref<U>::type, unexpect_t>::value && !detail::is_unexpected<typename remove_cvref<U>::type>::value
+              && std::is_constructible<T, U>::value
+              && (!std::is_same<typename std::remove_cv<T>::type, bool>::value || !detail::is_expected<typename remove_cvref<U>::type>::value)
+              && std::is_convertible<U, T>::value,
+          std::nullptr_t>::type = nullptr>
   constexpr expected(U&& v) noexcept(std::is_nothrow_constructible<T, U>::value) : base_type(in_place, std::forward<U>(v))
   {
   }
 
-  template<class U = typename std::remove_cv<T>::type, typename std::enable_if<
-                            !std::is_same<typename remove_cvref<U>::type, in_place_t>::value && !std::is_same<typename remove_cvref<U>::type, expected>::value
-                                && !std::is_same<typename remove_cvref<U>::type, unexpect_t>::value
-                                && !detail::is_unexpected<typename remove_cvref<U>::type>::value && std::is_constructible<T, U>::value
-                                && (!std::is_same<typename std::remove_cv<T>::type, bool>::value || !detail::is_expected<typename remove_cvref<U>::type>::value)
-                                && !std::is_convertible<U, T>::value,
-                            std::nullptr_t>::type = nullptr>
+  template<
+      class U = typename std::remove_cv<T>::type,
+      typename std::enable_if<
+          !std::is_same<typename remove_cvref<U>::type, in_place_t>::value && !std::is_same<typename remove_cvref<U>::type, expected>::value
+              && !std::is_same<typename remove_cvref<U>::type, unexpect_t>::value && !detail::is_unexpected<typename remove_cvref<U>::type>::value
+              && std::is_constructible<T, U>::value
+              && (!std::is_same<typename std::remove_cv<T>::type, bool>::value || !detail::is_expected<typename remove_cvref<U>::type>::value)
+              && !std::is_convertible<U, T>::value,
+          std::nullptr_t>::type = nullptr>
   constexpr explicit expected(U&& v) noexcept(std::is_nothrow_constructible<T, U>::value) : base_type(in_place, std::forward<U>(v))
   {
   }
 
-  template<class G,
-           typename std::enable_if<std::is_constructible<E, G const&>::value && std::is_convertible<G const&, E>::value, std::nullptr_t>::type = nullptr>
+  template<
+      class G, typename std::enable_if<std::is_constructible<E, G const&>::value && std::is_convertible<G const&, E>::value, std::nullptr_t>::type = nullptr>
   constexpr expected(unexpected<G> const& e) noexcept(std::is_nothrow_constructible<E, G const&>::value) : base_type(unexpect, e.error())
   {
   }
 
-  template<class G,
-           typename std::enable_if<std::is_constructible<E, G const&>::value && !std::is_convertible<G const&, E>::value, std::nullptr_t>::type = nullptr>
+  template<
+      class G, typename std::enable_if<std::is_constructible<E, G const&>::value && !std::is_convertible<G const&, E>::value, std::nullptr_t>::type = nullptr>
   constexpr explicit expected(unexpected<G> const& e) noexcept(std::is_nothrow_constructible<E, G const&>::value) : base_type(unexpect, e.error())
   {
   }
@@ -751,8 +773,9 @@ public:
   }
 
   template<class U, class... Args, typename std::enable_if<std::is_constructible<T, std::initializer_list<U>&, Args...>::value, std::nullptr_t>::type = nullptr>
-  constexpr explicit expected(in_place_t, std::initializer_list<U> il, Args&&... args)
-      noexcept(std::is_nothrow_constructible<T, std::initializer_list<U>&, Args...>::value)
+  constexpr explicit expected(in_place_t, std::initializer_list<U> il, Args&&... args) noexcept(
+      std::is_nothrow_constructible<T, std::initializer_list<U>&, Args...>::value
+  )
       : base_type(in_place, il, std::forward<Args>(args)...)
   {
   }
@@ -764,20 +787,22 @@ public:
   }
 
   template<class U, class... Args, typename std::enable_if<std::is_constructible<E, std::initializer_list<U>&, Args...>::value, std::nullptr_t>::type = nullptr>
-  constexpr explicit expected(unexpect_t, std::initializer_list<U> il, Args&&... args)
-      noexcept(std::is_nothrow_constructible<E, std::initializer_list<U>&, Args...>::value)
+  constexpr explicit expected(unexpect_t, std::initializer_list<U> il, Args&&... args) noexcept(
+      std::is_nothrow_constructible<E, std::initializer_list<U>&, Args...>::value
+  )
       : base_type(unexpect, il, std::forward<Args>(args)...)
   {
   }
 
   // assignment (copy/move assignment are implicit)
 
-  template<class U = typename std::remove_cv<T>::type, typename std::enable_if<!std::is_same<typename remove_cvref<U>::type, expected>::value
-                                                    && !detail::is_unexpected<typename remove_cvref<U>::type>::value && std::is_constructible<T, U>::value
-                                                    && std::is_assignable<T&, U>::value
-                                                    && (std::is_nothrow_constructible<T, U>::value || std::is_nothrow_move_constructible<T>::value
-                                                        || std::is_nothrow_move_constructible<E>::value),
-                                                std::nullptr_t>::type = nullptr>
+  template<
+      class U = typename std::remove_cv<T>::type,
+      typename std::enable_if<
+          !std::is_same<typename remove_cvref<U>::type, expected>::value && !detail::is_unexpected<typename remove_cvref<U>::type>::value
+              && std::is_constructible<T, U>::value && std::is_assignable<T&, U>::value
+              && (std::is_nothrow_constructible<T, U>::value || std::is_nothrow_move_constructible<T>::value || std::is_nothrow_move_constructible<E>::value),
+          std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR expected& operator=(U&& v)
   {
     if (has_value()) {
@@ -788,10 +813,12 @@ public:
     return *this;
   }
 
-  template<class G, typename std::enable_if<std::is_constructible<E, G const&>::value && std::is_assignable<E&, G const&>::value
-                                                && (std::is_nothrow_constructible<E, G const&>::value || std::is_nothrow_move_constructible<T>::value
-                                                    || std::is_nothrow_move_constructible<E>::value),
-                                            std::nullptr_t>::type = nullptr>
+  template<
+      class G, typename std::enable_if<
+                   std::is_constructible<E, G const&>::value && std::is_assignable<E&, G const&>::value
+                       && (std::is_nothrow_constructible<E, G const&>::value || std::is_nothrow_move_constructible<T>::value
+                           || std::is_nothrow_move_constructible<E>::value),
+                   std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR expected& operator=(unexpected<G> const& e)
   {
     if (has_value()) {
@@ -802,10 +829,12 @@ public:
     return *this;
   }
 
-  template<class G, typename std::enable_if<std::is_constructible<E, G>::value && std::is_assignable<E&, G>::value
-                                                && (std::is_nothrow_constructible<E, G>::value || std::is_nothrow_move_constructible<T>::value
-                                                    || std::is_nothrow_move_constructible<E>::value),
-                                            std::nullptr_t>::type = nullptr>
+  template<
+      class G,
+      typename std::enable_if<
+          std::is_constructible<E, G>::value && std::is_assignable<E&, G>::value
+              && (std::is_nothrow_constructible<E, G>::value || std::is_nothrow_move_constructible<T>::value || std::is_nothrow_move_constructible<E>::value),
+          std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR expected& operator=(unexpected<G>&& e)
   {
     if (has_value()) {
@@ -824,8 +853,9 @@ public:
     return this->get_value();
   }
 
-  template<class U, class... Args,
-           typename std::enable_if<std::is_nothrow_constructible<T, std::initializer_list<U>&, Args...>::value, std::nullptr_t>::type = nullptr>
+  template<
+      class U, class... Args,
+      typename std::enable_if<std::is_nothrow_constructible<T, std::initializer_list<U>&, Args...>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR T& emplace(std::initializer_list<U> il, Args&&... args) noexcept
   {
     this->destroy();
@@ -836,13 +866,16 @@ public:
   // swap
 
   // [expected.object.swap]
-  template<class T2 = T, class E2 = E,
-           typename std::enable_if<is_swappable<T2>::value && is_swappable<E2>::value && std::is_move_constructible<T2>::value
-                                       && std::is_move_constructible<E2>::value
-                                       && (std::is_nothrow_move_constructible<T2>::value || std::is_nothrow_move_constructible<E2>::value),
-                                   std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX20_CONSTEXPR void swap(expected& rhs) noexcept(std::is_nothrow_move_constructible<T>::value && is_nothrow_swappable<T>::value
-                                                                && std::is_nothrow_move_constructible<E>::value && is_nothrow_swappable<E>::value)
+  template<
+      class T2 = T, class E2 = E,
+      typename std::enable_if<
+          is_swappable<T2>::value && is_swappable<E2>::value && std::is_move_constructible<T2>::value && std::is_move_constructible<E2>::value
+              && (std::is_nothrow_move_constructible<T2>::value || std::is_nothrow_move_constructible<E2>::value),
+          std::nullptr_t>::type = nullptr>
+  YK_POLYFILL_CXX20_CONSTEXPR void swap(expected& rhs) noexcept(
+      std::is_nothrow_move_constructible<T>::value && is_nothrow_swappable<T>::value && std::is_nothrow_move_constructible<E>::value
+      && is_nothrow_swappable<E>::value
+  )
   {
     if (rhs.has_value()) {
       if (has_value()) {
@@ -895,8 +928,9 @@ public:
   }
   YK_POLYFILL_CXX14_CONSTEXPR T const&& value() const&&
   {
-    static_assert(std::is_copy_constructible<E>::value && std::is_constructible<E, E const&&>::value,
-                  "E must be copy constructible and constructible from E const&&");
+    static_assert(
+        std::is_copy_constructible<E>::value && std::is_constructible<E, E const&&>::value, "E must be copy constructible and constructible from E const&&"
+    );
     if (has_value()) return std::move(this->get_value());
     throw bad_expected_access<E>(std::move(this->get_error()));
   }
@@ -1172,10 +1206,10 @@ namespace polyfill {
 // and synthesizes the reversed value==expected / unexpected==expected candidates).
 
 template<class T1, class E1, class T2, class E2>
-YK_POLYFILL_CXX14_CONSTEXPR typename std::enable_if<!std::is_void<T1>::value && !std::is_void<T2>::value
-                                                        && std::is_convertible<decltype(std::declval<T1 const&>() == std::declval<T2 const&>()), bool>::value
-                                                        && std::is_convertible<decltype(std::declval<E1 const&>() == std::declval<E2 const&>()), bool>::value,
-                                                    bool>::type
+YK_POLYFILL_CXX14_CONSTEXPR typename std::enable_if<
+    !std::is_void<T1>::value && !std::is_void<T2>::value && std::is_convertible<decltype(std::declval<T1 const&>() == std::declval<T2 const&>()), bool>::value
+        && std::is_convertible<decltype(std::declval<E1 const&>() == std::declval<E2 const&>()), bool>::value,
+    bool>::type
 operator==(expected<T1, E1> const& lhs, expected<T2, E2> const& rhs)
 {
   if (lhs.has_value() != rhs.has_value()) return false;
@@ -1184,11 +1218,10 @@ operator==(expected<T1, E1> const& lhs, expected<T2, E2> const& rhs)
 }
 
 template<class T1, class E1, class T2, class E2>
-YK_POLYFILL_CXX14_CONSTEXPR
-    typename std::enable_if<std::is_void<T1>::value && std::is_void<T2>::value
-                                && std::is_convertible<decltype(std::declval<E1 const&>() == std::declval<E2 const&>()), bool>::value,
-                            bool>::type
-    operator==(expected<T1, E1> const& lhs, expected<T2, E2> const& rhs)
+YK_POLYFILL_CXX14_CONSTEXPR typename std::enable_if<
+    std::is_void<T1>::value && std::is_void<T2>::value && std::is_convertible<decltype(std::declval<E1 const&>() == std::declval<E2 const&>()), bool>::value,
+    bool>::type
+operator==(expected<T1, E1> const& lhs, expected<T2, E2> const& rhs)
 {
   if (lhs.has_value() != rhs.has_value()) return false;
   if (lhs.has_value()) return true;
@@ -1196,9 +1229,10 @@ YK_POLYFILL_CXX14_CONSTEXPR
 }
 
 template<class T1, class E1, class T2>
-YK_POLYFILL_CXX14_CONSTEXPR typename std::enable_if<!std::is_void<T1>::value && !detail::is_expected<T2>::value
-                                                        && std::is_convertible<decltype(std::declval<T1 const&>() == std::declval<T2 const&>()), bool>::value,
-                                                    bool>::type
+YK_POLYFILL_CXX14_CONSTEXPR typename std::enable_if<
+    !std::is_void<T1>::value && !detail::is_expected<T2>::value
+        && std::is_convertible<decltype(std::declval<T1 const&>() == std::declval<T2 const&>()), bool>::value,
+    bool>::type
 operator==(expected<T1, E1> const& lhs, T2 const& rhs)
 {
   return lhs.has_value() && static_cast<bool>(*lhs == rhs);
@@ -1215,46 +1249,48 @@ YK_POLYFILL_CXX14_CONSTEXPR
 #if __cplusplus < 202002L
 
 template<class T1, class E1, class T2, class E2>
-YK_POLYFILL_CXX14_CONSTEXPR typename std::enable_if<!std::is_void<T1>::value && !std::is_void<T2>::value
-                                                        && std::is_convertible<decltype(std::declval<T1 const&>() == std::declval<T2 const&>()), bool>::value
-                                                        && std::is_convertible<decltype(std::declval<E1 const&>() == std::declval<E2 const&>()), bool>::value,
-                                                    bool>::type operator!=(expected<T1, E1> const& lhs, expected<T2, E2> const& rhs)
+YK_POLYFILL_CXX14_CONSTEXPR typename std::enable_if<
+    !std::is_void<T1>::value && !std::is_void<T2>::value && std::is_convertible<decltype(std::declval<T1 const&>() == std::declval<T2 const&>()), bool>::value
+        && std::is_convertible<decltype(std::declval<E1 const&>() == std::declval<E2 const&>()), bool>::value,
+    bool>::type operator!=(expected<T1, E1> const& lhs, expected<T2, E2> const& rhs)
 {
   return !(lhs == rhs);
 }
 
 template<class T1, class E1, class T2, class E2>
-YK_POLYFILL_CXX14_CONSTEXPR
-    typename std::enable_if<std::is_void<T1>::value && std::is_void<T2>::value
-                                && std::is_convertible<decltype(std::declval<E1 const&>() == std::declval<E2 const&>()), bool>::value,
-                            bool>::type
-    operator!=(expected<T1, E1> const& lhs, expected<T2, E2> const& rhs)
+YK_POLYFILL_CXX14_CONSTEXPR typename std::enable_if<
+    std::is_void<T1>::value && std::is_void<T2>::value && std::is_convertible<decltype(std::declval<E1 const&>() == std::declval<E2 const&>()), bool>::value,
+    bool>::type
+operator!=(expected<T1, E1> const& lhs, expected<T2, E2> const& rhs)
 {
   return !(lhs == rhs);
 }
 
 template<class T1, class E1, class T2>
-YK_POLYFILL_CXX14_CONSTEXPR typename std::enable_if<!std::is_void<T1>::value && !detail::is_expected<T2>::value
-                                                        && std::is_convertible<decltype(std::declval<T1 const&>() == std::declval<T2 const&>()), bool>::value,
-                                                    bool>::type
+YK_POLYFILL_CXX14_CONSTEXPR typename std::enable_if<
+    !std::is_void<T1>::value && !detail::is_expected<T2>::value
+        && std::is_convertible<decltype(std::declval<T1 const&>() == std::declval<T2 const&>()), bool>::value,
+    bool>::type
 operator==(T2 const& lhs, expected<T1, E1> const& rhs)
 {
   return rhs.has_value() && static_cast<bool>(*rhs == lhs);
 }
 
 template<class T1, class E1, class T2>
-YK_POLYFILL_CXX14_CONSTEXPR typename std::enable_if<!std::is_void<T1>::value && !detail::is_expected<T2>::value
-                                                        && std::is_convertible<decltype(std::declval<T1 const&>() == std::declval<T2 const&>()), bool>::value,
-                                                    bool>::type
+YK_POLYFILL_CXX14_CONSTEXPR typename std::enable_if<
+    !std::is_void<T1>::value && !detail::is_expected<T2>::value
+        && std::is_convertible<decltype(std::declval<T1 const&>() == std::declval<T2 const&>()), bool>::value,
+    bool>::type
 operator!=(expected<T1, E1> const& lhs, T2 const& rhs)
 {
   return !(lhs == rhs);
 }
 
 template<class T1, class E1, class T2>
-YK_POLYFILL_CXX14_CONSTEXPR typename std::enable_if<!std::is_void<T1>::value && !detail::is_expected<T2>::value
-                                                        && std::is_convertible<decltype(std::declval<T1 const&>() == std::declval<T2 const&>()), bool>::value,
-                                                    bool>::type
+YK_POLYFILL_CXX14_CONSTEXPR typename std::enable_if<
+    !std::is_void<T1>::value && !detail::is_expected<T2>::value
+        && std::is_convertible<decltype(std::declval<T1 const&>() == std::declval<T2 const&>()), bool>::value,
+    bool>::type
 operator!=(T2 const& lhs, expected<T1, E1> const& rhs)
 {
   return !(rhs == lhs);
@@ -1288,12 +1324,14 @@ YK_POLYFILL_CXX14_CONSTEXPR
 
 // Mirrors the member swap constraints: [expected.void.swap] for void T (E alone),
 // [expected.object.swap] otherwise (both arms, plus the nothrow-move clause).
-template<class T, class E,
-         typename std::enable_if<is_swappable<E>::value && std::is_move_constructible<E>::value
-                                     && (std::is_void<T>::value
-                                         || (is_swappable<T>::value && std::is_move_constructible<T>::value
-                                             && (std::is_nothrow_move_constructible<T>::value || std::is_nothrow_move_constructible<E>::value))),
-                                 std::nullptr_t>::type = nullptr>
+template<
+    class T, class E,
+    typename std::enable_if<
+        is_swappable<E>::value && std::is_move_constructible<E>::value
+            && (std::is_void<T>::value
+                || (is_swappable<T>::value && std::is_move_constructible<T>::value
+                    && (std::is_nothrow_move_constructible<T>::value || std::is_nothrow_move_constructible<E>::value))),
+        std::nullptr_t>::type = nullptr>
 YK_POLYFILL_CXX20_CONSTEXPR void swap(expected<T, E>& lhs, expected<T, E>& rhs) noexcept(noexcept(lhs.swap(rhs)))
 {
   lhs.swap(rhs);
