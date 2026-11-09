@@ -149,20 +149,17 @@ TEST_CASE("optional constexpr C++17")
   {
     constexpr auto test_chain = []() {
       pf::optional<int> opt(pf::in_place, 10);
-      auto result = opt
-        .transform([](int x) { return x * 2; })
-        .and_then([](int x) { return pf::optional<int>(pf::in_place, x + 5); })
-        .transform([](int x) { return x * 3; });
-      return result.has_value() && *result == 75; // (10 * 2 + 5) * 3 = 75
+      auto result = opt.transform([](int x) { return x * 2; }).and_then([](int x) { return pf::optional<int>(pf::in_place, x + 5); }).transform([](int x) {
+        return x * 3;
+      });
+      return result.has_value() && *result == 75;  // (10 * 2 + 5) * 3 = 75
     };
     STATIC_REQUIRE(test_chain());
 
     constexpr auto test_chain_with_empty = []() {
       pf::optional<int> opt;
-      auto result = opt
-        .transform([](int x) { return x * 2; })
-        .or_else([]() { return pf::optional<int>(pf::in_place, 100); })
-        .transform([](int x) { return x + 50; });
+      auto result =
+          opt.transform([](int x) { return x * 2; }).or_else([]() { return pf::optional<int>(pf::in_place, 100); }).transform([](int x) { return x + 50; });
       return result.has_value() && *result == 150;
     };
     STATIC_REQUIRE(test_chain_with_empty());

@@ -72,54 +72,26 @@ constexpr bool indirect_valueless_eq()
   pf::indirect<int> b = static_cast<pf::indirect<int>&&>(a);
   pf::indirect<int> c = static_cast<pf::indirect<int>&&>(b);
   // a and b are both valueless
-  return a.valueless_after_move() && b.valueless_after_move()
-      && a == b       // valueless == valueless
-      && !(a == c);   // valueless != non-valueless
+  return a.valueless_after_move() && b.valueless_after_move() && a == b  // valueless == valueless
+         && !(a == c);                                                   // valueless != non-valueless
 }
 
 // ---- test cases ----
 
-TEST_CASE("indirect constexpr: default construction")
-{
-  STATIC_REQUIRE(indirect_default_construct() == 0);
-}
+TEST_CASE("indirect constexpr: default construction") { STATIC_REQUIRE(indirect_default_construct() == 0); }
 
-TEST_CASE("indirect constexpr: in_place construction")
-{
-  STATIC_REQUIRE(indirect_in_place_construct() == 42);
-}
+TEST_CASE("indirect constexpr: in_place construction") { STATIC_REQUIRE(indirect_in_place_construct() == 42); }
 
-TEST_CASE("indirect constexpr: copy is independent")
-{
-  STATIC_REQUIRE(indirect_copy_is_independent());
-}
+TEST_CASE("indirect constexpr: copy is independent") { STATIC_REQUIRE(indirect_copy_is_independent()); }
 
-TEST_CASE("indirect constexpr: move transfers ownership")
-{
-  STATIC_REQUIRE(indirect_move_transfers_ownership());
-}
+TEST_CASE("indirect constexpr: move transfers ownership") { STATIC_REQUIRE(indirect_move_transfers_ownership()); }
 
-TEST_CASE("indirect constexpr: copy assignment")
-{
-  STATIC_REQUIRE(indirect_copy_assign() == 3);
-}
+TEST_CASE("indirect constexpr: copy assignment") { STATIC_REQUIRE(indirect_copy_assign() == 3); }
 
-TEST_CASE("indirect constexpr: move assignment")
-{
-  STATIC_REQUIRE(indirect_move_assign());
-}
+TEST_CASE("indirect constexpr: move assignment") { STATIC_REQUIRE(indirect_move_assign()); }
 
-TEST_CASE("indirect constexpr: swap")
-{
-  STATIC_REQUIRE(indirect_swap());
-}
+TEST_CASE("indirect constexpr: swap") { STATIC_REQUIRE(indirect_swap()); }
 
-TEST_CASE("indirect constexpr: equality comparison")
-{
-  STATIC_REQUIRE(indirect_eq());
-}
+TEST_CASE("indirect constexpr: equality comparison") { STATIC_REQUIRE(indirect_eq()); }
 
-TEST_CASE("indirect constexpr: valueless equality")
-{
-  STATIC_REQUIRE(indirect_valueless_eq());
-}
+TEST_CASE("indirect constexpr: valueless equality") { STATIC_REQUIRE(indirect_valueless_eq()); }

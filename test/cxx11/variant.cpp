@@ -84,7 +84,10 @@ static_assert(std::is_trivially_copyable<OnlyTrivialCopyAssign>::value, "");
 
 struct ThrowingTrivialMoveCtor {
   int value;
-  ThrowingTrivialMoveCtor(int v) : value(v) { if (v < 0) throw std::exception{}; }
+  ThrowingTrivialMoveCtor(int v) : value(v)
+  {
+    if (v < 0) throw std::exception{};
+  }
   ThrowingTrivialMoveCtor(ThrowingTrivialMoveCtor const&) = delete;
   ThrowingTrivialMoveCtor(ThrowingTrivialMoveCtor&&) = default;
   ThrowingTrivialMoveCtor& operator=(ThrowingTrivialMoveCtor const&) = delete;
@@ -94,7 +97,10 @@ static_assert(std::is_trivially_copyable<ThrowingTrivialMoveCtor>::value, "");
 
 struct ThrowingTrivialCopyCtor {
   int value;
-  ThrowingTrivialCopyCtor(int v) : value(v) { if (v < 0) throw std::exception{}; }
+  ThrowingTrivialCopyCtor(int v) : value(v)
+  {
+    if (v < 0) throw std::exception{};
+  }
   ThrowingTrivialCopyCtor(ThrowingTrivialCopyCtor const&) = default;
   ThrowingTrivialCopyCtor(ThrowingTrivialCopyCtor&&) = delete;
   ThrowingTrivialCopyCtor& operator=(ThrowingTrivialCopyCtor const&) = delete;
@@ -104,7 +110,10 @@ static_assert(std::is_trivially_copyable<ThrowingTrivialCopyCtor>::value, "");
 
 struct ThrowingTrivialMoveAssign {
   int value;
-  ThrowingTrivialMoveAssign(int v) : value(v) { if (v < 0) throw std::exception{}; }
+  ThrowingTrivialMoveAssign(int v) : value(v)
+  {
+    if (v < 0) throw std::exception{};
+  }
   ThrowingTrivialMoveAssign(ThrowingTrivialMoveAssign const&) = delete;
   ThrowingTrivialMoveAssign(ThrowingTrivialMoveAssign&&) = delete;
   ThrowingTrivialMoveAssign& operator=(ThrowingTrivialMoveAssign const&) = delete;
@@ -114,7 +123,10 @@ static_assert(std::is_trivially_copyable<ThrowingTrivialMoveAssign>::value, "");
 
 struct ThrowingTrivialCopyAssign {
   int value;
-  ThrowingTrivialCopyAssign(int v) : value(v) { if (v < 0) throw std::exception{}; }
+  ThrowingTrivialCopyAssign(int v) : value(v)
+  {
+    if (v < 0) throw std::exception{};
+  }
   ThrowingTrivialCopyAssign(ThrowingTrivialCopyAssign const&) = delete;
   ThrowingTrivialCopyAssign(ThrowingTrivialCopyAssign&&) = delete;
   ThrowingTrivialCopyAssign& operator=(ThrowingTrivialCopyAssign const&) = default;
@@ -829,7 +841,6 @@ TEST_CASE("variant noexcept")
   }
 }
 
-
 TEST_CASE("variant visit")
 {
   SECTION("lvalue variant")
@@ -1243,5 +1254,3 @@ TEST_CASE("monostate constexpr comparison")
   STATIC_REQUIRE(!(pf::monostate{} > pf::monostate{}));
   STATIC_REQUIRE(pf::monostate{} >= pf::monostate{});
 }
-
-

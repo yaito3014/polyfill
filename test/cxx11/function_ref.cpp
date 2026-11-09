@@ -14,7 +14,11 @@ int doubles(int x) { return 2 * x; }
 int triples(int x) { return 3 * x; }
 
 int void_ret_probe = 0;
-int set_probe(int x) { void_ret_probe = x; return 2 * x; }
+int set_probe(int x)
+{
+  void_ret_probe = x;
+  return 2 * x;
+}
 
 struct DifferentForConstness {
   int operator()(int x) const { return 2 * x; }
