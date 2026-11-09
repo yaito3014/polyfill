@@ -1,0 +1,15 @@
+{
+  BasedOnStyle: Google,
+  AccessModifierOffset: -2,
+  AlignAfterOpenBracket: BlockIndent,
+  AllowBreakBeforeNoexceptSpecifier: Always,
+  BreakBeforeBinaryOperators: NonAssignment,
+  BreakBeforeBraces: WebKit,
+  ColumnLimit: 160,
+  IncludeBlocks: Preserve,
+  QualifierAlignment: Right,
+  SpaceAfterTemplateKeyword: false,
+  SpaceBeforeParens: Custom,
+  SpaceBeforeParensOptions: { AfterRequiresInClause: true },
+  Standard: Latest,
+}
