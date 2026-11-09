@@ -15,7 +15,8 @@ class expected<void YK_POLYFILL_EXPECTED_VOID_CV, E> : private detail::cond_triv
 private:
   using base_type = detail::cond_trivial_smf<detail::expected_void_storage_base<E>, E>;
 
-  static_assert(std::is_object<E>::value && !std::is_array<E>::value && !std::is_const<E>::value && !std::is_volatile<E>::value,
+  static_assert(std::is_object<E>::value && !std::is_array<E>::value && !std::is_const<E>::value && !std::is_volatile<E>::value
+                    && !detail::is_unexpected<E>::value,
                 "E must be a valid unexpected type");
 
 public:
@@ -280,7 +281,7 @@ public:
   YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) & -> expected<typename std::remove_cv<typename invoke_result<F>::type>::type, E>
   {
     using U = typename std::remove_cv<typename invoke_result<F>::type>::type;
-    if (has_value()) return detail::expected_transform_make<expected<U, E>>(bool_constant<std::is_void<U>::value>{}, std::forward<F>(f));
+    if (has_value()) return expected<U, E>(detail::expected_invoke_value_t{}, std::forward<F>(f));
     return expected<U, E>(unexpect, this->get_error());
   }
 
@@ -288,7 +289,7 @@ public:
   YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) const& -> expected<typename std::remove_cv<typename invoke_result<F>::type>::type, E>
   {
     using U = typename std::remove_cv<typename invoke_result<F>::type>::type;
-    if (has_value()) return detail::expected_transform_make<expected<U, E>>(bool_constant<std::is_void<U>::value>{}, std::forward<F>(f));
+    if (has_value()) return expected<U, E>(detail::expected_invoke_value_t{}, std::forward<F>(f));
     return expected<U, E>(unexpect, this->get_error());
   }
 
@@ -296,7 +297,7 @@ public:
   YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) && -> expected<typename std::remove_cv<typename invoke_result<F>::type>::type, E>
   {
     using U = typename std::remove_cv<typename invoke_result<F>::type>::type;
-    if (has_value()) return detail::expected_transform_make<expected<U, E>>(bool_constant<std::is_void<U>::value>{}, std::forward<F>(f));
+    if (has_value()) return expected<U, E>(detail::expected_invoke_value_t{}, std::forward<F>(f));
     return expected<U, E>(unexpect, std::move(this->get_error()));
   }
 
@@ -304,7 +305,7 @@ public:
   YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) const&& -> expected<typename std::remove_cv<typename invoke_result<F>::type>::type, E>
   {
     using U = typename std::remove_cv<typename invoke_result<F>::type>::type;
-    if (has_value()) return detail::expected_transform_make<expected<U, E>>(bool_constant<std::is_void<U>::value>{}, std::forward<F>(f));
+    if (has_value()) return expected<U, E>(detail::expected_invoke_value_t{}, std::forward<F>(f));
     return expected<U, E>(unexpect, std::move(this->get_error()));
   }
 
@@ -314,7 +315,7 @@ public:
   {
     using G = typename std::remove_cv<typename invoke_result<F, E&>::type>::type;
     if (has_value()) return expected<void YK_POLYFILL_EXPECTED_VOID_CV, G>();
-    return expected<void YK_POLYFILL_EXPECTED_VOID_CV, G>(unexpect, polyfill::invoke(std::forward<F>(f), this->get_error()));
+    return expected<void YK_POLYFILL_EXPECTED_VOID_CV, G>(detail::expected_invoke_error_t{}, std::forward<F>(f), this->get_error());
   }
 
   template<class F>
@@ -323,7 +324,7 @@ public:
   {
     using G = typename std::remove_cv<typename invoke_result<F, E const&>::type>::type;
     if (has_value()) return expected<void YK_POLYFILL_EXPECTED_VOID_CV, G>();
-    return expected<void YK_POLYFILL_EXPECTED_VOID_CV, G>(unexpect, polyfill::invoke(std::forward<F>(f), this->get_error()));
+    return expected<void YK_POLYFILL_EXPECTED_VOID_CV, G>(detail::expected_invoke_error_t{}, std::forward<F>(f), this->get_error());
   }
 
   template<class F>
@@ -332,7 +333,7 @@ public:
   {
     using G = typename std::remove_cv<typename invoke_result<F, E&&>::type>::type;
     if (has_value()) return expected<void YK_POLYFILL_EXPECTED_VOID_CV, G>();
-    return expected<void YK_POLYFILL_EXPECTED_VOID_CV, G>(unexpect, polyfill::invoke(std::forward<F>(f), std::move(this->get_error())));
+    return expected<void YK_POLYFILL_EXPECTED_VOID_CV, G>(detail::expected_invoke_error_t{}, std::forward<F>(f), std::move(this->get_error()));
   }
 
   template<class F>
@@ -341,10 +342,25 @@ public:
   {
     using G = typename std::remove_cv<typename invoke_result<F, E const&&>::type>::type;
     if (has_value()) return expected<void YK_POLYFILL_EXPECTED_VOID_CV, G>();
-    return expected<void YK_POLYFILL_EXPECTED_VOID_CV, G>(unexpect, polyfill::invoke(std::forward<F>(f), std::move(this->get_error())));
+    return expected<void YK_POLYFILL_EXPECTED_VOID_CV, G>(detail::expected_invoke_error_t{}, std::forward<F>(f), std::move(this->get_error()));
   }
 
 private:
+  template<class, class>
+  friend class expected;
+
+  // transform's value arm for a void result: evaluate f, then hold a value
+  template<class F, class... Args>
+  YK_POLYFILL_CXX14_CONSTEXPR expected(detail::expected_invoke_value_t, F&& f, Args&&... args) : base_type(in_place)
+  {
+    polyfill::invoke(std::forward<F>(f), std::forward<Args>(args)...);
+  }
+
+  template<class F, class... Args>
+  constexpr expected(detail::expected_invoke_error_t tag, F&& f, Args&&... args) : base_type(tag, std::forward<F>(f), std::forward<Args>(args)...)
+  {
+  }
+
   YK_POLYFILL_CXX14_CONSTEXPR E&& base_get_error() && noexcept { return static_cast<base_type&&>(*this).get_error(); }
   constexpr E const&& base_get_error() const&& noexcept { return static_cast<base_type const&&>(*this).get_error(); }
 };

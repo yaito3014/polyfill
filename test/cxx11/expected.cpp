@@ -781,3 +781,62 @@ TEST_CASE("expected monadic rvalue overloads")
     CHECK(r.error() == 4u);
   }
 }
+
+namespace {
+
+struct FromAnything {
+  FromAnything() = default;
+  template<class X>
+  FromAnything(X&&)
+  {
+  }
+};
+
+struct EqOnly {
+  int v;
+  friend bool operator==(EqOnly const& a, EqOnly const& b) { return a.v == b.v; }
+};
+
+}  // namespace
+
+TEST_CASE("expected value ctor excludes unexpect_t")
+{
+  // [expected.object.cons]: is_same_v<remove_cvref_t<U>, unexpect_t> is false
+  STATIC_REQUIRE(std::is_convertible<pf::unexpect_t const&, FromAnything>::value);
+  STATIC_REQUIRE_FALSE(std::is_convertible<pf::unexpect_t const&, pf::expected<FromAnything, int>>::value);
+
+  pf::expected<FromAnything, int> e(pf::unexpect);
+  CHECK(!e.has_value());
+}
+
+TEST_CASE("unexpected != is the negation of ==")
+{
+  CHECK(pf::unexpected<EqOnly>(EqOnly{1}) != pf::unexpected<EqOnly>(EqOnly{2}));
+  CHECK_FALSE(pf::unexpected<EqOnly>(EqOnly{1}) != pf::unexpected<EqOnly>(EqOnly{1}));
+}
+
+TEST_CASE("expected with const value type")
+{
+  using E = pf::expected<int const, std::string>;
+  STATIC_REQUIRE(std::is_same<decltype(*std::declval<E&>()), int const&>::value);
+  STATIC_REQUIRE_FALSE(std::is_copy_assignable<E>::value);
+
+  E a(1);
+  E b(a);
+  CHECK(*b == 1);
+  E c(std::move(a));
+  CHECK(*c == 1);
+
+  E u(pf::unexpect, "x");
+  E v(u);
+  CHECK(v.error() == "x");
+
+  E d(pf::expected<int, std::string>(2));
+  CHECK(*d == 2);
+
+  c.emplace(3);
+  CHECK(*c == 3);
+  u.emplace(4);
+  CHECK(u.has_value());
+  CHECK(*u == 4);
+}

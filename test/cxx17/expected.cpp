@@ -23,6 +23,18 @@ struct ThrowMove {
   ThrowMove& operator=(ThrowMove&&) = default;
 };
 
+// neither copyable nor movable; transform/transform_error must still produce it in place
+struct NoMove {
+  int v;
+  explicit NoMove(int x) : v(x) {}
+  NoMove(NoMove const&) = delete;
+  NoMove(NoMove&&) = delete;
+};
+
+struct Point {
+  int x;
+};
+
 }  // namespace
 
 TEST_CASE("expected swap constraints observed through is_swappable")
@@ -73,4 +85,38 @@ TEST_CASE("expected constexpr C++17 monadic")
   constexpr auto te = u.transform_error([](int x) { return x + 1; });
   STATIC_REQUIRE(!te.has_value());
   STATIC_REQUIRE(te.error() == 10);
+}
+
+TEST_CASE("expected transform with non-movable result")
+{
+  pf::expected<int, int> e(pf::in_place, 1);
+  auto r = e.transform([](int i) { return NoMove(i + 1); });
+  CHECK(r->v == 2);
+  auto rr = std::move(e).transform([](int i) { return NoMove(i + 2); });
+  CHECK(rr->v == 3);
+
+  pf::expected<int, int> u(pf::unexpect, 4);
+  auto re = u.transform_error([](int i) { return NoMove(i); });
+  CHECK(re.error().v == 4);
+  auto rre = std::move(u).transform_error([](int i) { return NoMove(i + 1); });
+  CHECK(rre.error().v == 5);
+
+  pf::expected<void, int> ve;
+  auto rv = ve.transform([] { return NoMove(6); });
+  CHECK(rv->v == 6);
+
+  pf::expected<void, int> vu(pf::unexpect, 7);
+  auto rve = vu.transform_error([](int i) { return NoMove(i); });
+  CHECK(rve.error().v == 7);
+}
+
+TEST_CASE("expected operator-> is constexpr from C++17")
+{
+  // std::addressof is constexpr only from C++17
+  constexpr pf::expected<Point, int> e(pf::in_place, Point{3});
+  STATIC_REQUIRE(e->x == 3);
+  STATIC_REQUIRE([] {
+    pf::expected<Point, int> m(pf::in_place, Point{5});
+    return m->x;
+  }() == 5);
 }

@@ -134,9 +134,9 @@ public:
 
 #if __cplusplus < 202002L
   template<class E2>
-  friend constexpr bool operator!=(unexpected const& lhs, unexpected<E2> const& rhs) noexcept(noexcept(lhs.error() != rhs.error()))
+  friend constexpr bool operator!=(unexpected const& lhs, unexpected<E2> const& rhs) noexcept(noexcept(!(lhs == rhs)))
   {
-    return lhs.error() != rhs.error();
+    return !(lhs == rhs);
   }
 #endif
 
@@ -170,6 +170,11 @@ struct expected_uninit {};
 
 enum class expected_state { valueless, has_value, has_error };
 
+// [expected.object.monadic] transform/transform_error: tags for direct-non-list-initializing an
+// arm from invoke(f, args...), so a non-movable result needs no intermediate object.
+struct expected_invoke_value_t {};
+struct expected_invoke_error_t {};
+
 // [expected] reinit-expected strategy: how to construct the new arm without leaving the object
 // observably valueless, chosen by the constructibility of the new arm.
 enum class reinit_strategy {
@@ -187,9 +192,10 @@ struct expected_destruct_base;
 
 template<class T, class E>
 struct expected_destruct_base<T, E, true> {  // both arms trivially destructible
+  // remove_cv_t<T> so that construct_at can re-create the value arm of a cv-qualified T
   union {
     expected_uninit uninit_;
-    T val_;
+    typename std::remove_cv<T>::type val_;
     E unex_;
   };
   expected_state state_;
@@ -205,6 +211,18 @@ struct expected_destruct_base<T, E, true> {  // both arms trivially destructible
   template<class... Args>
   constexpr explicit expected_destruct_base(unexpect_t, Args&&... args) noexcept(std::is_nothrow_constructible<E, Args...>::value)
       : unex_(std::forward<Args>(args)...), state_(expected_state::has_error)
+  {
+  }
+
+  template<class F, class... Args>
+  constexpr explicit expected_destruct_base(expected_invoke_value_t, F&& f, Args&&... args)
+      : val_(polyfill::invoke(std::forward<F>(f), std::forward<Args>(args)...)), state_(expected_state::has_value)
+  {
+  }
+
+  template<class F, class... Args>
+  constexpr explicit expected_destruct_base(expected_invoke_error_t, F&& f, Args&&... args)
+      : unex_(polyfill::invoke(std::forward<F>(f), std::forward<Args>(args)...)), state_(expected_state::has_error)
   {
   }
 
@@ -213,9 +231,10 @@ struct expected_destruct_base<T, E, true> {  // both arms trivially destructible
 
 template<class T, class E>
 struct expected_destruct_base<T, E, false> {  // at least one arm NOT trivially destructible
+  // remove_cv_t<T> so that construct_at can re-create the value arm of a cv-qualified T
   union {
     expected_uninit uninit_;
-    T val_;
+    typename std::remove_cv<T>::type val_;
     E unex_;
   };
   expected_state state_;
@@ -234,12 +253,25 @@ struct expected_destruct_base<T, E, false> {  // at least one arm NOT trivially 
   {
   }
 
+  template<class F, class... Args>
+  constexpr explicit expected_destruct_base(expected_invoke_value_t, F&& f, Args&&... args)
+      : val_(polyfill::invoke(std::forward<F>(f), std::forward<Args>(args)...)), state_(expected_state::has_value)
+  {
+  }
+
+  template<class F, class... Args>
+  constexpr explicit expected_destruct_base(expected_invoke_error_t, F&& f, Args&&... args)
+      : unex_(polyfill::invoke(std::forward<F>(f), std::forward<Args>(args)...)), state_(expected_state::has_error)
+  {
+  }
+
   YK_POLYFILL_CXX20_CONSTEXPR ~expected_destruct_base() noexcept { destroy(); }
 
   YK_POLYFILL_CXX20_CONSTEXPR void destroy() noexcept
   {
     if (state_ == expected_state::has_value) {
-      val_.~T();
+      using value_type = typename std::remove_cv<T>::type;
+      val_.~value_type();
     } else if (state_ == expected_state::has_error) {
       unex_.~E();
     }
@@ -429,6 +461,12 @@ struct expected_void_destruct_base<E, true> {  // E trivially destructible
   {
   }
 
+  template<class F, class... Args>
+  constexpr explicit expected_void_destruct_base(expected_invoke_error_t, F&& f, Args&&... args)
+      : unex_(polyfill::invoke(std::forward<F>(f), std::forward<Args>(args)...)), has_val_(false)
+  {
+  }
+
   YK_POLYFILL_CXX14_CONSTEXPR void destroy() noexcept { has_val_ = true; }
 };
 
@@ -447,6 +485,12 @@ struct expected_void_destruct_base<E, false> {  // E NOT trivially destructible
   template<class... Args>
   constexpr explicit expected_void_destruct_base(unexpect_t, Args&&... args) noexcept(std::is_nothrow_constructible<E, Args...>::value)
       : unex_(std::forward<Args>(args)...), has_val_(false)
+  {
+  }
+
+  template<class F, class... Args>
+  constexpr explicit expected_void_destruct_base(expected_invoke_error_t, F&& f, Args&&... args)
+      : unex_(polyfill::invoke(std::forward<F>(f), std::forward<Args>(args)...)), has_val_(false)
   {
   }
 
@@ -557,21 +601,6 @@ struct expected_void_can_convert {
   static constexpr bool value = std::is_constructible<E, GF>::value && !constructs_from_any_cvref<unexpected<E>, expected<U, G>>::value;
 };
 
-// transform helpers: build expected<U, E2> from invoking f, U possibly void
-
-template<class Exp, class F, class... Args>
-YK_POLYFILL_CXX14_CONSTEXPR Exp expected_transform_make(false_type /* U is void */, F&& f, Args&&... args)
-{
-  return Exp(in_place, polyfill::invoke(std::forward<F>(f), std::forward<Args>(args)...));
-}
-
-template<class Exp, class F, class... Args>
-YK_POLYFILL_CXX14_CONSTEXPR Exp expected_transform_make(true_type /* U is void */, F&& f, Args&&... args)
-{
-  polyfill::invoke(std::forward<F>(f), std::forward<Args>(args)...);
-  return Exp(in_place);
-}
-
 }  // namespace detail
 
 //
@@ -591,7 +620,8 @@ private:
   static_assert(!std::is_same<typename std::remove_cv<T>::type, in_place_t>::value, "T must not be in_place_t");
   static_assert(!std::is_same<typename std::remove_cv<T>::type, unexpect_t>::value, "T must not be unexpect_t");
   static_assert(!detail::is_unexpected<typename std::remove_cv<T>::type>::value, "T must not be a specialization of unexpected");
-  static_assert(std::is_object<E>::value && !std::is_array<E>::value && !std::is_const<E>::value && !std::is_volatile<E>::value,
+  static_assert(std::is_object<E>::value && !std::is_array<E>::value && !std::is_const<E>::value && !std::is_volatile<E>::value
+                    && !detail::is_unexpected<E>::value,
                 "E must be a valid unexpected type");
 
 public:
@@ -672,6 +702,7 @@ public:
 
   template<class U = typename std::remove_cv<T>::type, typename std::enable_if<
                             !std::is_same<typename remove_cvref<U>::type, in_place_t>::value && !std::is_same<typename remove_cvref<U>::type, expected>::value
+                                && !std::is_same<typename remove_cvref<U>::type, unexpect_t>::value
                                 && !detail::is_unexpected<typename remove_cvref<U>::type>::value && std::is_constructible<T, U>::value
                                 && (!std::is_same<typename std::remove_cv<T>::type, bool>::value || !detail::is_expected<typename remove_cvref<U>::type>::value)
                                 && std::is_convertible<U, T>::value,
@@ -682,6 +713,7 @@ public:
 
   template<class U = typename std::remove_cv<T>::type, typename std::enable_if<
                             !std::is_same<typename remove_cvref<U>::type, in_place_t>::value && !std::is_same<typename remove_cvref<U>::type, expected>::value
+                                && !std::is_same<typename remove_cvref<U>::type, unexpect_t>::value
                                 && !detail::is_unexpected<typename remove_cvref<U>::type>::value && std::is_constructible<T, U>::value
                                 && (!std::is_same<typename std::remove_cv<T>::type, bool>::value || !detail::is_expected<typename remove_cvref<U>::type>::value)
                                 && !std::is_convertible<U, T>::value,
@@ -831,8 +863,8 @@ public:
 
   // observers
 
-  YK_POLYFILL_NODISCARD YK_POLYFILL_CXX14_CONSTEXPR T const* operator->() const noexcept { return std::addressof(this->get_value()); }
-  YK_POLYFILL_NODISCARD YK_POLYFILL_CXX14_CONSTEXPR T* operator->() noexcept { return std::addressof(this->get_value()); }
+  YK_POLYFILL_NODISCARD YK_POLYFILL_CXX17_CONSTEXPR T const* operator->() const noexcept { return std::addressof(this->get_value()); }
+  YK_POLYFILL_NODISCARD YK_POLYFILL_CXX17_CONSTEXPR T* operator->() noexcept { return std::addressof(this->get_value()); }
 
   YK_POLYFILL_NODISCARD constexpr T const& operator*() const& noexcept { return this->get_value(); }
   YK_POLYFILL_NODISCARD YK_POLYFILL_CXX14_CONSTEXPR T& operator*() & noexcept { return this->get_value(); }
@@ -988,7 +1020,7 @@ public:
   YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) & -> expected<typename std::remove_cv<typename invoke_result<F, T&>::type>::type, E>
   {
     using U = typename std::remove_cv<typename invoke_result<F, T&>::type>::type;
-    if (has_value()) return detail::expected_transform_make<expected<U, E>>(bool_constant<std::is_void<U>::value>{}, std::forward<F>(f), this->get_value());
+    if (has_value()) return expected<U, E>(detail::expected_invoke_value_t{}, std::forward<F>(f), this->get_value());
     return expected<U, E>(unexpect, this->get_error());
   }
 
@@ -996,7 +1028,7 @@ public:
   YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) const& -> expected<typename std::remove_cv<typename invoke_result<F, T const&>::type>::type, E>
   {
     using U = typename std::remove_cv<typename invoke_result<F, T const&>::type>::type;
-    if (has_value()) return detail::expected_transform_make<expected<U, E>>(bool_constant<std::is_void<U>::value>{}, std::forward<F>(f), this->get_value());
+    if (has_value()) return expected<U, E>(detail::expected_invoke_value_t{}, std::forward<F>(f), this->get_value());
     return expected<U, E>(unexpect, this->get_error());
   }
 
@@ -1004,8 +1036,7 @@ public:
   YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) && -> expected<typename std::remove_cv<typename invoke_result<F, T&&>::type>::type, E>
   {
     using U = typename std::remove_cv<typename invoke_result<F, T&&>::type>::type;
-    if (has_value())
-      return detail::expected_transform_make<expected<U, E>>(bool_constant<std::is_void<U>::value>{}, std::forward<F>(f), std::move(this->get_value()));
+    if (has_value()) return expected<U, E>(detail::expected_invoke_value_t{}, std::forward<F>(f), std::move(this->get_value()));
     return expected<U, E>(unexpect, std::move(this->get_error()));
   }
 
@@ -1013,8 +1044,7 @@ public:
   YK_POLYFILL_CXX14_CONSTEXPR auto transform(F&& f) const&& -> expected<typename std::remove_cv<typename invoke_result<F, T const&&>::type>::type, E>
   {
     using U = typename std::remove_cv<typename invoke_result<F, T const&&>::type>::type;
-    if (has_value())
-      return detail::expected_transform_make<expected<U, E>>(bool_constant<std::is_void<U>::value>{}, std::forward<F>(f), std::move(this->get_value()));
+    if (has_value()) return expected<U, E>(detail::expected_invoke_value_t{}, std::forward<F>(f), std::move(this->get_value()));
     return expected<U, E>(unexpect, std::move(this->get_error()));
   }
 
@@ -1023,7 +1053,7 @@ public:
   {
     using G = typename std::remove_cv<typename invoke_result<F, E&>::type>::type;
     if (has_value()) return expected<T, G>(in_place, this->get_value());
-    return expected<T, G>(unexpect, polyfill::invoke(std::forward<F>(f), this->get_error()));
+    return expected<T, G>(detail::expected_invoke_error_t{}, std::forward<F>(f), this->get_error());
   }
 
   template<class F, class T2 = T, typename std::enable_if<std::is_constructible<T2, T2 const&>::value, std::nullptr_t>::type = nullptr>
@@ -1031,7 +1061,7 @@ public:
   {
     using G = typename std::remove_cv<typename invoke_result<F, E const&>::type>::type;
     if (has_value()) return expected<T, G>(in_place, this->get_value());
-    return expected<T, G>(unexpect, polyfill::invoke(std::forward<F>(f), this->get_error()));
+    return expected<T, G>(detail::expected_invoke_error_t{}, std::forward<F>(f), this->get_error());
   }
 
   template<class F, class T2 = T, typename std::enable_if<std::is_constructible<T2, T2&&>::value, std::nullptr_t>::type = nullptr>
@@ -1039,7 +1069,7 @@ public:
   {
     using G = typename std::remove_cv<typename invoke_result<F, E&&>::type>::type;
     if (has_value()) return expected<T, G>(in_place, std::move(this->get_value()));
-    return expected<T, G>(unexpect, polyfill::invoke(std::forward<F>(f), std::move(this->get_error())));
+    return expected<T, G>(detail::expected_invoke_error_t{}, std::forward<F>(f), std::move(this->get_error()));
   }
 
   template<class F, class T2 = T, typename std::enable_if<std::is_constructible<T2, T2 const&&>::value, std::nullptr_t>::type = nullptr>
@@ -1047,10 +1077,23 @@ public:
   {
     using G = typename std::remove_cv<typename invoke_result<F, E const&&>::type>::type;
     if (has_value()) return expected<T, G>(in_place, std::move(this->get_value()));
-    return expected<T, G>(unexpect, polyfill::invoke(std::forward<F>(f), std::move(this->get_error())));
+    return expected<T, G>(detail::expected_invoke_error_t{}, std::forward<F>(f), std::move(this->get_error()));
   }
 
 private:
+  template<class, class>
+  friend class expected;
+
+  template<class F, class... Args>
+  constexpr expected(detail::expected_invoke_value_t tag, F&& f, Args&&... args) : base_type(tag, std::forward<F>(f), std::forward<Args>(args)...)
+  {
+  }
+
+  template<class F, class... Args>
+  constexpr expected(detail::expected_invoke_error_t tag, F&& f, Args&&... args) : base_type(tag, std::forward<F>(f), std::forward<Args>(args)...)
+  {
+  }
+
   // rvalue accessors on the storage (private base), reached through explicit std::move.
   YK_POLYFILL_CXX14_CONSTEXPR T&& base_get_value() && noexcept { return static_cast<base_type&&>(*this).get_value(); }
   constexpr T const&& base_get_value() const&& noexcept { return static_cast<base_type const&&>(*this).get_value(); }
