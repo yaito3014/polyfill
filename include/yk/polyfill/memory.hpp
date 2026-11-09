@@ -4,7 +4,7 @@
 #include <yk/polyfill/config.hpp>
 
 #include <yk/polyfill/bits/core_traits.hpp>
-#include <yk/polyfill/bits/swap.hpp>
+#include <yk/polyfill/concepts.hpp>
 #include <yk/polyfill/extension/ebo_storage.hpp>
 #include <yk/polyfill/type_traits.hpp>
 
@@ -222,8 +222,8 @@ public:
 
   YK_POLYFILL_CXX14_CONSTEXPR void swap(unique_ptr& other) noexcept(is_nothrow_swappable<Deleter>::value)
   {
-    detail::constexpr_swap(ptr_, other.ptr_);
-    detail::constexpr_swap(deleter_base::stored_value(), other.deleter_base::stored_value());
+    ranges::swap(ptr_, other.ptr_);
+    ranges::swap(deleter_base::stored_value(), other.deleter_base::stored_value());
   }
 
 private:
@@ -394,8 +394,8 @@ public:
 
   YK_POLYFILL_CXX14_CONSTEXPR void swap(unique_ptr& other) noexcept(is_nothrow_swappable<Deleter>::value)
   {
-    detail::constexpr_swap(ptr_, other.ptr_);
-    detail::constexpr_swap(deleter_base::stored_value(), other.deleter_base::stored_value());
+    ranges::swap(ptr_, other.ptr_);
+    ranges::swap(deleter_base::stored_value(), other.deleter_base::stored_value());
   }
 
 private:

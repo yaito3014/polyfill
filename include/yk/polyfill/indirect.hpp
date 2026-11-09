@@ -5,7 +5,7 @@
 // Polyfill of P3019R14 std::indirect for C++11 and later.
 
 #include <yk/polyfill/bits/allocator_is_always_equal.hpp>
-#include <yk/polyfill/bits/swap.hpp>
+#include <yk/polyfill/concepts.hpp>
 #include <yk/polyfill/config.hpp>
 #include <yk/polyfill/extension/ebo_storage.hpp>
 #include <yk/polyfill/utility.hpp>
@@ -400,8 +400,8 @@ struct indirect_swap_ops</*Pocs = */ true> {
   template<class T, class A>
   static YK_POLYFILL_CXX14_CONSTEXPR void apply(indirect<T, A>& a, indirect<T, A>& b) noexcept
   {
-    detail::constexpr_swap(a.stored_value(), b.stored_value());
-    detail::constexpr_swap(a.ptr_, b.ptr_);
+    ranges::swap(a.stored_value(), b.stored_value());
+    ranges::swap(a.ptr_, b.ptr_);
   }
 };
 
@@ -410,7 +410,7 @@ struct indirect_swap_ops</*Pocs = */ false> {
   template<class T, class A>
   static YK_POLYFILL_CXX14_CONSTEXPR void apply(indirect<T, A>& a, indirect<T, A>& b) noexcept
   {
-    detail::constexpr_swap(a.ptr_, b.ptr_);
+    ranges::swap(a.ptr_, b.ptr_);
   }
 };
 

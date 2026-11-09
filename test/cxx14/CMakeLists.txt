@@ -3,7 +3,6 @@ add_executable(yk_polyfill_cxx14_test)
 target_sources(
     yk_polyfill_cxx14_test
     PRIVATE
-        constexpr_swap.cpp
         ranges_swap.cpp
         optional.cpp
         toptional.cpp
