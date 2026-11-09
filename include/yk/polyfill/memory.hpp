@@ -50,6 +50,34 @@ struct unique_ptr_pointer<T, Deleter, void_t<typename std::remove_reference<Dele
   using type = typename std::remove_reference<Deleter>::type::pointer;
 };
 
+// unique_ptr::swap requires the deleter to be swappable per [swappable.requirements], i.e. via
+// `using std::swap; swap(a, b)`. ranges::swap (constexpr before C++20) agrees on every movable
+// type but rejects a non-movable deleter whose swap is an overload for a base class or a
+// template tying with its deleted swap(T&, T&), so fall back to the std::swap context for those.
+namespace unique_ptr_deleter_swap {
+
+using std::swap;
+
+template<class T, class = void>
+struct ranges_swappable : false_type {};
+
+template<class T>
+struct ranges_swappable<T, void_t<decltype(ranges::swap(std::declval<T&>(), std::declval<T&>()))>> : true_type {};
+
+template<class T, typename std::enable_if<ranges_swappable<T>::value, std::nullptr_t>::type = nullptr>
+YK_POLYFILL_CXX14_CONSTEXPR void swap_deleters(T& a, T& b) noexcept(noexcept(ranges::swap(a, b)))
+{
+  ranges::swap(a, b);
+}
+
+template<class T, typename std::enable_if<!ranges_swappable<T>::value, std::nullptr_t>::type = nullptr>
+YK_POLYFILL_CXX14_CONSTEXPR void swap_deleters(T& a, T& b) noexcept(noexcept(swap(a, b)))
+{
+  swap(a, b);
+}
+
+}  // namespace unique_ptr_deleter_swap
+
 }  // namespace detail
 
 // default_delete - primary template
@@ -223,7 +251,7 @@ public:
   YK_POLYFILL_CXX14_CONSTEXPR void swap(unique_ptr& other) noexcept(is_nothrow_swappable<Deleter>::value)
   {
     ranges::swap(ptr_, other.ptr_);
-    ranges::swap(deleter_base::stored_value(), other.deleter_base::stored_value());
+    detail::unique_ptr_deleter_swap::swap_deleters(deleter_base::stored_value(), other.deleter_base::stored_value());
   }
 
 private:
@@ -395,7 +423,7 @@ public:
   YK_POLYFILL_CXX14_CONSTEXPR void swap(unique_ptr& other) noexcept(is_nothrow_swappable<Deleter>::value)
   {
     ranges::swap(ptr_, other.ptr_);
-    ranges::swap(deleter_base::stored_value(), other.deleter_base::stored_value());
+    detail::unique_ptr_deleter_swap::swap_deleters(deleter_base::stored_value(), other.deleter_base::stored_value());
   }
 
 private:
