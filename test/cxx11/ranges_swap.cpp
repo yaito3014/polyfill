@@ -66,6 +66,26 @@ struct no_move_with_swap {
   friend void swap(no_move_with_swap& a, no_move_with_swap& b) noexcept { std::swap(a.value, b.value); }
 };
 
+// movable, but not assignable_from<T&, T>: the assignment must yield exactly T&
+struct void_assign {
+  int value;
+  explicit void_assign(int v) : value(v) {}
+  void_assign(void_assign&&) = default;
+  void operator=(void_assign&& o) { value = o.value; }
+};
+
+struct value_assign {
+  int value;
+  explicit value_assign(int v) : value(v) {}
+  value_assign(value_assign&&) = default;
+  value_assign(value_assign const&) = default;
+  value_assign operator=(value_assign&& o)
+  {
+    value = o.value;
+    return *this;
+  }
+};
+
 struct throwing_move {
   int value;
   explicit throwing_move(int v) : value(v) {}
@@ -252,6 +272,8 @@ TEST_CASE("ranges::swap")
     STATIC_REQUIRE_FALSE(can_swap<no_move(&)[2], no_move(&)[2]>::value);
     STATIC_REQUIRE_FALSE(can_swap<int const&, int const&>::value);
     STATIC_REQUIRE_FALSE(can_swap<int&&, int&&>::value);
+    STATIC_REQUIRE_FALSE(can_swap<void_assign&, void_assign&>::value);
+    STATIC_REQUIRE_FALSE(can_swap<value_assign&, value_assign&>::value);
 
     STATIC_REQUIRE(can_nothrow_swap<no_move_with_swap&, no_move_with_swap&>::value);
     no_move_with_swap a(1), b(2);
