@@ -70,50 +70,50 @@ struct strategy_of : std::integral_constant<
                                    : exchange_swappable<T, U>::value ? strategy::exchange
                                                                      : strategy::none> {};
 
-template<class T, class U, strategy = strategy_of<T, U>::value>
-struct nothrow_swappable : false_type {};
-
-template<class T, class U>
-struct nothrow_swappable<T, U, strategy::adl> : bool_constant<noexcept(swap(std::declval<T>(), std::declval<U>()))> {};
-
-template<class T, class U, std::size_t N>
-struct nothrow_swappable<T (&)[N], U (&)[N], strategy::array> : nothrow_swappable<T&, U&> {};
-
-template<class T>
-struct nothrow_swappable<T&, T&, strategy::exchange>
-    : bool_constant<std::is_nothrow_move_constructible<T>::value && std::is_nothrow_move_assignable<T>::value> {};
-
+// One specialization per strategy; each apply states its own noexcept, which callers query
+// through noexcept(swap_impl_for<T, U>::apply(...)).
 template<strategy S>
-using strategy_tag = std::integral_constant<strategy, S>;
+struct swap_impl;
 
 template<class T, class U>
-YK_POLYFILL_CXX14_CONSTEXPR void swap_impl(strategy_tag<strategy::adl>, T&& t, U&& u) noexcept(nothrow_swappable<T, U>::value)
-{
-  (void)swap(std::forward<T>(t), std::forward<U>(u));
-}
+using swap_impl_for = swap_impl<strategy_of<T, U>::value>;
 
-template<class T>
-YK_POLYFILL_CXX14_CONSTEXPR void swap_impl(strategy_tag<strategy::exchange>, T& a, T& b) noexcept(nothrow_swappable<T&, T&>::value)
-{
-  T tmp(std::move(a));
-  a = std::move(b);
-  b = std::move(tmp);
-}
-
-template<class T, class U, std::size_t N>
-YK_POLYFILL_CXX14_CONSTEXPR void swap_impl(strategy_tag<strategy::array>, T (&a)[N], U (&b)[N]) noexcept(nothrow_swappable<T&, U&>::value)
-{
-  for (std::size_t i = 0; i < N; ++i) {
-    ranges_swap::swap_impl(strategy_tag<strategy_of<T&, U&>::value>{}, a[i], b[i]);
+template<>
+struct swap_impl<strategy::adl> {
+  template<class T, class U>
+  static YK_POLYFILL_CXX14_CONSTEXPR void apply(T&& t, U&& u) noexcept(noexcept(swap(std::declval<T>(), std::declval<U>())))
+  {
+    (void)swap(std::forward<T>(t), std::forward<U>(u));
   }
-}
+};
+
+template<>
+struct swap_impl<strategy::exchange> {
+  template<class T>
+  static YK_POLYFILL_CXX14_CONSTEXPR void apply(T& a, T& b) noexcept(std::is_nothrow_move_constructible<T>::value && std::is_nothrow_move_assignable<T>::value)
+  {
+    T tmp(std::move(a));
+    a = std::move(b);
+    b = std::move(tmp);
+  }
+};
+
+template<>
+struct swap_impl<strategy::array> {
+  template<class T, class U, std::size_t N>
+  static YK_POLYFILL_CXX14_CONSTEXPR void apply(T (&a)[N], U (&b)[N]) noexcept(noexcept(swap_impl_for<T&, U&>::apply(std::declval<T&>(), std::declval<U&>())))
+  {
+    for (std::size_t i = 0; i < N; ++i) {
+      swap_impl_for<T&, U&>::apply(a[i], b[i]);
+    }
+  }
+};
 
 struct swap_fn {
   template<class T, class U, typename std::enable_if<strategy_of<T, U>::value != strategy::none, std::nullptr_t>::type = nullptr>
-  YK_POLYFILL_CXX14_CONSTEXPR void operator()(T&& t, U&& u) const noexcept(nothrow_swappable<T, U>::value)
+  YK_POLYFILL_CXX14_CONSTEXPR void operator()(T&& t, U&& u) const noexcept(noexcept(swap_impl_for<T, U>::apply(std::declval<T>(), std::declval<U>())))
   {
-    // qualified, so the call does no ADL over the argument types (see adl_swappable)
-    ranges_swap::swap_impl(strategy_tag<strategy_of<T, U>::value>{}, std::forward<T>(t), std::forward<U>(u));
+    swap_impl_for<T, U>::apply(std::forward<T>(t), std::forward<U>(u));
   }
 };
 
