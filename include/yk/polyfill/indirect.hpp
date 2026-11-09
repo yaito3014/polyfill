@@ -4,9 +4,9 @@
 // indirect<T, A>: value-semantic wrapper for a heap-allocated T
 // Polyfill of P3019R14 std::indirect for C++11 and later.
 
-#include <yk/polyfill/config.hpp>
 #include <yk/polyfill/bits/allocator_is_always_equal.hpp>
 #include <yk/polyfill/bits/swap.hpp>
+#include <yk/polyfill/config.hpp>
 #include <yk/polyfill/extension/ebo_storage.hpp>
 #include <yk/polyfill/utility.hpp>
 

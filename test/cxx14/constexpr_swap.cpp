@@ -30,13 +30,7 @@ constexpr bool test_constexpr_swap_aggregate()
 
 TEST_CASE("constexpr_swap - constexpr")
 {
-  SECTION("scalar")
-  {
-    STATIC_REQUIRE(test_constexpr_swap_scalar());
-  }
+  SECTION("scalar") { STATIC_REQUIRE(test_constexpr_swap_scalar()); }
 
-  SECTION("aggregate")
-  {
-    STATIC_REQUIRE(test_constexpr_swap_aggregate());
-  }
+  SECTION("aggregate") { STATIC_REQUIRE(test_constexpr_swap_aggregate()); }
 }

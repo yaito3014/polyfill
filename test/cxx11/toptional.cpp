@@ -689,7 +689,7 @@ TEST_CASE("toptional - relational operators")
     CHECK(opt1 < opt2);
     CHECK(!(opt2 < opt1));
     CHECK(!(opt1 < opt3));
-    CHECK(opt4 < opt1);        // disengaged < engaged
+    CHECK(opt4 < opt1);  // disengaged < engaged
     CHECK(!(opt1 < opt4));
 
     // Less than or equal
@@ -782,7 +782,7 @@ TEST_CASE("toptional - relational operators")
     CHECK(30 < opt1);
     CHECK(!(opt1 < 30));
     CHECK(!(50 < opt1));
-    CHECK(opt2 < 42);        // disengaged < any value is true
+    CHECK(opt2 < 42);  // disengaged < any value is true
     CHECK(!(42 < opt2));
 
     // Less than or equal
@@ -792,7 +792,7 @@ TEST_CASE("toptional - relational operators")
     CHECK(30 <= opt1);
     CHECK(!(opt1 <= 30));
     CHECK(!(50 <= opt1));
-    CHECK(opt2 <= 42);        // disengaged <= any value is true
+    CHECK(opt2 <= 42);  // disengaged <= any value is true
     CHECK(!(42 <= opt2));
 
     // Greater than
@@ -801,7 +801,7 @@ TEST_CASE("toptional - relational operators")
     CHECK(!(opt1 > 50));
     CHECK(!(30 > opt1));
     CHECK(!(opt2 > 42));
-    CHECK(42 > opt2);        // value > disengaged is true
+    CHECK(42 > opt2);  // value > disengaged is true
 
     // Greater than or equal
     CHECK(opt1 >= 42);
@@ -811,7 +811,7 @@ TEST_CASE("toptional - relational operators")
     CHECK(!(opt1 >= 50));
     CHECK(!(30 >= opt1));
     CHECK(!(opt2 >= 42));
-    CHECK(42 >= opt2);        // value >= disengaged is true
+    CHECK(42 >= opt2);  // value >= disengaged is true
   }
 
   SECTION("comparison with different traits")

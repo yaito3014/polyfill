@@ -80,40 +80,19 @@ constexpr bool polymorphic_swap()
   return *a == 2 && *b == 1;
 }
 
-TEST_CASE("polymorphic constexpr: default construction")
-{
-  POLYMORPHIC_STATIC_REQUIRE(polymorphic_default_construct() == 0);
-}
+TEST_CASE("polymorphic constexpr: default construction") { POLYMORPHIC_STATIC_REQUIRE(polymorphic_default_construct() == 0); }
 
-TEST_CASE("polymorphic constexpr: in_place construction")
-{
-  POLYMORPHIC_STATIC_REQUIRE(polymorphic_in_place_construct() == 42);
-}
+TEST_CASE("polymorphic constexpr: in_place construction") { POLYMORPHIC_STATIC_REQUIRE(polymorphic_in_place_construct() == 42); }
 
-TEST_CASE("polymorphic constexpr: copy is independent")
-{
-  POLYMORPHIC_STATIC_REQUIRE(polymorphic_copy_is_independent());
-}
+TEST_CASE("polymorphic constexpr: copy is independent") { POLYMORPHIC_STATIC_REQUIRE(polymorphic_copy_is_independent()); }
 
-TEST_CASE("polymorphic constexpr: move transfers ownership")
-{
-  POLYMORPHIC_STATIC_REQUIRE(polymorphic_move_transfers_ownership());
-}
+TEST_CASE("polymorphic constexpr: move transfers ownership") { POLYMORPHIC_STATIC_REQUIRE(polymorphic_move_transfers_ownership()); }
 
-TEST_CASE("polymorphic constexpr: copy assignment")
-{
-  POLYMORPHIC_STATIC_REQUIRE(polymorphic_copy_assign() == 3);
-}
+TEST_CASE("polymorphic constexpr: copy assignment") { POLYMORPHIC_STATIC_REQUIRE(polymorphic_copy_assign() == 3); }
 
-TEST_CASE("polymorphic constexpr: move assignment")
-{
-  POLYMORPHIC_STATIC_REQUIRE(polymorphic_move_assign());
-}
+TEST_CASE("polymorphic constexpr: move assignment") { POLYMORPHIC_STATIC_REQUIRE(polymorphic_move_assign()); }
 
-TEST_CASE("polymorphic constexpr: swap")
-{
-  POLYMORPHIC_STATIC_REQUIRE(polymorphic_swap());
-}
+TEST_CASE("polymorphic constexpr: swap") { POLYMORPHIC_STATIC_REQUIRE(polymorphic_swap()); }
 
 constexpr bool polymorphic_in_place_type_stores_derived()
 {
@@ -128,12 +107,6 @@ constexpr bool polymorphic_copy_preserves_dynamic_type()
   return p2->value() == 7;
 }
 
-TEST_CASE("polymorphic constexpr: in_place_type stores derived")
-{
-  POLYMORPHIC_STATIC_REQUIRE(polymorphic_in_place_type_stores_derived());
-}
+TEST_CASE("polymorphic constexpr: in_place_type stores derived") { POLYMORPHIC_STATIC_REQUIRE(polymorphic_in_place_type_stores_derived()); }
 
-TEST_CASE("polymorphic constexpr: copy preserves dynamic type")
-{
-  POLYMORPHIC_STATIC_REQUIRE(polymorphic_copy_preserves_dynamic_type());
-}
+TEST_CASE("polymorphic constexpr: copy preserves dynamic type") { POLYMORPHIC_STATIC_REQUIRE(polymorphic_copy_preserves_dynamic_type()); }

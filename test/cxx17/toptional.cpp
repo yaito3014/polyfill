@@ -222,18 +222,18 @@ TEST_CASE("toptional constexpr C++17")
     // Chaining monadic operations
     constexpr auto test_chaining = []() {
       ext::toptional<int> opt(pf::in_place, 5);
-      auto result = opt.transform([](int x) { return x * 2; })                           // 10
-                        .and_then([](int x) { return ext::toptional<int>{x + 32}; })     // 42
-                        .transform([](int x) { return x / 2; });                         // 21
+      auto result = opt.transform([](int x) { return x * 2; })                        // 10
+                        .and_then([](int x) { return ext::toptional<int>{x + 32}; })  // 42
+                        .transform([](int x) { return x / 2; });                      // 21
       return result.has_value() && *result == 21;
     };
     STATIC_REQUIRE(test_chaining());
 
     constexpr auto test_chaining_with_empty = []() {
       ext::toptional<int> opt;
-      auto result = opt.transform([](int x) { return x * 2; })
-                        .and_then([](int x) { return ext::toptional<int>{x + 32}; })
-                        .or_else([]() { return ext::toptional<int>{99}; });
+      auto result = opt.transform([](int x) { return x * 2; }).and_then([](int x) { return ext::toptional<int>{x + 32}; }).or_else([]() {
+        return ext::toptional<int>{99};
+      });
       return result.has_value() && *result == 99;
     };
     STATIC_REQUIRE(test_chaining_with_empty());

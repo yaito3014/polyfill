@@ -168,12 +168,9 @@ TEST_CASE("toptional constexpr C++20")
       ext::toptional<int> c = 99;
       ext::toptional<int> empty;
 
-      return (a <=> b) == std::strong_ordering::equal &&
-             (a <=> c) == std::strong_ordering::less &&
-             (c <=> a) == std::strong_ordering::greater &&
-             (empty <=> a) == std::strong_ordering::less &&
-             (a <=> empty) == std::strong_ordering::greater &&
-             (empty <=> empty) == std::strong_ordering::equal;
+      return (a <=> b) == std::strong_ordering::equal && (a <=> c) == std::strong_ordering::less && (c <=> a) == std::strong_ordering::greater
+             && (empty <=> a) == std::strong_ordering::less && (a <=> empty) == std::strong_ordering::greater
+             && (empty <=> empty) == std::strong_ordering::equal;
     };
     STATIC_REQUIRE(test_spaceship());
 
@@ -182,10 +179,8 @@ TEST_CASE("toptional constexpr C++20")
       ext::toptional<int> a = 42;
       ext::toptional<int> empty;
 
-      return (a <=> yk::polyfill::nullopt) == std::strong_ordering::greater &&
-             (empty <=> yk::polyfill::nullopt) == std::strong_ordering::equal &&
-             (yk::polyfill::nullopt <=> a) == std::strong_ordering::less &&
-             (yk::polyfill::nullopt <=> empty) == std::strong_ordering::equal;
+      return (a <=> yk::polyfill::nullopt) == std::strong_ordering::greater && (empty <=> yk::polyfill::nullopt) == std::strong_ordering::equal
+             && (yk::polyfill::nullopt <=> a) == std::strong_ordering::less && (yk::polyfill::nullopt <=> empty) == std::strong_ordering::equal;
     };
     STATIC_REQUIRE(test_spaceship_nullopt());
 
@@ -194,10 +189,8 @@ TEST_CASE("toptional constexpr C++20")
       ext::toptional<int> a = 42;
       ext::toptional<int> empty;
 
-      return (a <=> 42) == std::strong_ordering::equal &&
-             (a <=> 99) == std::strong_ordering::less &&
-             (a <=> 10) == std::strong_ordering::greater &&
-             (empty <=> 42) == std::strong_ordering::less;
+      return (a <=> 42) == std::strong_ordering::equal && (a <=> 99) == std::strong_ordering::less && (a <=> 10) == std::strong_ordering::greater
+             && (empty <=> 42) == std::strong_ordering::less;
     };
     STATIC_REQUIRE(test_spaceship_value());
   }
@@ -230,8 +223,7 @@ TEST_CASE("toptional constexpr C++20")
       opt1.swap(opt2);
 
       // Check results
-      return opt1.has_value() && opt1->x == 10 && opt1->y == 20 &&
-             opt2.has_value() && opt2->x == 30 && opt2->y == 40;
+      return opt1.has_value() && opt1->x == 10 && opt1->y == 20 && opt2.has_value() && opt2->x == 30 && opt2->y == 40;
     };
     STATIC_REQUIRE(test_complex());
   }

@@ -5,10 +5,10 @@
 // be a derived type.  Copies preserve the dynamic type via type-erased clone.
 // Polyfill of P3019R14 std::polymorphic for C++11 and later.
 
-#include <yk/polyfill/config.hpp>
-#include <yk/polyfill/extension/ebo_storage.hpp>
 #include <yk/polyfill/bits/allocator_is_always_equal.hpp>
 #include <yk/polyfill/bits/swap.hpp>
+#include <yk/polyfill/config.hpp>
+#include <yk/polyfill/extension/ebo_storage.hpp>
 #include <yk/polyfill/utility.hpp>
 
 #include <memory>

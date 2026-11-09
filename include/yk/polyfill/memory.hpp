@@ -3,8 +3,8 @@
 
 #include <yk/polyfill/config.hpp>
 
-#include <yk/polyfill/bits/swap.hpp>
 #include <yk/polyfill/bits/core_traits.hpp>
+#include <yk/polyfill/bits/swap.hpp>
 #include <yk/polyfill/extension/ebo_storage.hpp>
 #include <yk/polyfill/type_traits.hpp>
 
@@ -567,8 +567,7 @@ struct unique_ptr_hash {};
 
 template<class T, class D>
 struct unique_ptr_hash<T, D, void_t<decltype(std::hash<typename unique_ptr<T, D>::pointer>{}(std::declval<typename unique_ptr<T, D>::pointer const&>()))>> {
-  std::size_t operator()(unique_ptr<T, D> const& p) const
-      noexcept(noexcept(std::hash<typename unique_ptr<T, D>::pointer>{}(p.get())))
+  std::size_t operator()(unique_ptr<T, D> const& p) const noexcept(noexcept(std::hash<typename unique_ptr<T, D>::pointer>{}(p.get())))
   {
     return std::hash<typename unique_ptr<T, D>::pointer>{}(p.get());
   }

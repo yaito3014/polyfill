@@ -237,12 +237,9 @@ TEST_CASE("optional constexpr C++20")
       pf::optional<int> c(pf::in_place, 99);
       pf::optional<int> empty;
 
-      return (a <=> b) == std::strong_ordering::equal &&
-             (a <=> c) == std::strong_ordering::less &&
-             (c <=> a) == std::strong_ordering::greater &&
-             (empty <=> a) == std::strong_ordering::less &&
-             (a <=> empty) == std::strong_ordering::greater &&
-             (empty <=> empty) == std::strong_ordering::equal;
+      return (a <=> b) == std::strong_ordering::equal && (a <=> c) == std::strong_ordering::less && (c <=> a) == std::strong_ordering::greater
+             && (empty <=> a) == std::strong_ordering::less && (a <=> empty) == std::strong_ordering::greater
+             && (empty <=> empty) == std::strong_ordering::equal;
     };
     STATIC_REQUIRE(test_spaceship());
 
@@ -251,10 +248,8 @@ TEST_CASE("optional constexpr C++20")
       pf::optional<int> a(pf::in_place, 42);
       pf::optional<int> empty;
 
-      return (a <=> pf::nullopt) == std::strong_ordering::greater &&
-             (empty <=> pf::nullopt) == std::strong_ordering::equal &&
-             (pf::nullopt <=> a) == std::strong_ordering::less &&
-             (pf::nullopt <=> empty) == std::strong_ordering::equal;
+      return (a <=> pf::nullopt) == std::strong_ordering::greater && (empty <=> pf::nullopt) == std::strong_ordering::equal
+             && (pf::nullopt <=> a) == std::strong_ordering::less && (pf::nullopt <=> empty) == std::strong_ordering::equal;
     };
     STATIC_REQUIRE(test_spaceship_nullopt());
 
@@ -263,10 +258,8 @@ TEST_CASE("optional constexpr C++20")
       pf::optional<int> a(pf::in_place, 42);
       pf::optional<int> empty;
 
-      return (a <=> 42) == std::strong_ordering::equal &&
-             (a <=> 99) == std::strong_ordering::less &&
-             (a <=> 10) == std::strong_ordering::greater &&
-             (empty <=> 42) == std::strong_ordering::less;
+      return (a <=> 42) == std::strong_ordering::equal && (a <=> 99) == std::strong_ordering::less && (a <=> 10) == std::strong_ordering::greater
+             && (empty <=> 42) == std::strong_ordering::less;
     };
     STATIC_REQUIRE(test_spaceship_value());
   }
@@ -279,9 +272,7 @@ TEST_CASE("optional constexpr C++20")
       auto it2 = opt.end();
       auto it3 = opt.begin();
 
-      return (it1 <=> it3) == std::strong_ordering::equal &&
-             (it1 <=> it2) == std::strong_ordering::less &&
-             (it2 <=> it1) == std::strong_ordering::greater;
+      return (it1 <=> it3) == std::strong_ordering::equal && (it1 <=> it2) == std::strong_ordering::less && (it2 <=> it1) == std::strong_ordering::greater;
     };
     STATIC_REQUIRE(test_iterator_spaceship());
   }
@@ -309,8 +300,7 @@ TEST_CASE("optional constexpr C++20")
       opt1.swap(opt2);
 
       // Check results
-      return opt1.has_value() && opt1->x == 10 && opt1->y == 20 &&
-             opt2.has_value() && opt2->x == 30 && opt2->y == 40;
+      return opt1.has_value() && opt1->x == 10 && opt1->y == 20 && opt2.has_value() && opt2->x == 30 && opt2->y == 40;
     };
     STATIC_REQUIRE(test_complex());
   }
@@ -330,10 +320,8 @@ TEST_CASE("optional<T&> constexpr C++20")
       pf::optional<int&> c{z};
       pf::optional<int&> empty;
 
-      return (a <=> b) == std::strong_ordering::equal &&
-             (a <=> c) == std::strong_ordering::less &&
-             (c <=> a) == std::strong_ordering::greater &&
-             (empty <=> a) == std::strong_ordering::less;
+      return (a <=> b) == std::strong_ordering::equal && (a <=> c) == std::strong_ordering::less && (c <=> a) == std::strong_ordering::greater
+             && (empty <=> a) == std::strong_ordering::less;
     };
     STATIC_REQUIRE(test_ref_spaceship());
   }

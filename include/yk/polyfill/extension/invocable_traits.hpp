@@ -70,11 +70,13 @@ template<class R, class... Args>
 struct invocable_traits<R (*)(Args..., ...)> : detail::invocable_traits_function<R, false, false, false, false, false, true, Args...> {};
 
 // Emits the plain and the C-variadic member function specialization for one qualifier set.
-#define YK_POLYFILL_INVOCABLE_TRAITS_DEFINE_MEMFN(qualifiers, is_const, is_vol, is_lref, is_rref, ne, is_ne)                                             \
-  template<class R, class C, class... Args>                                                                                                             \
-  struct invocable_traits<R (C::*)(Args...) qualifiers ne> : detail::invocable_traits_memfn<R, C, is_const, is_vol, is_lref, is_rref, is_ne, false, Args...> {}; \
-  template<class R, class C, class... Args>                                                                                                             \
-  struct invocable_traits<R (C::*)(Args..., ...) qualifiers ne> : detail::invocable_traits_memfn<R, C, is_const, is_vol, is_lref, is_rref, is_ne, true, Args...> {};
+#define YK_POLYFILL_INVOCABLE_TRAITS_DEFINE_MEMFN(qualifiers, is_const, is_vol, is_lref, is_rref, ne, is_ne)                                                   \
+  template<class R, class C, class... Args>                                                                                                                    \
+  struct invocable_traits<R (C::*)(Args...) qualifiers ne> : detail::invocable_traits_memfn<R, C, is_const, is_vol, is_lref, is_rref, is_ne, false, Args...> { \
+  };                                                                                                                                                           \
+  template<class R, class C, class... Args>                                                                                                                    \
+  struct invocable_traits<R (C::*)(Args..., ...) qualifiers ne>                                                                                                \
+      : detail::invocable_traits_memfn<R, C, is_const, is_vol, is_lref, is_rref, is_ne, true, Args...> {};
 
 YK_POLYFILL_INVOCABLE_TRAITS_DEFINE_MEMFN(, false, false, false, false, , false)
 YK_POLYFILL_INVOCABLE_TRAITS_DEFINE_MEMFN(const, true, false, false, false, , false)

@@ -125,9 +125,9 @@ struct fn_ref</* Noexcept = */ true, R, Args...> {
 #endif
 
 template<bool CurConst, bool CurNoexcept, bool Cv2Const, bool Noex2, class R, class... Args>
-struct function_ref_spec_convertible
-    : conjunction<std::is_convertible<typename fn_ref<Noex2, R, Args...>::type, typename fn_ref<CurNoexcept, R, Args...>::type>,
-                  std::is_convertible<typename cv_int_ref<CurConst>::type, typename cv_int_ref<Cv2Const>::type>> {};
+struct function_ref_spec_convertible : conjunction<
+                                           std::is_convertible<typename fn_ref<Noex2, R, Args...>::type, typename fn_ref<CurNoexcept, R, Args...>::type>,
+                                           std::is_convertible<typename cv_int_ref<CurConst>::type, typename cv_int_ref<Cv2Const>::type>> {};
 
 template<class F, bool CurConst, bool CurNoexcept, class R, class... Args>
 struct is_convertible_from_function_ref_specialization : false_type {};

@@ -34,7 +34,7 @@ TEST_CASE("invocable_traits noexcept")
   STATIC_REQUIRE(C::is_noexcept);
   STATIC_REQUIRE(std::is_same_v<C::function_type, int(char) noexcept>);
 
-  using V = ext::invocable_traits<int (S::*)() const volatile&& noexcept>;
+  using V = ext::invocable_traits<int (S::*)() const volatile && noexcept>;
   STATIC_REQUIRE(V::is_const);
   STATIC_REQUIRE(V::is_volatile);
   STATIC_REQUIRE(V::is_rvalue_reference);

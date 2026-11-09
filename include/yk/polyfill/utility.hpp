@@ -142,24 +142,23 @@ concept constexpr_param = is_constexpr_param<T>::value;
     return {};                                                                                             \
   }
 
-#define YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_BINARY_OPERATOR(op)                                       \
-  template<class T, class U,                                                                                 \
-           typename std::enable_if<is_constexpr_param<T>::value && is_constexpr_param<U>::value,             \
-                                   std::nullptr_t>::type = nullptr>                                          \
-  [[nodiscard]] friend constexpr auto operator op(T, U) noexcept -> constant_wrapper<(T::value op U::value)> \
-  {                                                                                                          \
-    return {};                                                                                               \
+#define YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_BINARY_OPERATOR(op)                                                                              \
+  template<class T, class U, typename std::enable_if<is_constexpr_param<T>::value && is_constexpr_param<U>::value, std::nullptr_t>::type = nullptr> \
+  [[nodiscard]] friend constexpr auto operator op(T, U) noexcept -> constant_wrapper<(T::value op U::value)>                                        \
+  {                                                                                                                                                 \
+    return {};                                                                                                                                      \
   }
 
-#define YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_LOGICAL_OPERATOR(op)                                      \
-  template<class T, class U,                                                                                 \
-           typename std::enable_if<is_constexpr_param<T>::value && is_constexpr_param<U>::value              \
-                                       && (!std::is_constructible<bool, decltype(T::value)>::value           \
-                                           || !std::is_constructible<bool, decltype(U::value)>::value),      \
-                                   std::nullptr_t>::type = nullptr>                                          \
-  [[nodiscard]] friend constexpr auto operator op(T, U) noexcept -> constant_wrapper<(T::value op U::value)> \
-  {                                                                                                          \
-    return {};                                                                                               \
+#define YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_LOGICAL_OPERATOR(op)                                                                \
+  template<                                                                                                                            \
+      class T, class U,                                                                                                                \
+      typename std::enable_if<                                                                                                         \
+          is_constexpr_param<T>::value && is_constexpr_param<U>::value                                                                 \
+              && (!std::is_constructible<bool, decltype(T::value)>::value || !std::is_constructible<bool, decltype(U::value)>::value), \
+          std::nullptr_t>::type = nullptr>                                                                                             \
+  [[nodiscard]] friend constexpr auto operator op(T, U) noexcept -> constant_wrapper<(T::value op U::value)>                           \
+  {                                                                                                                                    \
+    return {};                                                                                                                         \
   }
 
 #if __cpp_explicit_this_parameter >= 202110L
@@ -227,8 +226,7 @@ struct cw_operators {
   YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_BINARY_OPERATOR(>=)
 
   template<class T, class U>
-  friend constexpr auto operator,(T, U) noexcept
-      -> typename std::enable_if<is_constexpr_param<T>::value && is_constexpr_param<U>::value>::type = delete;
+  friend constexpr auto operator,(T, U) noexcept -> typename std::enable_if<is_constexpr_param<T>::value && is_constexpr_param<U>::value>::type = delete;
 
   YK_POLYFILL_CONSTANT_WRAPPER_DETAIL_DEFINE_BINARY_OPERATOR(->*)
 
