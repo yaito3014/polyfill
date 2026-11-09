@@ -30,6 +30,16 @@ class unexpected;
 template<class T, class E>
 class expected;
 
+namespace detail {
+
+template<class T>
+using is_unexpected = extension::is_specialization_of<T, unexpected>;
+
+template<class T>
+using is_expected = extension::is_specialization_of<T, expected>;
+
+}  // namespace detail
+
 // [expected.unexpect]
 struct unexpect_t {
   explicit unexpect_t() = default;
@@ -77,7 +87,7 @@ class unexpected {
   static_assert(std::is_object<E>::value, "E must be an object type");
   static_assert(!std::is_array<E>::value, "E must not be an array type");
   static_assert(!std::is_const<E>::value && !std::is_volatile<E>::value, "E must not be cv-qualified");
-  static_assert(!extension::is_specialization_of<E, unexpected>::value, "E must not be a specialization of unexpected");
+  static_assert(!detail::is_unexpected<E>::value, "E must not be a specialization of unexpected");
 
 public:
   // copy/move constructors and assignment operators are implicit (a templated constructor
@@ -146,16 +156,6 @@ unexpected(E) -> unexpected<E>;
 #endif
 
 namespace detail {
-
-template<class T>
-struct is_unexpected : false_type {};
-template<class E>
-struct is_unexpected<unexpected<E>> : true_type {};
-
-template<class T>
-struct is_expected : false_type {};
-template<class T, class E>
-struct is_expected<expected<T, E>> : true_type {};
 
 // is_constructible from every cvref of W (the is_convertible half of converts_from_any_cvref is
 // intentionally omitted: [expected.object.cons] checks only is_constructible on the unexpected side).
