@@ -32,12 +32,13 @@ struct is_class_or_enum {
 
 enum class strategy { none, adl, array, exchange };
 
-template<class T, class U, class = void>
+// The class/enum test comes first so the swap call is never formed otherwise: looking up swap
+// for a pointer would instantiate a pointee class template, which may be ill-formed.
+template<class T, class U, bool = is_class_or_enum<T>::value || is_class_or_enum<U>::value, class = void>
 struct adl_swappable : false_type {};
 
 template<class T, class U>
-struct adl_swappable<T, U, void_t<decltype(swap(std::declval<T>(), std::declval<U>()))>>
-    : bool_constant<is_class_or_enum<T>::value || is_class_or_enum<U>::value> {};
+struct adl_swappable<T, U, true, void_t<decltype(swap(std::declval<T>(), std::declval<U>()))>> : true_type {};
 
 template<class T, class U>
 struct strategy_of;
@@ -103,7 +104,7 @@ template<class T, class U, std::size_t N>
 YK_POLYFILL_CXX14_CONSTEXPR void swap_impl(strategy_tag<strategy::array>, T (&a)[N], U (&b)[N]) noexcept(nothrow_swappable<T&, U&>::value)
 {
   for (std::size_t i = 0; i < N; ++i) {
-    swap_impl(strategy_tag<strategy_of<T&, U&>::value>{}, a[i], b[i]);
+    ranges_swap::swap_impl(strategy_tag<strategy_of<T&, U&>::value>{}, a[i], b[i]);
   }
 }
 
@@ -111,7 +112,8 @@ struct swap_fn {
   template<class T, class U, typename std::enable_if<strategy_of<T, U>::value != strategy::none, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX14_CONSTEXPR void operator()(T&& t, U&& u) const noexcept(nothrow_swappable<T, U>::value)
   {
-    swap_impl(strategy_tag<strategy_of<T, U>::value>{}, std::forward<T>(t), std::forward<U>(u));
+    // qualified, so the call does no ADL over the argument types (see adl_swappable)
+    ranges_swap::swap_impl(strategy_tag<strategy_of<T, U>::value>{}, std::forward<T>(t), std::forward<U>(u));
   }
 };
 
