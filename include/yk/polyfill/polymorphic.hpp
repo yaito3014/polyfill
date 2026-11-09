@@ -6,7 +6,7 @@
 // Polyfill of P3019R14 std::polymorphic for C++11 and later.
 
 #include <yk/polyfill/bits/allocator_is_always_equal.hpp>
-#include <yk/polyfill/bits/swap.hpp>
+#include <yk/polyfill/concepts.hpp>
 #include <yk/polyfill/config.hpp>
 #include <yk/polyfill/extension/ebo_storage.hpp>
 #include <yk/polyfill/utility.hpp>
@@ -282,8 +282,8 @@ struct polymorphic_swap_ops</*Pocs = */ true> {
   template<class T, class A>
   static YK_POLYFILL_CXX14_CONSTEXPR void apply(polymorphic<T, A>& a, polymorphic<T, A>& b) noexcept
   {
-    detail::constexpr_swap(a.stored_value(), b.stored_value());
-    detail::constexpr_swap(a.holder_, b.holder_);
+    ranges::swap(a.stored_value(), b.stored_value());
+    ranges::swap(a.holder_, b.holder_);
   }
 };
 
@@ -292,7 +292,7 @@ struct polymorphic_swap_ops</*Pocs = */ false> {
   template<class T, class A>
   static YK_POLYFILL_CXX14_CONSTEXPR void apply(polymorphic<T, A>& a, polymorphic<T, A>& b) noexcept
   {
-    detail::constexpr_swap(a.holder_, b.holder_);
+    ranges::swap(a.holder_, b.holder_);
   }
 };
 
