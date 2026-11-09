@@ -11,6 +11,7 @@ All headers are included via `<yk/polyfill/...>`. Everything lives in the `yk::p
 | Header | Provides |
 |--------|----------|
 | `type_traits.hpp` | `void_t`, `bool_constant`, `conjunction`, `disjunction`, `negation`, `remove_cvref`, `type_identity`, `is_bounded_array`, `is_unbounded_array`, `is_null_pointer`, `is_swappable`, `is_nothrow_convertible`, `constant_wrapper` (requires C++20) |
+| `concepts.hpp` | `ranges::swap` |
 | `functional.hpp` | `invoke`, `invoke_r`, `is_invocable`, `is_nothrow_invocable`, `is_invocable_r`, `is_nothrow_invocable_r`, `invoke_result` |
 | `utility.hpp` | `in_place_t`, `integer_sequence`, `make_index_sequence`, `exchange`, `as_const` |
 | `memory.hpp` | `make_unique`, `unique_ptr`, `construct_at` |

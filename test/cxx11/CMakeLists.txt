@@ -22,6 +22,7 @@ target_sources(
         invoke.cpp
         apply.cpp
         constexpr_swap.cpp
+        ranges_swap.cpp
         exchange.cpp
         is_convertible_without_narrowing.cpp
         invocable_traits.cpp
