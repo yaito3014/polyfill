@@ -119,6 +119,55 @@ struct swap_fn {
 
 }  // namespace ranges_swap
 
+// loose_swap: swap as [swappable.requirements] specifies it (an unqualified swap with std::swap in
+// scope), but constexpr before C++20 where possible. ranges::swap agrees with that context on every
+// movable type and does not need std::swap, so it is used whenever it applies; the std::swap
+// context covers the rest, i.e. non-movable types whose swap is an overload for a base class or a
+// template tying with ranges::swap's deleted swap(T&, T&). Where the two disagree it is looser than
+// either: ranges::swap's move exchange also applies when an unconstrained swap template makes the
+// std::swap context ambiguous.
+namespace std_swap_context {
+
+using std::swap;
+
+template<bool UseRangesSwap>
+struct loose_swap_impl;
+
+template<>
+struct loose_swap_impl<true> {
+  template<class T>
+  static YK_POLYFILL_CXX14_CONSTEXPR void apply(T& a, T& b) noexcept(
+      noexcept(ranges_swap::swap_impl_for<T&, T&>::apply(std::declval<T&>(), std::declval<T&>()))
+  )
+  {
+    ranges_swap::swap_impl_for<T&, T&>::apply(a, b);
+  }
+};
+
+template<>
+struct loose_swap_impl<false> {
+  template<class T>
+  static YK_POLYFILL_CXX14_CONSTEXPR void apply(T& a, T& b) noexcept(noexcept(swap(std::declval<T&>(), std::declval<T&>())))
+  {
+    swap(a, b);
+  }
+};
+
+template<class T>
+using loose_swap_impl_for = loose_swap_impl<ranges_swap::strategy_of<T&, T&>::value != ranges_swap::strategy::none>;
+
+}  // namespace std_swap_context
+
+template<
+    class T,
+    typename std::enable_if<ranges_swap::strategy_of<T&, T&>::value != ranges_swap::strategy::none || is_swappable<T>::value, std::nullptr_t>::type = nullptr>
+YK_POLYFILL_CXX14_CONSTEXPR void loose_swap(T& a, T& b) noexcept(
+    noexcept(std_swap_context::loose_swap_impl_for<T>::apply(std::declval<T&>(), std::declval<T&>()))
+)
+{
+  std_swap_context::loose_swap_impl_for<T>::apply(a, b);
+}
+
 }  // namespace detail
 
 namespace ranges {
