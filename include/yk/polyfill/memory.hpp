@@ -223,7 +223,8 @@ public:
   YK_POLYFILL_CXX14_CONSTEXPR void swap(unique_ptr& other) noexcept(is_nothrow_swappable<Deleter>::value)
   {
     ranges::swap(ptr_, other.ptr_);
-    ranges::swap(deleter_base::stored_value(), other.deleter_base::stored_value());
+    // [unique.ptr.single.modifiers] requires the deleter to be swappable per [swappable.requirements]
+    detail::loose_swap(deleter_base::stored_value(), other.deleter_base::stored_value());
   }
 
 private:
@@ -395,7 +396,8 @@ public:
   YK_POLYFILL_CXX14_CONSTEXPR void swap(unique_ptr& other) noexcept(is_nothrow_swappable<Deleter>::value)
   {
     ranges::swap(ptr_, other.ptr_);
-    ranges::swap(deleter_base::stored_value(), other.deleter_base::stored_value());
+    // [unique.ptr.single.modifiers] requires the deleter to be swappable per [swappable.requirements]
+    detail::loose_swap(deleter_base::stored_value(), other.deleter_base::stored_value());
   }
 
 private:

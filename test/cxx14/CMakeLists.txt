@@ -4,6 +4,7 @@ target_sources(
     yk_polyfill_cxx14_test
     PRIVATE
         ranges_swap.cpp
+        loose_swap.cpp
         optional.cpp
         toptional.cpp
         variant.cpp
