@@ -35,6 +35,11 @@ struct FromInt {
 
 int times_two(int x) { return 2 * x; }
 
+struct std_swap_specialized {
+  int value;
+  bool via_specialization;
+};
+
 // copy/move constructible + assignable, but with a potentially-throwing move constructor.
 struct ThrowMove {
   int tag = 0;
@@ -75,6 +80,23 @@ struct Bomb {
 bool Bomb::armed = false;
 
 }  // namespace
+
+#if __cplusplus < 202002L
+// Allowed before C++20 ([namespace.std]); since C++20 adding it to namespace std is undefined.
+namespace std {
+
+template<>
+void swap<std_swap_specialized>(std_swap_specialized& a, std_swap_specialized& b) noexcept
+{
+  int const tmp = a.value;
+  a.value = b.value;
+  b.value = tmp;
+  a.via_specialization = true;
+  b.via_specialization = true;
+}
+
+}  // namespace std
+#endif
 
 TEST_CASE("unexpected basics")
 {
@@ -808,6 +830,17 @@ TEST_CASE("expected value ctor excludes unexpect_t")
   pf::expected<FromAnything, int> e(pf::unexpect);
   CHECK(!e.has_value());
 }
+
+#if __cplusplus < 202002L
+TEST_CASE("unexpected swap calls an explicit specialization of std::swap")
+{
+  pf::unexpected<std_swap_specialized> a(std_swap_specialized{1, false}), b(std_swap_specialized{2, false});
+  a.swap(b);
+  CHECK(a.error().value == 2);
+  CHECK(b.error().value == 1);
+  CHECK(a.error().via_specialization);
+}
+#endif
 
 TEST_CASE("unexpected != is the negation of ==")
 {
