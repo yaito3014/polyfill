@@ -10,6 +10,7 @@ target_sources(
         variant.cpp
         function_ref.cpp
         expected.cpp
+        unique_ptr.cpp
 )
 
 set_target_properties(yk_polyfill_cxx17_test PROPERTIES CXX_EXTENSIONS OFF)
