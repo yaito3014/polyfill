@@ -7,6 +7,7 @@
 
 #include <yk/polyfill/extension/specialization_of.hpp>
 
+#include <yk/polyfill/concepts.hpp>
 #include <yk/polyfill/functional.hpp>
 #include <yk/polyfill/memory.hpp>
 #include <yk/polyfill/type_traits.hpp>
@@ -328,11 +329,7 @@ public:
     return data;
   }
 
-  YK_POLYFILL_CXX14_CONSTEXPR void swap(toptional& other) noexcept(is_nothrow_swappable<T>::value)
-  {
-    using std::swap;
-    swap(data, other.data);
-  }
+  YK_POLYFILL_CXX14_CONSTEXPR void swap(toptional& other) noexcept(is_nothrow_swappable<T>::value) { polyfill::detail::loose_swap(data, other.data); }
 
   YK_POLYFILL_CXX14_CONSTEXPR T* operator->() noexcept { return std::addressof(data); }
   constexpr T const* operator->() const noexcept { return std::addressof(data); }

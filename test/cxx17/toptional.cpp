@@ -279,3 +279,41 @@ TEST_CASE("toptional constexpr C++17")
     STATIC_REQUIRE(test_pointer_traits());
   }
 }
+
+namespace {
+
+// Swappable per [swappable.requirements] through the base class swap, although ranges::swap
+// rejects it. This needs C++17, where std::swap is constrained on move-constructibility.
+struct id_base {
+  int id;
+};
+
+void swap(id_base& a, id_base& b) noexcept
+{
+  int const tmp = a.id;
+  a.id = b.id;
+  b.id = tmp;
+}
+
+struct base_swap_only : id_base {
+  explicit base_swap_only(int i) : id_base{i} {}
+  base_swap_only(base_swap_only&&) = delete;
+};
+
+struct base_swap_only_traits {
+  static bool is_engaged(base_swap_only const& x) noexcept { return x.id != 0; }
+  static base_swap_only tombstone_value() noexcept { return base_swap_only(0); }
+};
+
+}  // namespace
+
+TEST_CASE("toptional swap of a non-movable value swappable through a base class")
+{
+  ext::toptional<base_swap_only, base_swap_only_traits> a(pf::in_place, 1), b;
+  a.swap(b);
+  CHECK(!a.has_value());
+  CHECK(b->id == 1);
+  ext::swap(a, b);
+  CHECK(a->id == 1);
+  CHECK(!b.has_value());
+}
