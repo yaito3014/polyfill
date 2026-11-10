@@ -7,6 +7,7 @@
 #include <yk/polyfill/extension/specialization_of.hpp>
 
 #include <yk/polyfill/bits/optional_common.hpp>  // detail::converts_from_any_cvref
+#include <yk/polyfill/concepts.hpp>              // detail::loose_swap
 #include <yk/polyfill/functional.hpp>            // invoke, invoke_result, is_invocable
 #include <yk/polyfill/memory.hpp>                // construct_at
 #include <yk/polyfill/type_traits.hpp>           // is_swappable, is_nothrow_swappable
@@ -124,8 +125,7 @@ public:
   template<class E2 = E, typename std::enable_if<is_swappable<E2>::value, std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX14_CONSTEXPR void swap(unexpected& other) noexcept(is_nothrow_swappable<E>::value)
   {
-    using std::swap;
-    swap(error_, other.error_);
+    detail::loose_swap(error_, other.error_);
   }
 
   template<class E2>
