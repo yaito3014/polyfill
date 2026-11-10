@@ -7,6 +7,7 @@
 #include <yk/polyfill/extension/specialization_of.hpp>
 
 #include <yk/polyfill/bits/optional_common.hpp>
+#include <yk/polyfill/concepts.hpp>
 #include <yk/polyfill/functional.hpp>
 #include <yk/polyfill/memory.hpp>
 #include <yk/polyfill/type_traits.hpp>
@@ -796,7 +797,7 @@ public:
     return **this;
   }
 
-  YK_POLYFILL_CXX17_CONSTEXPR void swap(optional& rhs) noexcept { std::swap(ptr, rhs.ptr); }
+  YK_POLYFILL_CXX17_CONSTEXPR void swap(optional& rhs) noexcept { ranges::swap(ptr, rhs.ptr); }
 
   constexpr T* operator->() const noexcept { return ptr; };
 
