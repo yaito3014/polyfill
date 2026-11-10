@@ -126,6 +126,14 @@ void swap(adl_bait (&a)[1], adl_bait (&b)[1])
   b[0].baited = true;
 }
 
+struct incomplete;
+
+// instantiating holder<incomplete> is ill-formed, so nothing may look up swap through holder<incomplete>*
+template<class T>
+struct holder {
+  T value;
+};
+
 }  // namespace
 
 namespace unconstrained {
@@ -209,6 +217,19 @@ TEST_CASE("ranges::swap")
     CHECK(r.value == 1);
     STATIC_REQUIRE(can_nothrow_swap<left&, right&>::value);
     STATIC_REQUIRE_FALSE(can_swap<right&, left&>::value);
+  }
+
+  SECTION("does not instantiate a pointee class template")
+  {
+    int marker = 0;
+    holder<incomplete>* const target = static_cast<holder<incomplete>*>(static_cast<void*>(&marker));
+    holder<incomplete>* p = nullptr;
+    holder<incomplete>* q = target;
+    pf::ranges::swap(p, q);
+    // compared to bool first: Catch2 would look up operator<< for holder<incomplete>* to print it
+    bool const swapped = p == target && q == nullptr;
+    CHECK(swapped);
+    STATIC_REQUIRE(can_nothrow_swap<holder<incomplete>*&, holder<incomplete>*&>::value);
   }
 
   SECTION("does not use an ADL swap for pointers and arrays")
