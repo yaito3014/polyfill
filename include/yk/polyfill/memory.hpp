@@ -222,8 +222,9 @@ public:
 
   YK_POLYFILL_CXX14_CONSTEXPR void swap(unique_ptr& other) noexcept(is_nothrow_swappable<Deleter>::value)
   {
-    ranges::swap(ptr_, other.ptr_);
-    // [unique.ptr.single.modifiers] requires the deleter to be swappable per [swappable.requirements]
+    // [unique.ptr.single.modifiers] invokes swap on the stored pointers and deleters, an unqualified swap
+    // that [contents] gives the meaning of [swappable.requirements] (::std::swap before C++23)
+    detail::loose_swap(ptr_, other.ptr_);
     detail::loose_swap(deleter_base::stored_value(), other.deleter_base::stored_value());
   }
 
@@ -395,8 +396,9 @@ public:
 
   YK_POLYFILL_CXX14_CONSTEXPR void swap(unique_ptr& other) noexcept(is_nothrow_swappable<Deleter>::value)
   {
-    ranges::swap(ptr_, other.ptr_);
-    // [unique.ptr.single.modifiers] requires the deleter to be swappable per [swappable.requirements]
+    // [unique.ptr.single.modifiers] invokes swap on the stored pointers and deleters, an unqualified swap
+    // that [contents] gives the meaning of [swappable.requirements] (::std::swap before C++23)
+    detail::loose_swap(ptr_, other.ptr_);
     detail::loose_swap(deleter_base::stored_value(), other.deleter_base::stored_value());
   }
 

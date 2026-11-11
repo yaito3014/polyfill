@@ -64,6 +64,50 @@ void swap(array_swap_tracking_deleter& a, array_swap_tracking_deleter& b) noexce
   ++g_swap_count;
 }
 
+#if __cplusplus < 202002L
+// A non-owning fancy pointer swapped through an explicit specialization of std::swap.
+struct specialized_pointer {
+  int* p;
+  bool via_specialization;
+
+  specialized_pointer() : p(nullptr), via_specialization(false) {}
+  specialized_pointer(std::nullptr_t) : p(nullptr), via_specialization(false) {}
+  explicit specialized_pointer(int* q) : p(q), via_specialization(false) {}
+
+  explicit operator bool() const { return p != nullptr; }
+  friend bool operator==(specialized_pointer const& a, specialized_pointer const& b) { return a.p == b.p; }
+  friend bool operator!=(specialized_pointer const& a, specialized_pointer const& b) { return a.p != b.p; }
+};
+
+struct specialized_pointer_deleter {
+  using pointer = specialized_pointer;
+  void operator()(pointer) const noexcept {}
+};
+#endif
+
+#if __cplusplus > 202002L
+// The std::swap context finds this through ADL on the pointee, and prefers it to std::swap.
+struct adl_pointee {
+  bool via_pointer_swap;
+};
+
+void swap(adl_pointee*& a, adl_pointee*& b) noexcept
+{
+  adl_pointee* const tmp = a;
+  a = b;
+  b = tmp;
+  a->via_pointer_swap = true;
+  b->via_pointer_swap = true;
+}
+
+struct noop_deleter {
+  template<class P>
+  void operator()(P) const noexcept
+  {
+  }
+};
+#endif
+
 struct custom_pointer_deleter {
   using pointer = long*;
   void operator()(pointer p) const { delete p; }
@@ -76,6 +120,23 @@ struct multi_arg {
 };
 
 }  // namespace
+
+#if __cplusplus < 202002L
+// Allowed before C++20 ([namespace.std]); since C++20 adding it to namespace std is undefined.
+namespace std {
+
+template<>
+void swap<specialized_pointer>(specialized_pointer& a, specialized_pointer& b) noexcept
+{
+  int* const tmp = a.p;
+  a.p = b.p;
+  b.p = tmp;
+  a.via_specialization = true;
+  b.via_specialization = true;
+}
+
+}  // namespace std
+#endif
 
 TEST_CASE("unique_ptr - basic")
 {
@@ -237,6 +298,48 @@ TEST_CASE("unique_ptr - swap calls ADL swap on deleter")
   CHECK(b.get_deleter().tag == 10);
   CHECK(g_swap_count == 1);
 }
+
+#if __cplusplus < 202002L
+// Before C++23, [unique.ptr.single.modifiers] "invokes swap" on the stored pointers means
+// ::std::swap ([contents]), which uses its explicit specializations (allowed before C++20).
+TEST_CASE("unique_ptr - swap calls an explicit specialization of std::swap on the pointer")
+{
+  int x = 1, y = 2;
+
+  pf::unique_ptr<int, specialized_pointer_deleter> a(specialized_pointer{&x}), b(specialized_pointer{&y});
+  a.swap(b);
+  CHECK(a.get().p == &y);
+  CHECK(b.get().p == &x);
+  CHECK(a.get().via_specialization);
+
+  pf::unique_ptr<int[], specialized_pointer_deleter> c(specialized_pointer{&x}), d(specialized_pointer{&y});
+  c.swap(d);
+  CHECK(c.get().p == &y);
+  CHECK(d.get().p == &x);
+  CHECK(c.get().via_specialization);
+}
+#endif
+
+#if __cplusplus > 202002L
+// Since C++23, [contents] gives the unqualified swap the meaning of [swappable.requirements].
+TEST_CASE("unique_ptr - swap calls an ADL swap for a raw pointer")
+{
+  adl_pointee x{false}, y{false};
+
+  pf::unique_ptr<adl_pointee, noop_deleter> a(&x), b(&y);
+  a.swap(b);
+  CHECK(a.get() == &y);
+  CHECK(b.get() == &x);
+  CHECK(x.via_pointer_swap);
+
+  x.via_pointer_swap = false;
+  pf::unique_ptr<adl_pointee[], noop_deleter> c(&x), d(&y);
+  c.swap(d);
+  CHECK(c.get() == &y);
+  CHECK(d.get() == &x);
+  CHECK(x.via_pointer_swap);
+}
+#endif
 
 TEST_CASE("unique_ptr - comparisons")
 {
