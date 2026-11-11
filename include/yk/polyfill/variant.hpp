@@ -847,6 +847,13 @@ class variant : private detail::cond_trivial_smf<typename detail::make_variant_b
 private:
   using base_type = detail::cond_trivial_smf<typename detail::make_variant_base<Ts...>::type, Ts...>;
 
+  static YK_POLYFILL_CXX20_CONSTEXPR void move_construct_into_valueless(variant& to, variant&& from) noexcept(
+      conjunction<std::is_nothrow_move_constructible<Ts>...>::value
+  )
+  {
+    std::move(from).raw_visit(detail::construct_on_valueless_visitor<Ts...>{to});
+  }
+
 public:
   using base_type::index;
   using base_type::valueless_by_exception;
@@ -944,8 +951,10 @@ public:
       }
     } else {
       variant tmp(std::move(other));
-      other = std::move(*this);
-      *this = std::move(tmp);
+      other.dynamic_reset();
+      move_construct_into_valueless(other, std::move(*this));
+      this->dynamic_reset();
+      move_construct_into_valueless(*this, std::move(tmp));
     }
   }
 

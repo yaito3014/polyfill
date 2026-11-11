@@ -7,6 +7,7 @@
 #include <yk/polyfill/variant.hpp>
 
 #include <type_traits>
+#include <utility>
 
 namespace pf = yk::polyfill;
 
@@ -32,6 +33,17 @@ struct NotDefaultConstructible {
 
 struct NonTriviallyDestructible {
   ~NonTriviallyDestructible() {}
+};
+
+struct SwappableNonMoveAssignable {
+  int value;
+  explicit SwappableNonMoveAssignable(int v) : value(v) {}
+  SwappableNonMoveAssignable(SwappableNonMoveAssignable const&) = delete;
+  SwappableNonMoveAssignable(SwappableNonMoveAssignable&&) noexcept = default;
+  SwappableNonMoveAssignable& operator=(SwappableNonMoveAssignable const&) = delete;
+  SwappableNonMoveAssignable& operator=(SwappableNonMoveAssignable&&) = delete;
+
+  friend void swap(SwappableNonMoveAssignable& a, SwappableNonMoveAssignable& b) noexcept { std::swap(a.value, b.value); }
 };
 
 // Trivially copyable types with restricted special member functions.
@@ -981,6 +993,14 @@ TEST_CASE("variant multi-visit")
 
 TEST_CASE("variant swap")
 {
+  SECTION("move-constructible non-move-assignable alternative")
+  {
+    pf::variant<int, SwappableNonMoveAssignable> a(pf::in_place_index_t<1>{}, 7);
+    pf::variant<int, SwappableNonMoveAssignable> b = 42;
+    a.swap(b);
+    CHECK(pf::get<0>(a) == 42);
+    CHECK(pf::get<1>(b).value == 7);
+  }
   SECTION("same alternative")
   {
     pf::variant<int, double> a = 42;
@@ -1019,6 +1039,18 @@ TEST_CASE("variant swap")
     a.swap(b);
     CHECK(a.valueless_by_exception());
     CHECK(b.valueless_by_exception());
+  }
+  SECTION("one valueless")
+  {
+    pf::variant<int, ThrowsOnConstruction> a = 42;
+    pf::variant<int, ThrowsOnConstruction> b = 17;
+    make_valueless(a);
+    a.swap(b);
+    CHECK(pf::get<0>(a) == 17);
+    CHECK(b.valueless_by_exception());
+    a.swap(b);
+    CHECK(a.valueless_by_exception());
+    CHECK(pf::get<0>(b) == 17);
   }
 }
 
