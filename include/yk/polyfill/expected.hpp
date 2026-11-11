@@ -580,7 +580,7 @@ template<bool EnableAssignment>
 struct expected_assign_guard;
 
 template<>
-struct expected_assign_guard<true> {
+struct expected_assign_guard</*EnableAssignment = */ true> {
   expected_assign_guard() = default;
   expected_assign_guard(expected_assign_guard const&) = default;
   expected_assign_guard(expected_assign_guard&&) = default;
@@ -589,7 +589,7 @@ struct expected_assign_guard<true> {
 };
 
 template<>
-struct expected_assign_guard<false> {
+struct expected_assign_guard</*EnableAssignment = */ false> {
   expected_assign_guard() = default;
   expected_assign_guard(expected_assign_guard const&) = default;
   expected_assign_guard(expected_assign_guard&&) = default;
