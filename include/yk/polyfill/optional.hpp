@@ -225,7 +225,9 @@ struct optional_storage_base : public optional_destruct_base<T> {  // T is NOT a
     }
   }
 
-  YK_POLYFILL_CXX17_CONSTEXPR void _copy_assign(optional_storage_base const& other) noexcept(std::is_nothrow_copy_assignable<T>::value)
+  YK_POLYFILL_CXX17_CONSTEXPR void _copy_assign(optional_storage_base const& other) noexcept(
+      std::is_nothrow_copy_constructible<T>::value && std::is_nothrow_copy_assignable<T>::value
+  )
   {
     if (other.base::engaged) {
       assign(other.base::value);
@@ -241,7 +243,9 @@ struct optional_storage_base : public optional_destruct_base<T> {  // T is NOT a
     }
   }
 
-  YK_POLYFILL_CXX17_CONSTEXPR void _move_assign(optional_storage_base&& other) noexcept(std::is_nothrow_move_assignable<T>::value)
+  YK_POLYFILL_CXX17_CONSTEXPR void _move_assign(optional_storage_base&& other) noexcept(
+      std::is_nothrow_move_constructible<T>::value && std::is_nothrow_move_assignable<T>::value
+  )
   {
     if (other.base::engaged) {
       assign(std::move(other.base::value));

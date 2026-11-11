@@ -8,6 +8,7 @@
 #include <yk/polyfill/utility.hpp>
 
 #include <memory>
+#include <stdexcept>
 #include <type_traits>
 #include <utility>
 
@@ -613,6 +614,24 @@ TEST_CASE("optional non-trivial")
 
 TEST_CASE("optional noexcept propagation")
 {
+  struct ThrowingConstruction {
+    ThrowingConstruction() = default;
+    ThrowingConstruction(ThrowingConstruction const&) { throw std::runtime_error("copy"); }
+    ThrowingConstruction(ThrowingConstruction&&) { throw std::runtime_error("move"); }
+    ThrowingConstruction& operator=(ThrowingConstruction const&) noexcept { return *this; }
+    ThrowingConstruction& operator=(ThrowingConstruction&&) noexcept { return *this; }
+  };
+
+  STATIC_REQUIRE(!std::is_nothrow_copy_assignable<pf::optional<ThrowingConstruction>>::value);
+  STATIC_REQUIRE(!std::is_nothrow_move_assignable<pf::optional<ThrowingConstruction>>::value);
+
+  pf::optional<ThrowingConstruction> source(pf::in_place);
+  pf::optional<ThrowingConstruction> target;
+  CHECK_THROWS_AS(target = source, std::runtime_error);
+  CHECK_FALSE(target.has_value());
+  CHECK_THROWS_AS(target = std::move(source), std::runtime_error);
+  CHECK_FALSE(target.has_value());
+
   // Test type with noexcept operations
   struct NoexceptOps {
     NoexceptOps() noexcept = default;
