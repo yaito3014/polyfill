@@ -282,7 +282,8 @@ struct polymorphic_swap_ops</*Pocs = */ true> {
   template<class T, class A>
   static YK_POLYFILL_CXX14_CONSTEXPR void apply(polymorphic<T, A>& a, polymorphic<T, A>& b) noexcept
   {
-    ranges::swap(a.stored_value(), b.stored_value());
+    // [polymorphic.swap] exchanges the allocators by calling swap as described in [swappable.requirements]
+    detail::loose_swap(a.stored_value(), b.stored_value());
     ranges::swap(a.holder_, b.holder_);
   }
 };

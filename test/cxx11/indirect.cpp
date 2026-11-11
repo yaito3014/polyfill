@@ -377,6 +377,62 @@ TEST_CASE("indirect alloc: swap POCS=true swaps values and allocators")
   CHECK(y.get_allocator() == a1);
 }
 
+#if __cplusplus < 202002L
+// A POCS allocator swapped through an explicit specialization of std::swap, which
+// [namespace.std] allows before C++20; since C++20 adding it to namespace std is undefined.
+namespace {
+
+template<class T>
+struct SpecSwapAlloc {
+  using value_type = T;
+  using propagate_on_container_swap = std::true_type;
+  int id;
+  bool via_specialization;
+
+  explicit SpecSwapAlloc(int i = 0) : id(i), via_specialization(false) {}
+
+  template<class U>
+  SpecSwapAlloc(SpecSwapAlloc<U> const& o) : id(o.id), via_specialization(false)
+  {
+  }
+
+  T* allocate(std::size_t n) { return std::allocator<T>{}.allocate(n); }
+  void deallocate(T* p, std::size_t n) { std::allocator<T>{}.deallocate(p, n); }
+
+  bool operator==(SpecSwapAlloc const& o) const { return id == o.id; }
+  bool operator!=(SpecSwapAlloc const& o) const { return id != o.id; }
+};
+
+}  // namespace
+
+namespace std {
+
+template<>
+void swap<SpecSwapAlloc<int>>(SpecSwapAlloc<int>& a, SpecSwapAlloc<int>& b) noexcept
+{
+  int const tmp = a.id;
+  a.id = b.id;
+  b.id = tmp;
+  a.via_specialization = true;
+  b.via_specialization = true;
+}
+
+}  // namespace std
+
+TEST_CASE("indirect alloc: swap POCS=true calls an explicit specialization of std::swap")
+{
+  SpecSwapAlloc<int> a1(1), a2(2);
+  pf::indirect<int, SpecSwapAlloc<int>> x(std::allocator_arg, a1, pf::in_place, 10);
+  pf::indirect<int, SpecSwapAlloc<int>> y(std::allocator_arg, a2, pf::in_place, 20);
+  x.swap(y);
+  CHECK(*x == 20);
+  CHECK(*y == 10);
+  CHECK(x.get_allocator() == a2);
+  CHECK(y.get_allocator() == a1);
+  CHECK(x.get_allocator().via_specialization);
+}
+#endif
+
 // --- copy assignment ---
 
 TEST_CASE("indirect alloc: copy assign POCCA=false leaves allocator unchanged")
