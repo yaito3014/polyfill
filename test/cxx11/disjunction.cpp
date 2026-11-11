@@ -20,6 +20,19 @@ struct false_type {
   static constexpr bool value = false;
 };
 
+struct marked_false : false_type {
+  using marker = int;
+};
+
+// [meta.logical] only needs a value convertible to bool
+struct int_two {
+  static constexpr int value = 2;
+};
+
+struct int_zero {
+  static constexpr int value = 0;
+};
+
 template<class T>
 struct always_false : false_type {};
 
@@ -46,4 +59,9 @@ TEST_CASE("disjunction")
   STATIC_REQUIRE(pf::disjunction<true_type, always_fail<int>>::value == true);
   STATIC_REQUIRE(std::is_base_of<marked_true, pf::disjunction<marked_true>>::value);
   STATIC_REQUIRE(std::is_base_of<marked_true, pf::disjunction<false_type, marked_true, always_fail<int>>>::value);
+
+  // the last trait when none is true
+  STATIC_REQUIRE(std::is_base_of<marked_false, pf::disjunction<false_type, marked_false>>::value);
+
+  STATIC_REQUIRE(std::is_base_of<int_two, pf::disjunction<int_zero, int_two, always_fail<int>>>::value);
 }

@@ -45,7 +45,7 @@ template<class Trait>
 struct conjunction<Trait> : Trait {};
 
 template<class Trait, class Next, class... Traits>
-struct conjunction<Trait, Next, Traits...> : std::conditional<Trait::value, conjunction<Next, Traits...>, Trait>::type {};
+struct conjunction<Trait, Next, Traits...> : std::conditional<bool(Trait::value), conjunction<Next, Traits...>, Trait>::type {};
 
 template<class... Traits>
 struct disjunction;
@@ -57,7 +57,7 @@ template<class Trait>
 struct disjunction<Trait> : Trait {};
 
 template<class Trait, class Next, class... Traits>
-struct disjunction<Trait, Next, Traits...> : std::conditional<Trait::value, Trait, disjunction<Next, Traits...>>::type {};
+struct disjunction<Trait, Next, Traits...> : std::conditional<bool(Trait::value), Trait, disjunction<Next, Traits...>>::type {};
 
 namespace detail {
 
