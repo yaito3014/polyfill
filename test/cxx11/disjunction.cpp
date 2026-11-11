@@ -6,8 +6,14 @@
 
 #include <yk/polyfill/type_traits.hpp>
 
+#include <type_traits>
+
 struct true_type {
   static constexpr bool value = true;
+};
+
+struct marked_true : true_type {
+  using marker = int;
 };
 
 struct false_type {
@@ -38,4 +44,6 @@ TEST_CASE("disjunction")
 
   // short-circuit
   STATIC_REQUIRE(pf::disjunction<true_type, always_fail<int>>::value == true);
+  STATIC_REQUIRE(std::is_base_of<marked_true, pf::disjunction<marked_true>>::value);
+  STATIC_REQUIRE(std::is_base_of<marked_true, pf::disjunction<false_type, marked_true, always_fail<int>>>::value);
 }

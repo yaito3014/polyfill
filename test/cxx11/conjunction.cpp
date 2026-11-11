@@ -6,12 +6,18 @@
 
 #include <yk/polyfill/type_traits.hpp>
 
+#include <type_traits>
+
 struct true_type {
   static constexpr bool value = true;
 };
 
 struct false_type {
   static constexpr bool value = false;
+};
+
+struct marked_false : false_type {
+  using marker = int;
 };
 
 template<class T>
@@ -38,4 +44,6 @@ TEST_CASE("conjunction")
 
   // short-circuit
   STATIC_REQUIRE(pf::conjunction<false_type, always_fail<int>>::value == false);
+  STATIC_REQUIRE(std::is_base_of<marked_false, pf::conjunction<marked_false>>::value);
+  STATIC_REQUIRE(std::is_base_of<marked_false, pf::conjunction<true_type, marked_false, always_fail<int>>>::value);
 }

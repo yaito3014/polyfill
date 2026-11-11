@@ -41,8 +41,11 @@ struct conjunction;
 template<>
 struct conjunction<> : true_type {};
 
-template<class Trait, class... Traits>
-struct conjunction<Trait, Traits...> : std::conditional<Trait::value, conjunction<Traits...>, false_type>::type {};
+template<class Trait>
+struct conjunction<Trait> : Trait {};
+
+template<class Trait, class Next, class... Traits>
+struct conjunction<Trait, Next, Traits...> : std::conditional<Trait::value, conjunction<Next, Traits...>, Trait>::type {};
 
 template<class... Traits>
 struct disjunction;
@@ -50,8 +53,11 @@ struct disjunction;
 template<>
 struct disjunction<> : false_type {};
 
-template<class Trait, class... Traits>
-struct disjunction<Trait, Traits...> : std::conditional<Trait::value, true_type, disjunction<Traits...>>::type {};
+template<class Trait>
+struct disjunction<Trait> : Trait {};
+
+template<class Trait, class Next, class... Traits>
+struct disjunction<Trait, Next, Traits...> : std::conditional<Trait::value, Trait, disjunction<Next, Traits...>>::type {};
 
 namespace detail {
 
