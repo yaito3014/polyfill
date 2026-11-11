@@ -29,6 +29,16 @@ foreach(required_cxx_version ${YK_POLYFILL_CXX_VERSIONS})
         set(CATCH_BUILD_STATIC_LIBRARY ON)
         FetchContent_MakeAvailable(Catch2)
 
+        # Catch2 v2 uses std::nothrow without including <new>, which libc++ does not provide transitively.
+        include(CheckCXXSourceCompiles)
+        check_cxx_source_compiles(
+            "#include <cstddef>\n#ifndef _LIBCPP_VERSION\n#error not libc++\n#endif\nint main() {}"
+            YK_POLYFILL_STDLIB_IS_LIBCXX
+        )
+        if(YK_POLYFILL_STDLIB_IS_LIBCXX)
+            target_compile_options(Catch2 INTERFACE "SHELL:-include new")
+        endif()
+
         set(YK_POLYFILL_CATCH2_MAJOR_VERSION 2)
     else()
         FetchContent_Declare(
