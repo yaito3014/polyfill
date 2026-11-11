@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <type_traits>
 
 namespace pf = yk::polyfill;
 
@@ -40,6 +41,25 @@ struct test_convertible_without_narrowing<From, To, /*IsConvertible = */ false, 
 // corrupted version: if IsConvertible is false, IsConvertibleWithoutNarrowing must be false
 template<class From, class To>
 struct test_convertible_without_narrowing<From, To, /*IsConvertible = */ false, /* IsConvertibleWithoutNarrowing = */ true> {};
+
+// The base characteristic is the polyfill's bool_constant whichever of the underlying checks decides.
+template<class From, class To>
+struct has_polyfill_base
+    : std::is_base_of<
+          pf::bool_constant<pf::extension::is_convertible_without_narrowing<From, To>::value>, pf::extension::is_convertible_without_narrowing<From, To>> {};
+
+TEST_CASE("is_convertible_without_narrowing - base characteristic")
+{
+  STATIC_REQUIRE(has_polyfill_base<int, long>::value);
+  STATIC_REQUIRE(has_polyfill_base<long, int>::value);
+  STATIC_REQUIRE(has_polyfill_base<void*, int>::value);
+  STATIC_REQUIRE(has_polyfill_base<void, void>::value);
+  STATIC_REQUIRE(has_polyfill_base<int, void>::value);
+  STATIC_REQUIRE(has_polyfill_base<void(), void()>::value);
+  STATIC_REQUIRE(has_polyfill_base<int[], int*>::value);
+  STATIC_REQUIRE(has_polyfill_base<int[], int[]>::value);
+  STATIC_REQUIRE(has_polyfill_base<int*, int[]>::value);
+}
 
 TEST_CASE("is_convertible_without_narrowing")
 {

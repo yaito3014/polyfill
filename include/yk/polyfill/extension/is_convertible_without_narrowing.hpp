@@ -34,8 +34,12 @@ struct is_convertible_without_narrowing_impl<
 
 }  // namespace detail
 
+// conjunction short-circuits, so the narrowing check (which forms To[]) is reached only when the
+// conversion exists. Wrapped in bool_constant because conjunction derives from the deciding trait,
+// which may be std::is_convertible.
 template<class From, class To>
-struct is_convertible_without_narrowing : conjunction<std::is_convertible<From, To>, detail::is_convertible_without_narrowing_impl<From, To>> {};
+struct is_convertible_without_narrowing
+    : bool_constant<conjunction<std::is_convertible<From, To>, detail::is_convertible_without_narrowing_impl<From, To>>::value> {};
 
 }  // namespace extension
 
