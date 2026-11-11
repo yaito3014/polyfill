@@ -7,6 +7,7 @@
 #include <yk/polyfill/indirect.hpp>
 #include <yk/polyfill/utility.hpp>
 
+#include <memory>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -195,13 +196,6 @@ TEST_CASE("indirect: copy uses value copy not extra allocs")
   CHECK(Counter::copies >= 1);
 }
 
-TEST_CASE("indirect: get_allocator")
-{
-  pf::indirect<int> i;
-  (void)i.get_allocator();  // should compile and return std::allocator<int>
-  STATIC_REQUIRE(std::is_same<decltype(i.get_allocator()), std::allocator<int>>::value);
-}
-
 struct MoveOnly {
   MoveOnly() = default;
   MoveOnly(MoveOnly const&) = delete;
@@ -350,6 +344,14 @@ template<class T>
 using PocmaAlloc = TestAlloc<T, false, false, /*Pocma*/ true>;
 template<class T>
 using StaticAlloc = TestAlloc<T, false, false, false>;
+
+TEST_CASE("indirect: get_allocator")
+{
+  StaticAlloc<int> const allocator(7);
+  pf::indirect<int, StaticAlloc<int>> const i(std::allocator_arg, allocator);
+  STATIC_REQUIRE(std::is_same<decltype(i.get_allocator()), StaticAlloc<int>>::value);
+  CHECK(i.get_allocator().id == 7);
+}
 
 // --- swap ---
 
