@@ -126,8 +126,8 @@ struct swap_fn {
 // specialization must depend on a user-defined type, an explicit specialization of std::swap
 // (allowed before C++20). Any other type goes through the std::swap context, which also covers
 // non-movable types swappable through an overload for a base class or a constrained template.
-// Where that context is ill-formed but ranges::swap applies, e.g. with an unconstrained swap
-// template, ranges::swap is used, so loose_swap accepts what either accepts.
+// Where that context is ill-formed but ranges::swap applies, e.g. when two swaps found by ADL tie,
+// ranges::swap is used, so loose_swap accepts what either accepts.
 namespace std_swap_context {
 
 using std::swap;

@@ -77,22 +77,40 @@ void swap<std_swap_specialized>(std_swap_specialized& a, std_swap_specialized& b
 }  // namespace std
 #endif
 
-namespace generic {
+// Two equally good swaps found by ADL, one through the base class: the call is ambiguous in the
+// std::swap context, as both beat std::swap however its constraints are written, and in ranges::swap,
+// which then exchanges the objects.
+namespace ambiguous {
 
-struct widget {
+namespace base_ns {
+
+struct base {};
+
+}  // namespace base_ns
+
+struct widget : base_ns::base {
   int value;
-  bool via_template;
+  bool via_swap;
+  explicit widget(int v) : value(v), via_swap(false) {}
 };
 
-// ambiguous with std::swap, so the std::swap context rejects widget; ranges::swap exchanges it
-template<class T>
-void swap(T& a, T& b)
+void swap(widget& a, widget& b)
 {
-  a.via_template = true;
-  b.via_template = true;
+  a.via_swap = true;
+  b.via_swap = true;
 }
 
-}  // namespace generic
+namespace base_ns {
+
+void swap(widget& a, widget& b)
+{
+  a.via_swap = true;
+  b.via_swap = true;
+}
+
+}  // namespace base_ns
+
+}  // namespace ambiguous
 
 TEST_CASE("loose_swap")
 {
@@ -159,11 +177,11 @@ TEST_CASE("loose_swap")
 
   SECTION("accepts what only ranges::swap accepts")
   {
-    STATIC_REQUIRE_FALSE(pf::is_swappable<generic::widget>::value);
-    generic::widget a{1, false}, b{2, false};
+    STATIC_REQUIRE_FALSE(pf::is_swappable<ambiguous::widget>::value);
+    ambiguous::widget a(1), b(2);
     loose_swap(a, b);
     CHECK(a.value == 2);
     CHECK(b.value == 1);
-    CHECK_FALSE(a.via_template);
+    CHECK_FALSE(a.via_swap);
   }
 }
