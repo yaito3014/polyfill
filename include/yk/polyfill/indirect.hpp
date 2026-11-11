@@ -400,7 +400,8 @@ struct indirect_swap_ops</*Pocs = */ true> {
   template<class T, class A>
   static YK_POLYFILL_CXX14_CONSTEXPR void apply(indirect<T, A>& a, indirect<T, A>& b) noexcept
   {
-    ranges::swap(a.stored_value(), b.stored_value());
+    // [indirect.swap] exchanges the allocators by calling swap as described in [swappable.requirements]
+    detail::loose_swap(a.stored_value(), b.stored_value());
     ranges::swap(a.ptr_, b.ptr_);
   }
 };
