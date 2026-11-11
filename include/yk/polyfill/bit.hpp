@@ -33,7 +33,7 @@ YK_POLYFILL_CXX20_CONSTEXPR To bit_cast(From const& from, To dst_init = To{}) no
   return std::bit_cast<To>(from);
 #else
   std::memcpy(std::addressof(dst_init), std::addressof(from), sizeof(To));
-  return dst;
+  return dst_init;
 #endif
 }
 
