@@ -18,6 +18,12 @@ struct NeedExplicitConvertion {
   explicit NeedExplicitConvertion(int arg) : value(arg) {}
 };
 
+struct ConstLvalueOnly {
+  int value;
+  ConstLvalueOnly(int const& arg) : value(arg) {}
+  ConstLvalueOnly(int&&) = delete;
+};
+
 TEST_CASE("optional")
 {
   // triviality check
@@ -64,6 +70,13 @@ TEST_CASE("optional")
     pf::optional<int> a = 42;
     pf::optional<double> b = a;
     CHECK(*b == 42.0);
+  }
+
+  {
+    STATIC_REQUIRE(std::is_constructible<pf::optional<ConstLvalueOnly>, pf::optional<int> const&>::value);
+    pf::optional<int> const source = 42;
+    pf::optional<ConstLvalueOnly> result = source;
+    CHECK(result->value == 42);
   }
 
   // generic move construction
