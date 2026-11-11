@@ -99,9 +99,9 @@ constexpr T get(integer_sequence<T, Is...>) noexcept
 
 template<class T, class U = T>
 [[nodiscard]] YK_POLYFILL_CXX14_CONSTEXPR T
-exchange(T& obj, U&& new_value) noexcept(std::is_nothrow_move_constructible<T>::value && std::is_nothrow_assignable<T, U>::value)
+exchange(T& obj, U&& new_value) noexcept(std::is_nothrow_move_constructible<T>::value && std::is_nothrow_assignable<T&, U>::value)
 {
-  T old_value = obj;
+  T old_value = static_cast<T&&>(obj);
   obj = static_cast<U&&>(new_value);
   return old_value;
 }
