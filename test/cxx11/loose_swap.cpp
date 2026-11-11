@@ -26,7 +26,56 @@ void swap(has_adl_swap& a, has_adl_swap& b)
   b.via_adl = true;
 }
 
+// The std::swap context finds these through ADL on the pointee and element type, and prefers them
+// to std::swap as non-templates.
+struct pointee {
+  bool via_pointer_swap;
+};
+
+void swap(pointee*& a, pointee*& b)
+{
+  pointee* const tmp = a;
+  a = b;
+  b = tmp;
+  a->via_pointer_swap = true;
+  b->via_pointer_swap = true;
+}
+
+struct element {
+  int value;
+  bool via_array_swap;
+};
+
+void swap(element (&a)[1], element (&b)[1])
+{
+  std::swap(a[0].value, b[0].value);
+  a[0].via_array_swap = true;
+  b[0].via_array_swap = true;
+}
+
+struct std_swap_specialized {
+  int value;
+  bool via_specialization;
+};
+
 }  // namespace
+
+#if __cplusplus < 202002L
+// Allowed before C++20 ([namespace.std]); since C++20 adding it to namespace std is undefined.
+namespace std {
+
+template<>
+void swap<std_swap_specialized>(std_swap_specialized& a, std_swap_specialized& b) noexcept
+{
+  int const tmp = a.value;
+  a.value = b.value;
+  b.value = tmp;
+  a.via_specialization = true;
+  b.via_specialization = true;
+}
+
+}  // namespace std
+#endif
 
 namespace generic {
 
@@ -79,6 +128,34 @@ TEST_CASE("loose_swap")
     CHECK(a == "b");
     CHECK(b == "a");
   }
+
+  SECTION("calls an ADL swap for pointers and arrays")
+  {
+    pointee x{false}, y{false};
+    pointee* p = &x;
+    pointee* q = &y;
+    loose_swap(p, q);
+    CHECK(p == &y);
+    CHECK(q == &x);
+    CHECK(x.via_pointer_swap);
+
+    element a[1] = {{1, false}}, b[1] = {{2, false}};
+    loose_swap(a, b);
+    CHECK(a[0].value == 2);
+    CHECK(b[0].value == 1);
+    CHECK(a[0].via_array_swap);
+  }
+
+#if __cplusplus < 202002L
+  SECTION("calls an explicit specialization of std::swap")
+  {
+    std_swap_specialized a{1, false}, b{2, false};
+    loose_swap(a, b);
+    CHECK(a.value == 2);
+    CHECK(b.value == 1);
+    CHECK(a.via_specialization);
+  }
+#endif
 
   SECTION("accepts what only ranges::swap accepts")
   {

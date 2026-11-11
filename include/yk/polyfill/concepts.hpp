@@ -120,15 +120,33 @@ struct swap_fn {
 }  // namespace ranges_swap
 
 // loose_swap: swap as [swappable.requirements] specifies it (an unqualified swap with std::swap in
-// scope), but constexpr before C++20 where possible. ranges::swap agrees with that context on every
-// movable type and does not need std::swap, so it is used whenever it applies; the std::swap
-// context covers the rest, i.e. non-movable types whose swap is an overload for a base class or a
-// template tying with ranges::swap's deleted swap(T&, T&). Where the two disagree it is looser than
-// either: ranges::swap's move exchange also applies when an unconstrained swap template makes the
-// std::swap context ambiguous.
+// scope), but constexpr before C++20 where possible. ranges::swap is used where it provably selects
+// what that context selects: an ADL swap that beats its deleted swap(T&, T&) also beats std::swap,
+// and a type built only from fundamental types has neither an overload found by ADL nor, as a
+// specialization must depend on a user-defined type, an explicit specialization of std::swap
+// (allowed before C++20). Any other type goes through the std::swap context, which also covers
+// non-movable types swappable through an overload for a base class or a constrained template.
+// Where that context is ill-formed but ranges::swap applies, e.g. with an unconstrained swap
+// template, ranges::swap is used, so loose_swap accepts what either accepts.
 namespace std_swap_context {
 
 using std::swap;
+
+// [basic.lookup.argdep]: such a T has no associated namespaces or classes.
+template<class T>
+struct is_built_from_fundamental_types : std::is_fundamental<T> {};
+
+template<class T>
+struct is_built_from_fundamental_types<T*> : is_built_from_fundamental_types<T> {};
+
+template<class T, std::size_t N>
+struct is_built_from_fundamental_types<T[N]> : is_built_from_fundamental_types<T> {};
+
+template<class T, ranges_swap::strategy S = ranges_swap::strategy_of<T&, T&>::value>
+struct uses_ranges_swap : bool_constant<S == ranges_swap::strategy::adl || is_built_from_fundamental_types<T>::value || !is_swappable<T>::value> {};
+
+template<class T>
+struct uses_ranges_swap<T, ranges_swap::strategy::none> : false_type {};
 
 template<bool UseRangesSwap>
 struct loose_swap_impl;
@@ -154,7 +172,7 @@ struct loose_swap_impl<false> {
 };
 
 template<class T>
-using loose_swap_impl_for = loose_swap_impl<ranges_swap::strategy_of<T&, T&>::value != ranges_swap::strategy::none>;
+using loose_swap_impl_for = loose_swap_impl<uses_ranges_swap<T>::value>;
 
 }  // namespace std_swap_context
 

@@ -11,6 +11,19 @@
 
 namespace pf = yk::polyfill;
 
+namespace {
+
+constexpr bool test_unexpected_swap()
+{
+  pf::unexpected<int> a(1), b(2);
+  a.swap(b);
+  bool const member = a.error() == 2 && b.error() == 1;
+  swap(a, b);
+  return member && a.error() == 1 && b.error() == 2;
+}
+
+}  // namespace
+
 TEST_CASE("expected constexpr C++14")
 {
   // constexpr construction + observers (trivial arms)
@@ -51,4 +64,7 @@ TEST_CASE("expected constexpr C++14")
     STATIC_REQUIRE(u.error() == 4);
     STATIC_REQUIRE(v != u);
   }
+
+  // constexpr unexpected swap
+  STATIC_REQUIRE(test_unexpected_swap());
 }

@@ -35,7 +35,37 @@ struct Point {
   int x;
 };
 
+// Swappable per [swappable.requirements] through the base class swap, although ranges::swap
+// rejects it. This needs C++17, where std::swap is constrained on move-constructibility.
+struct id_base {
+  int id;
+};
+
+void swap(id_base& a, id_base& b) noexcept
+{
+  int const tmp = a.id;
+  a.id = b.id;
+  b.id = tmp;
+}
+
+struct base_swap_only : id_base {
+  explicit base_swap_only(int i) : id_base{i} {}
+  base_swap_only(base_swap_only&&) = delete;
+};
+
 }  // namespace
+
+TEST_CASE("unexpected swap of a non-movable error swappable through a base class")
+{
+  STATIC_REQUIRE(pf::is_swappable<base_swap_only>::value);
+  pf::unexpected<base_swap_only> a(pf::in_place, 1), b(pf::in_place, 2);
+  a.swap(b);
+  CHECK(a.error().id == 2);
+  CHECK(b.error().id == 1);
+  swap(a, b);
+  CHECK(a.error().id == 1);
+  CHECK(b.error().id == 2);
+}
 
 TEST_CASE("expected swap constraints observed through is_swappable")
 {
