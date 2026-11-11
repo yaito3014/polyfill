@@ -576,8 +576,11 @@ private:
 
 // Extra deletion of copy/move assignment beyond what cond_trivial_smf expresses:
 // [expected.object.assign] also requires (is_nothrow_move_constructible<T> || is_nothrow_move_constructible<E>).
-template<bool Enable>
-struct expected_assign_guard {
+template<bool EnableAssignment>
+struct expected_assign_guard;
+
+template<>
+struct expected_assign_guard<true> {
   expected_assign_guard() = default;
   expected_assign_guard(expected_assign_guard const&) = default;
   expected_assign_guard(expected_assign_guard&&) = default;
