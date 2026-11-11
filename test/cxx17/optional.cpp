@@ -200,4 +200,19 @@ TEST_CASE("optional<T&> constexpr C++17")
     };
     STATIC_REQUIRE(test_ref_or_else());
   }
+
+  // C++17: swap rebinds the references
+  {
+    constexpr auto test_ref_swap = []() {
+      int x = 1, y = 2;
+      pf::optional<int&> a(pf::in_place, x);
+      pf::optional<int&> b(pf::in_place, y);
+      a.swap(b);
+      bool const member = &*a == &y && &*b == &x;
+      pf::optional<int&> c;
+      swap(a, c);
+      return member && !a.has_value() && &*c == &y;
+    };
+    STATIC_REQUIRE(test_ref_swap());
+  }
 }
