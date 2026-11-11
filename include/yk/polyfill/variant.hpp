@@ -944,8 +944,10 @@ public:
       }
     } else {
       variant tmp(std::move(other));
-      other = std::move(*this);
-      *this = std::move(tmp);
+      other.dynamic_reset();
+      std::move(*this).raw_visit(detail::construct_on_valueless_visitor<Ts...>{other});
+      this->dynamic_reset();
+      std::move(tmp).raw_visit(detail::construct_on_valueless_visitor<Ts...>{*this});
     }
   }
 
