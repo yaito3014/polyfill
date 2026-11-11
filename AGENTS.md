@@ -24,4 +24,7 @@ For any non-trivial change, add a test that would fail if the change were revert
   file (or `cxx17/` if it uses C++17 features).
 - **New `constexpr` guarantee** (e.g. lowering `YK_POLYFILL_CXX20_CONSTEXPR` to
   `YK_POLYFILL_CXX14_CONSTEXPR`) -> add or extend a `STATIC_REQUIRE` helper in
-  `test/cxx20/` to exercise the operation at compile time.
+  the suite of the lowest standard where the guarantee holds (`test/cxx14/` in
+  that example) to exercise the operation at compile time. A helper only in
+  `test/cxx20/` would still pass if the change were reverted, since the
+  operation was already `constexpr` there.
