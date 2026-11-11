@@ -341,7 +341,7 @@ public:
 
   template<
       class U, typename std::enable_if<
-                   conjunction<std::is_constructible<T, U>, detail::allow_unwrapping<T, U>>::value && std::is_convertible<U const&, T>::value,
+                   conjunction<std::is_constructible<T, U const&>, detail::allow_unwrapping<T, U>>::value && std::is_convertible<U const&, T>::value,
                    std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR optional(optional<U> const& rhs) noexcept(std::is_nothrow_constructible<T, U const&>::value)
   {
@@ -352,7 +352,7 @@ public:
 
   template<
       class U, typename std::enable_if<
-                   conjunction<std::is_constructible<T, U>, detail::allow_unwrapping<T, U>>::value && !std::is_convertible<U const&, T>::value,
+                   conjunction<std::is_constructible<T, U const&>, detail::allow_unwrapping<T, U>>::value && !std::is_convertible<U const&, T>::value,
                    std::nullptr_t>::type = nullptr>
   YK_POLYFILL_CXX20_CONSTEXPR explicit optional(optional<U> const& rhs) noexcept(std::is_nothrow_constructible<T, U const&>::value)
   {
