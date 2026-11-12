@@ -33,6 +33,7 @@ target_sources(
         polymorphic.cpp
         function_ref.cpp
         launder.cpp
+        move_only_function.cpp
         expected.cpp
 )
 
