@@ -880,8 +880,9 @@ public:
   using iterator = detail::optional_iterator<T, false>;
   using const_iterator = detail::optional_iterator<T, true>;
 
-  YK_POLYFILL_CXX14_CONSTEXPR iterator begin() noexcept { return iterator{operator->() + !has_value()}; }
-  constexpr const_iterator begin() const noexcept { return const_iterator{operator->() + !has_value()}; }
+  // ptr is null when empty, which is then also the past-the-end value, as end() adds has_value() == 0.
+  YK_POLYFILL_CXX14_CONSTEXPR iterator begin() noexcept { return iterator{ptr}; }
+  constexpr const_iterator begin() const noexcept { return const_iterator{ptr}; }
 
   YK_POLYFILL_CXX14_CONSTEXPR iterator end() noexcept { return begin() + has_value(); }
   constexpr const_iterator end() const noexcept { return begin() + has_value(); }

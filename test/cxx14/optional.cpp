@@ -35,6 +35,13 @@ constexpr int test_value_or_empty()
 // Note: These use operator->() internally which is CXX17_CONSTEXPR,
 // so iterator tests are actually C++17+
 
+// An empty optional<T&> holds a null pointer, which the non-const begin() must not offset ([expr.add]).
+constexpr bool test_ref_empty_begin_end()
+{
+  pf::optional<int&> opt;
+  return opt.begin() == opt.end();
+}
+
 // Dereference tests (CXX14_CONSTEXPR for & and &&)
 constexpr bool test_dereference_lvalue()
 {
@@ -79,6 +86,7 @@ TEST_CASE("optional constexpr C++14")
 
 TEST_CASE("optional<T&> constexpr C++14")
 {
-  // Reference optional tests require C++17 for constexpr operator->() and constexpr lambdas
-  // See C++17 test file for reference optional constexpr tests
+  STATIC_REQUIRE(test_ref_empty_begin_end());
+
+  // Other reference optional constexpr tests require constexpr lambdas; see the C++17 test file
 }

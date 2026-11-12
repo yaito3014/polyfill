@@ -592,6 +592,11 @@ TEST_CASE("ref optional")
       CHECK(opt.end() - opt.begin() == 0);
     }
     {
+      // An empty optional<T&> holds a null pointer, which begin() must not offset ([expr.add]).
+      constexpr pf::optional<int&> opt{};
+      STATIC_REQUIRE(opt.begin() == opt.end());
+    }
+    {
       pf::optional<int&> opt = x;
       CHECK(opt.end() - opt.begin() == 1);
       CHECK(std::addressof(*opt.begin()) == std::addressof(x));
