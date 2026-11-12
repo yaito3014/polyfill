@@ -112,6 +112,11 @@ struct alignas(2 * alignof(void*)) OverAlignedSelfAddress {
   void const* operator()() const { return this; }
 };
 
+// Aligned beyond what operator new guarantees without the alignment-aware forms of C++17.
+struct alignas(64) ExtendedAlignedSelfAddress {
+  void const* operator()() const { return this; }
+};
+
 // Observes that the allocation and deallocation of the target match. Too large to be stored in place.
 struct ClassAllocated {
   static int allocations;
@@ -529,4 +534,23 @@ TEST_CASE("move_only_function: allocation and deallocation of the target match")
     CHECK(f);
   }
   CHECK(ClassAllocated::allocations == ClassAllocated::deallocations);
+}
+
+TEST_CASE("move_only_function: targets with extended alignment are aligned")
+{
+  using wrapper = pf::move_only_function<void const*() const>;
+  auto const is_aligned = [](void const* p) { return reinterpret_cast<std::uintptr_t>(p) % alignof(ExtendedAlignedSelfAddress) == 0; };
+
+  // several targets, so that an allocation that happens to be aligned does not hide a misalignment
+  wrapper fs[8];
+  for (wrapper& f : fs) f = ExtendedAlignedSelfAddress{};
+  for (wrapper const& f : fs) CHECK(is_aligned(f()));
+
+  wrapper g(pf::in_place_type_t<ExtendedAlignedSelfAddress>{});
+  CHECK(is_aligned(g()));
+  wrapper h(std::move(g));
+  CHECK(is_aligned(h()));
+  h.swap(fs[0]);
+  CHECK(is_aligned(h()));
+  CHECK(is_aligned(fs[0]()));
 }
