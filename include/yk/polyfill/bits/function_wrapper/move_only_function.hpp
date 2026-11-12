@@ -8,6 +8,7 @@
 
 #include <functional>
 #include <initializer_list>
+#include <memory>
 #include <new>
 #include <type_traits>
 #include <utility>
@@ -23,9 +24,16 @@ class move_only_function;
 
 namespace detail {
 
+// A target object placed within a larger allocation to align it, and that allocation.
+struct mof_aligned_allocation {
+  void* obj;
+  void* raw;
+};
+
 // Holds the target object in place if it is small enough, otherwise a pointer to it.
 union mof_storage {
   void* obj;
+  mof_aligned_allocation aligned;
   unsigned char buf[3 * sizeof(void*)];
 };
 
@@ -33,6 +41,17 @@ union mof_storage {
 template<class VT>
 struct mof_is_local
     : bool_constant<sizeof(VT) <= sizeof(mof_storage) && alignof(mof_storage) % alignof(VT) == 0 && std::is_nothrow_move_constructible<VT>::value> {};
+
+// Whether VT is over-aligned ([basic.align]) and ::new cannot allocate it aligned, as it then has no
+// alignment-aware allocation functions to call (they come with C++17 aligned new, P0035R4).
+template<class VT>
+struct mof_is_extended_aligned
+#if __cpp_aligned_new >= 201606L
+    : false_type {
+#else
+    : bool_constant<(alignof(VT) > alignof(std::max_align_t))> {
+#endif
+};
 
 template<class T>
 T* mof_launder(T* p) noexcept
@@ -46,7 +65,7 @@ T* mof_launder(T* p) noexcept
 
 // Creates, accesses, and relocates or destroys a target object of type VT held in mof_storage.
 // manage(src, dst) relocates the target into *dst if dst is non-null, otherwise destroys it.
-template<class VT, bool = mof_is_local<VT>::value>
+template<class VT, bool = mof_is_local<VT>::value, bool = mof_is_extended_aligned<VT>::value>
 struct mof_holder {
   // [func.wrap.move.ctor] does not allow bad_alloc for these.
   static_assert(
@@ -74,7 +93,7 @@ struct mof_holder {
 };
 
 template<class VT>
-struct mof_holder<VT, /* is_local = */ true> {
+struct mof_holder<VT, /* is_local = */ true, /* is_extended_aligned = */ false> {
   template<class... Args>
   static void create(mof_storage& storage, Args&&... args)
   {
@@ -88,6 +107,39 @@ struct mof_holder<VT, /* is_local = */ true> {
     VT& target = get(src);
     if (dst) ::new (static_cast<void*>(dst->buf)) VT(std::move(target));
     target.~VT();
+  }
+};
+
+// Places the target object within a larger allocation, at an address aligned by hand.
+template<class VT>
+struct mof_holder<VT, /* is_local = */ false, /* is_extended_aligned = */ true> {
+  template<class... Args>
+  static void create(mof_storage& storage, Args&&... args)
+  {
+    std::size_t space = sizeof(VT) + alignof(VT) - 1;
+    void* const raw = ::operator new(space);
+    void* p = raw;
+    std::align(alignof(VT), sizeof(VT), p, space);
+    VT* obj;
+    try {
+      obj = ::new (p) VT(std::forward<Args>(args)...);
+    } catch (...) {
+      ::operator delete(raw);
+      throw;
+    }
+    storage.aligned = mof_aligned_allocation{obj, raw};
+  }
+
+  static VT& get(mof_storage const& storage) noexcept { return *static_cast<VT*>(storage.aligned.obj); }
+
+  static void manage(mof_storage& src, mof_storage* dst) noexcept
+  {
+    if (dst) {
+      dst->aligned = src.aligned;
+    } else {
+      static_cast<VT*>(src.aligned.obj)->~VT();
+      ::operator delete(src.aligned.raw);
+    }
   }
 };
 
