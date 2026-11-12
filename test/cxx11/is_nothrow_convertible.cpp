@@ -20,6 +20,19 @@ struct ExplicitOnly {
 
 struct NotConvertible {};
 
+struct ThrowingDestructor {
+  ThrowingDestructor(int) noexcept {}
+  ~ThrowingDestructor() noexcept(false) {}
+};
+
+struct NothrowConvertibleFromIntPtr {
+  NothrowConvertibleFromIntPtr(int*) noexcept {}
+};
+
+struct ThrowingConvertibleFromIntPtr {
+  ThrowingConvertibleFromIntPtr(int*) noexcept(false) {}
+};
+
 namespace pf = yk::polyfill;
 
 TEST_CASE("is_nothrow_convertible")
@@ -36,6 +49,10 @@ TEST_CASE("is_nothrow_convertible")
 
   // throwing implicit conversion
   STATIC_REQUIRE(pf::is_nothrow_convertible<int, ThrowingConvertibleFromInt>::value == false);
+
+  // potentially-throwing destructor of To counts, as in every major implementation (LWG 3400)
+  STATIC_REQUIRE(pf::is_nothrow_convertible<int, ThrowingDestructor>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_convertible<ThrowingDestructor&, ThrowingDestructor&>::value == true);
 
   // explicit-only (not implicitly convertible)
   STATIC_REQUIRE(pf::is_nothrow_convertible<int, ExplicitOnly>::value == false);
@@ -55,6 +72,25 @@ TEST_CASE("is_nothrow_convertible")
   // array types (not returnable, so not convertible)
   STATIC_REQUIRE(pf::is_nothrow_convertible<int*, int[]>::value == false);
   STATIC_REQUIRE(pf::is_nothrow_convertible<int*, int[5]>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_convertible<int[], int[]>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_convertible<int[], int[5]>::value == false);
+
+  // arrays of unknown bound as From (declval yields an xvalue array, which decays)
+  STATIC_REQUIRE(pf::is_nothrow_convertible<int[], int*>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_convertible<int[], int const*>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_convertible<int[], int>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_convertible<int[], void>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_convertible<int[], NothrowConvertibleFromIntPtr>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_convertible<int[], ThrowingConvertibleFromIntPtr>::value == false);
+
+  // references to arrays of unknown bound
+  STATIC_REQUIRE(pf::is_nothrow_convertible<int[], int (&&)[]>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_convertible<int[], int (&)[]>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_convertible<int[], int const(&)[]>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_convertible<int (&)[], int (&)[]>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_convertible<int (&)[], int (&&)[]>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_convertible<int (&)[], int*>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_convertible<int*, int (&)[]>::value == false);
 
   // function types (not returnable, so not convertible)
   STATIC_REQUIRE(pf::is_nothrow_convertible<void (*)(), void()>::value == false);

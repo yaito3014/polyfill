@@ -61,8 +61,11 @@ struct disjunction<Trait, Next, Traits...> : std::conditional<bool(Trait::value)
 
 namespace detail {
 
+// The hypothetical function of the LWG 4028 proposed resolution, which words the conversion as initialization of a parameter
+// rather than of a returned object as [meta.rel] does, so the destructor of To counts too, as in the major implementations
+// (LWG 3400). To of array or function type would be adjusted to a pointer here, but std::is_convertible already rejects them.
 template<class To>
-void is_nothrow_convertible_test(To) noexcept;
+void conv_dest(To) noexcept;
 
 }  // namespace detail
 
@@ -71,7 +74,7 @@ struct is_nothrow_convertible : false_type {};
 
 template<class From, class To>
 struct is_nothrow_convertible<From, To, typename std::enable_if<std::is_convertible<From, To>::value && !std::is_void<To>::value>::type>
-    : bool_constant<noexcept(detail::is_nothrow_convertible_test<To>(std::declval<From>()))> {};
+    : bool_constant<noexcept(detail::conv_dest<To>(std::declval<From>()))> {};
 
 template<class From, class To>
 struct is_nothrow_convertible<From, To, typename std::enable_if<std::is_void<From>::value && std::is_void<To>::value>::type> : true_type {};
