@@ -55,6 +55,9 @@ struct disjunction<Trait, Traits...> : std::conditional<Trait::value, true_type,
 
 namespace detail {
 
+// Tests the conversion as initialization of a parameter rather than of a returned object as [meta.rel] words it,
+// so the destructor of To counts too. This matches the major implementations (LWG 3400) and the direction of LWG 4028.
+// To of array or function type would be adjusted to a pointer here, but std::is_convertible already rejects them.
 template<class To>
 void is_nothrow_convertible_test(To) noexcept;
 

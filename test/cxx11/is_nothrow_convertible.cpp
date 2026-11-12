@@ -20,6 +20,11 @@ struct ExplicitOnly {
 
 struct NotConvertible {};
 
+struct ThrowingDestructor {
+  ThrowingDestructor(int) noexcept {}
+  ~ThrowingDestructor() noexcept(false) {}
+};
+
 struct NothrowConvertibleFromIntPtr {
   NothrowConvertibleFromIntPtr(int*) noexcept {}
 };
@@ -44,6 +49,10 @@ TEST_CASE("is_nothrow_convertible")
 
   // throwing implicit conversion
   STATIC_REQUIRE(pf::is_nothrow_convertible<int, ThrowingConvertibleFromInt>::value == false);
+
+  // potentially-throwing destructor of To counts, as in every major implementation (LWG 3400)
+  STATIC_REQUIRE(pf::is_nothrow_convertible<int, ThrowingDestructor>::value == false);
+  STATIC_REQUIRE(pf::is_nothrow_convertible<ThrowingDestructor&, ThrowingDestructor&>::value == true);
 
   // explicit-only (not implicitly convertible)
   STATIC_REQUIRE(pf::is_nothrow_convertible<int, ExplicitOnly>::value == false);
