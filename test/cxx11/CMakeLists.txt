@@ -32,6 +32,7 @@ target_sources(
         indirect.cpp
         polymorphic.cpp
         function_ref.cpp
+        move_only_function.cpp
         expected.cpp
 )
 
@@ -49,3 +50,23 @@ target_link_libraries(
 )
 
 add_test(NAME yk_polyfill_cxx11_test COMMAND yk_polyfill_cxx11_test)
+
+# Replaces the global operator new, so it is kept out of the shared test executable.
+add_executable(yk_polyfill_cxx11_allocation_test)
+
+target_sources(yk_polyfill_cxx11_allocation_test PRIVATE move_only_function_allocation.cpp)
+
+set_target_properties(yk_polyfill_cxx11_allocation_test PROPERTIES CXX_EXTENSIONS OFF)
+
+target_compile_definitions(
+    yk_polyfill_cxx11_allocation_test
+    PRIVATE YK_POLYFILL_CATCH2_MAJOR_VERSION=${YK_POLYFILL_CATCH2_MAJOR_VERSION}
+)
+
+target_compile_features(yk_polyfill_cxx11_allocation_test PRIVATE cxx_std_11)
+target_link_libraries(
+    yk_polyfill_cxx11_allocation_test
+    PRIVATE yk::polyfill Catch2::Catch2WithMain
+)
+
+add_test(NAME yk_polyfill_cxx11_allocation_test COMMAND yk_polyfill_cxx11_allocation_test)
