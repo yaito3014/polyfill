@@ -37,7 +37,7 @@ struct mof_holder {
 
   static VT& get(mof_storage const& storage) noexcept { return *static_cast<VT*>(storage.obj); }
 
-  static void destroy(mof_storage& storage) noexcept { delete static_cast<VT*>(storage.obj); }
+  static void destroy(mof_storage& storage) noexcept { ::delete static_cast<VT*>(storage.obj); }
 };
 
 // [func.wrap.move.ctor] allows bad_alloc unless VT is a function pointer or a specialization of reference_wrapper,

@@ -8,6 +8,7 @@
 #include <yk/polyfill/memory.hpp>
 #include <yk/polyfill/utility.hpp>
 
+#include <cstddef>
 #include <functional>
 #include <type_traits>
 #include <utility>
@@ -75,6 +76,30 @@ struct S {
   int val = 7;
   int mem(int x) const { return val * x; }
 };
+
+// Observes that the allocation and deallocation of the target match.
+struct ClassAllocated {
+  static int allocations;
+  static int deallocations;
+  void* pad[4] = {};
+
+  static void* operator new(std::size_t size)
+  {
+    ++allocations;
+    return ::operator new(size);
+  }
+
+  static void operator delete(void* p) noexcept
+  {
+    ++deallocations;
+    ::operator delete(p);
+  }
+
+  void operator()() const {}
+};
+
+int ClassAllocated::allocations = 0;
+int ClassAllocated::deallocations = 0;
 
 }  // namespace
 
@@ -286,4 +311,15 @@ TEST_CASE("move_only_function: arguments are forwarded")
   pf::move_only_function<int&(int&)> g = [](int& x) -> int& { return x; };
   int x = 0;
   CHECK(&g(x) == &x);
+}
+
+TEST_CASE("move_only_function: allocation and deallocation of the target match")
+{
+  ClassAllocated::allocations = 0;
+  ClassAllocated::deallocations = 0;
+  {
+    pf::move_only_function<void()> const f = ClassAllocated{};
+    CHECK(f);
+  }
+  CHECK(ClassAllocated::allocations == ClassAllocated::deallocations);
 }
