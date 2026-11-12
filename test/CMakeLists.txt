@@ -8,15 +8,10 @@ else()
     set(YK_POLYFILL_CXX_STANDARD 11)
 endif()
 
-set(YK_POLYFILL_CXX_VERSIONS 11 14 17 20 23 26)
-
-foreach(required_cxx_version ${YK_POLYFILL_CXX_VERSIONS})
-    if(${required_cxx_version} GREATER ${YK_POLYFILL_CXX_STANDARD})
-        continue()
-    endif()
-
+# Fetches Catch2 in a function scope so that the variables set to configure it do not leak into the test suites.
+function(yk_polyfill_fetch_catch2 cxx_standard out_major_version)
     include(FetchContent)
-    if(${YK_POLYFILL_CXX_STANDARD} LESS 14)
+    if(${cxx_standard} LESS 14)
         FetchContent_Declare(
             Catch2
             GIT_REPOSITORY https://github.com/catchorg/Catch2.git
@@ -39,7 +34,7 @@ foreach(required_cxx_version ${YK_POLYFILL_CXX_VERSIONS})
             target_compile_options(Catch2 INTERFACE "SHELL:-include new")
         endif()
 
-        set(YK_POLYFILL_CATCH2_MAJOR_VERSION 2)
+        set(${out_major_version} 2 PARENT_SCOPE)
     else()
         FetchContent_Declare(
             Catch2
@@ -49,8 +44,18 @@ foreach(required_cxx_version ${YK_POLYFILL_CXX_VERSIONS})
         )
         FetchContent_MakeAvailable(Catch2)
 
-        set(YK_POLYFILL_CATCH2_MAJOR_VERSION 3)
+        set(${out_major_version} 3 PARENT_SCOPE)
     endif()
+endfunction()
+
+set(YK_POLYFILL_CXX_VERSIONS 11 14 17 20 23 26)
+
+foreach(required_cxx_version ${YK_POLYFILL_CXX_VERSIONS})
+    if(${required_cxx_version} GREATER ${YK_POLYFILL_CXX_STANDARD})
+        continue()
+    endif()
+
+    yk_polyfill_fetch_catch2(${YK_POLYFILL_CXX_STANDARD} YK_POLYFILL_CATCH2_MAJOR_VERSION)
 
     set_target_properties(Catch2WithMain PROPERTIES CXX_EXTENSIONS OFF)
 
