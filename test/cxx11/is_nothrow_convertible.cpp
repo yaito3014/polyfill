@@ -46,6 +46,9 @@ TEST_CASE("is_nothrow_convertible")
 
   // void
   STATIC_REQUIRE(pf::is_nothrow_convertible<void, void>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_convertible<void const, void>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_convertible<void, void const volatile>::value == true);
+  STATIC_REQUIRE(pf::is_nothrow_convertible<void const volatile, void volatile>::value == true);
   STATIC_REQUIRE(pf::is_nothrow_convertible<int, void>::value == false);
   STATIC_REQUIRE(pf::is_nothrow_convertible<void, int>::value == false);
 

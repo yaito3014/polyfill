@@ -64,11 +64,11 @@ template<class From, class To, class = void>
 struct is_nothrow_convertible : false_type {};
 
 template<class From, class To>
-struct is_nothrow_convertible<From, To, typename std::enable_if<std::is_convertible<From, To>::value>::type>
+struct is_nothrow_convertible<From, To, typename std::enable_if<std::is_convertible<From, To>::value && !std::is_void<To>::value>::type>
     : bool_constant<noexcept(detail::is_nothrow_convertible_test<To>(std::declval<From>()))> {};
 
-template<>
-struct is_nothrow_convertible<void, void> : true_type {};
+template<class From, class To>
+struct is_nothrow_convertible<From, To, typename std::enable_if<std::is_void<From>::value && std::is_void<To>::value>::type> : true_type {};
 
 }  // namespace polyfill
 
