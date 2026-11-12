@@ -58,6 +58,24 @@ private:
     return polyfill::invoke_r<R>(static_cast<VT YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_INV_QUALS>(f), std::forward<Args>(args)...);
   }
 
+  template<class VT, class... CArgs>
+  void construct_target(CArgs&&... args)
+  {
+    detail::mof_holder<VT>::create(storage_, std::forward<CArgs>(args)...);
+    invoke_ = &invoke_target<VT>;
+    manage_ = &detail::mof_holder<VT>::manage;
+  }
+
+  // Moves the target object of other, if any, into *this, which has none, leaving other with none.
+  void take(move_only_function& other) noexcept
+  {
+    if (other.manage_) other.manage_(other.storage_, &storage_);
+    invoke_ = other.invoke_;
+    manage_ = other.manage_;
+    other.invoke_ = nullptr;
+    other.manage_ = nullptr;
+  }
+
 public:
   using result_type = R;
 
@@ -65,11 +83,7 @@ public:
 
   move_only_function(std::nullptr_t) noexcept {}
 
-  move_only_function(move_only_function&& other) noexcept : storage_(other.storage_), invoke_(other.invoke_), destroy_(other.destroy_)
-  {
-    other.invoke_ = nullptr;
-    other.destroy_ = nullptr;
-  }
+  move_only_function(move_only_function&& other) noexcept { take(other); }
 
   template<
       class F, class VT = typename std::decay<F>::type,
@@ -80,14 +94,55 @@ public:
   {
     static_assert(std::is_constructible<VT, F>::value, "[func.wrap.move.ctor] mandates is_constructible_v<VT, F>");
     if (detail::mof_is_null<typename remove_cvref<F>::type>(f)) return;
-    detail::mof_holder<VT>::create(storage_, std::forward<F>(f));
-    invoke_ = &invoke_target<VT>;
-    destroy_ = &detail::mof_holder<VT>::destroy;
+    construct_target<VT>(std::forward<F>(f));
+  }
+
+  template<
+      class T, class... CArgs, class VT = typename std::decay<T>::type,
+      typename std::enable_if<conjunction<std::is_constructible<VT, CArgs...>, is_callable_from<VT>>::value, std::nullptr_t>::type = nullptr>
+  explicit move_only_function(in_place_type_t<T>, CArgs&&... args)
+  {
+    static_assert(std::is_same<VT, T>::value, "[func.wrap.move.ctor] mandates that VT is the same type as T");
+    construct_target<VT>(std::forward<CArgs>(args)...);
+  }
+
+  template<
+      class T, class U, class... CArgs, class VT = typename std::decay<T>::type,
+      typename std::enable_if<conjunction<std::is_constructible<VT, std::initializer_list<U>&, CArgs...>, is_callable_from<VT>>::value, std::nullptr_t>::type =
+          nullptr>
+  explicit move_only_function(in_place_type_t<T>, std::initializer_list<U> ilist, CArgs&&... args)
+  {
+    static_assert(std::is_same<VT, T>::value, "[func.wrap.move.ctor] mandates that VT is the same type as T");
+    construct_target<VT>(ilist, std::forward<CArgs>(args)...);
+  }
+
+  // noexcept is a strengthening allowed by [res.on.exception.handling], as moving a target never throws here.
+  move_only_function& operator=(move_only_function&& other) noexcept
+  {
+    move_only_function(std::move(other)).swap(*this);
+    return *this;
+  }
+
+  move_only_function& operator=(std::nullptr_t) noexcept
+  {
+    if (manage_) manage_(storage_, nullptr);
+    invoke_ = nullptr;
+    manage_ = nullptr;
+    return *this;
+  }
+
+  // Constrained as in libstdc++ and MSVC STL, although [func.wrap.move.ctor] does not, so that
+  // move_only_function is not reported as assignable from what it cannot be constructed from (e.g. copies).
+  template<class F, typename std::enable_if<std::is_constructible<move_only_function, F>::value, std::nullptr_t>::type = nullptr>
+  move_only_function& operator=(F&& f)
+  {
+    move_only_function(std::forward<F>(f)).swap(*this);
+    return *this;
   }
 
   ~move_only_function()
   {
-    if (invoke_) destroy_(storage_);
+    if (manage_) manage_(storage_, nullptr);
   }
 
   explicit operator bool() const noexcept { return invoke_ != nullptr; }
@@ -97,10 +152,28 @@ public:
     return invoke_(storage_, std::forward<Args>(args)...);
   }
 
+  void swap(move_only_function& other) noexcept
+  {
+    move_only_function tmp(std::move(other));
+    other.take(*this);
+    take(tmp);
+  }
+
+  friend void swap(move_only_function& f1, move_only_function& f2) noexcept { f1.swap(f2); }
+
+  friend bool operator==(move_only_function const& f, std::nullptr_t) noexcept { return !f; }
+
+#if !(__cpp_impl_three_way_comparison >= 201907L)
+  // Since C++20, these are rewritten from the operator== above.
+  friend bool operator==(std::nullptr_t, move_only_function const& f) noexcept { return !f; }
+  friend bool operator!=(move_only_function const& f, std::nullptr_t) noexcept { return static_cast<bool>(f); }
+  friend bool operator!=(std::nullptr_t, move_only_function const& f) noexcept { return static_cast<bool>(f); }
+#endif
+
 private:
   detail::mof_storage storage_ = {nullptr};
   R (*invoke_)(detail::mof_storage const&, Args&&...) YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_NOEXCEPT = nullptr;
-  void (*destroy_)(detail::mof_storage&) noexcept = nullptr;
+  void (*manage_)(detail::mof_storage&, detail::mof_storage*) noexcept = nullptr;
 };
 
 }  // namespace polyfill

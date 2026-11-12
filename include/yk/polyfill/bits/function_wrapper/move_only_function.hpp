@@ -1,12 +1,14 @@
 #ifndef YK_ZZ_POLYFILL_BITS_FUNCTION_WRAPPER_MOVE_ONLY_FUNCTION_HPP
 #define YK_ZZ_POLYFILL_BITS_FUNCTION_WRAPPER_MOVE_ONLY_FUNCTION_HPP
 
+#include <yk/polyfill/bits/core_traits.hpp>
 #include <yk/polyfill/bits/invoke.hpp>
 #include <yk/polyfill/extension/specialization_of.hpp>
 #include <yk/polyfill/utility.hpp>  // in_place_type_t
 
 #include <functional>
-#include <memory>
+#include <initializer_list>
+#include <new>
 #include <type_traits>
 #include <utility>
 
@@ -21,14 +23,38 @@ class move_only_function;
 
 namespace detail {
 
+// Holds the target object in place if it is small enough, otherwise a pointer to it.
 union mof_storage {
   void* obj;
-  void (*func)();
+  unsigned char buf[3 * sizeof(void*)];
 };
 
-// Holds a target object of type VT in mof_storage, by default allocated on the heap.
-template<class VT, class = void>
+// [func.wrap.move.general] notes that only nothrow-move-constructible targets can be stored in place.
+template<class VT>
+struct mof_is_local
+    : bool_constant<sizeof(VT) <= sizeof(mof_storage) && alignof(mof_storage) % alignof(VT) == 0 && std::is_nothrow_move_constructible<VT>::value> {};
+
+template<class T>
+T* mof_launder(T* p) noexcept
+{
+#if __cpp_lib_launder >= 201606L
+  return std::launder(p);
+#else
+  return p;
+#endif
+}
+
+// Creates, accesses, and relocates or destroys a target object of type VT held in mof_storage.
+// manage(src, dst) relocates the target into *dst if dst is non-null, otherwise destroys it.
+template<class VT, bool = mof_is_local<VT>::value>
 struct mof_holder {
+  // [func.wrap.move.ctor] does not allow bad_alloc for these.
+  static_assert(
+      !(std::is_pointer<VT>::value && std::is_function<typename std::remove_pointer<VT>::type>::value)
+          && !extension::is_specialization_of<VT, std::reference_wrapper>::value,
+      "a function pointer or reference_wrapper must be stored in place"
+  );
+
   template<class... Args>
   static void create(mof_storage& storage, Args&&... args)
   {
@@ -37,40 +63,32 @@ struct mof_holder {
 
   static VT& get(mof_storage const& storage) noexcept { return *static_cast<VT*>(storage.obj); }
 
-  static void destroy(mof_storage& storage) noexcept { ::delete static_cast<VT*>(storage.obj); }
+  static void manage(mof_storage& src, mof_storage* dst) noexcept
+  {
+    if (dst) {
+      dst->obj = src.obj;
+    } else {
+      ::delete static_cast<VT*>(src.obj);
+    }
+  }
 };
 
-// [func.wrap.move.ctor] allows bad_alloc unless VT is a function pointer or a specialization of reference_wrapper,
-// so these two are stored in place as a pointer.
+template<class VT>
+struct mof_holder<VT, /* is_local = */ true> {
+  template<class... Args>
+  static void create(mof_storage& storage, Args&&... args)
+  {
+    ::new (static_cast<void*>(storage.buf)) VT(std::forward<Args>(args)...);
+  }
 
-template<class Fn>
-struct mof_holder<Fn*, typename std::enable_if<std::is_function<Fn>::value>::type> {
-  static void create(mof_storage& storage, Fn* f) noexcept { storage.func = reinterpret_cast<void (*)()>(f); }
+  static VT& get(mof_storage const& storage) noexcept { return *mof_launder(reinterpret_cast<VT*>(const_cast<unsigned char*>(storage.buf))); }
 
-  static Fn* get(mof_storage const& storage) noexcept { return reinterpret_cast<Fn*>(storage.func); }
-
-  static void destroy(mof_storage&) noexcept {}
-};
-
-template<class T, bool = std::is_function<T>::value>
-struct mof_referent_storage {
-  static void store(mof_storage& storage, T* p) noexcept { storage.obj = const_cast<void*>(static_cast<void const volatile*>(p)); }
-  static T* load(mof_storage const& storage) noexcept { return static_cast<T*>(storage.obj); }
-};
-
-template<class T>
-struct mof_referent_storage<T, /* is_function = */ true> {
-  static void store(mof_storage& storage, T* p) noexcept { storage.func = reinterpret_cast<void (*)()>(p); }
-  static T* load(mof_storage const& storage) noexcept { return reinterpret_cast<T*>(storage.func); }
-};
-
-template<class T>
-struct mof_holder<std::reference_wrapper<T>> {
-  static void create(mof_storage& storage, std::reference_wrapper<T> r) noexcept { mof_referent_storage<T>::store(storage, std::addressof(r.get())); }
-
-  static std::reference_wrapper<T> get(mof_storage const& storage) noexcept { return std::reference_wrapper<T>(*mof_referent_storage<T>::load(storage)); }
-
-  static void destroy(mof_storage&) noexcept {}
+  static void manage(mof_storage& src, mof_storage* dst) noexcept
+  {
+    VT& target = get(src);
+    if (dst) ::new (static_cast<void*>(dst->buf)) VT(std::move(target));
+    target.~VT();
+  }
 };
 
 // [func.wrap.move.ctor] leaves *this with no target object for a null (member) pointer

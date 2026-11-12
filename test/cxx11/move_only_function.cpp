@@ -6,10 +6,13 @@
 
 #include <yk/polyfill/functional.hpp>
 #include <yk/polyfill/memory.hpp>
+#include <yk/polyfill/type_traits.hpp>
 #include <yk/polyfill/utility.hpp>
 
 #include <cstddef>
+#include <cstdint>
 #include <functional>
+#include <initializer_list>
 #include <type_traits>
 #include <utility>
 
@@ -77,7 +80,39 @@ struct S {
   int mem(int x) const { return val * x; }
 };
 
-// Observes that the allocation and deallocation of the target match.
+struct Adder {
+  int sum;
+  Adder(int x, int y) : sum(x + y) {}
+  int operator()(int z) const { return sum + z; }
+};
+
+struct ListSum {
+  int sum = 0;
+  ListSum(std::initializer_list<int> il, int extra) : sum(extra)
+  {
+    for (int x : il) sum += x;
+  }
+  int operator()() const { return sum; }
+};
+
+// Callables that return their own address, to observe where the target object is stored.
+template<std::size_t Pointers>
+struct SelfAddress {
+  void* pad[Pointers];
+  void const* operator()() const { return this; }
+};
+
+struct ThrowingMoveSelfAddress {
+  ThrowingMoveSelfAddress() = default;
+  ThrowingMoveSelfAddress(ThrowingMoveSelfAddress&&) noexcept(false) {}
+  void const* operator()() const { return this; }
+};
+
+struct alignas(2 * alignof(void*)) OverAlignedSelfAddress {
+  void const* operator()() const { return this; }
+};
+
+// Observes that the allocation and deallocation of the target match. Too large to be stored in place.
 struct ClassAllocated {
   static int allocations;
   static int deallocations;
@@ -100,6 +135,14 @@ struct ClassAllocated {
 
 int ClassAllocated::allocations = 0;
 int ClassAllocated::deallocations = 0;
+
+template<class Wrapper>
+bool is_within(Wrapper const& w, void const* p)
+{
+  auto const first = reinterpret_cast<unsigned char const*>(std::addressof(w));
+  std::less<void const*> const less;
+  return !less(p, first) && less(p, first + sizeof(w));
+}
 
 }  // namespace
 
@@ -245,7 +288,6 @@ TEST_CASE("move_only_function: constraints")
   STATIC_REQUIRE_FALSE(std::is_constructible<pf::move_only_function<int(int)>, int>::value);
   STATIC_REQUIRE_FALSE(std::is_constructible<pf::move_only_function<int(int)>, int (*)(int, int)>::value);
   STATIC_REQUIRE_FALSE(std::is_constructible<pf::move_only_function<int*()>, int (*)()>::value);
-  STATIC_REQUIRE_FALSE(std::is_constructible<pf::move_only_function<void()>, pf::in_place_type_t<Counter>>::value);
 
   // is-callable-from holds but VT is not constructible from F: ill-formed (Mandates), not a constraint
   STATIC_REQUIRE(std::is_convertible<NotMoveConstructible, pf::move_only_function<void()>>::value);
@@ -311,6 +353,171 @@ TEST_CASE("move_only_function: arguments are forwarded")
   pf::move_only_function<int&(int&)> g = [](int& x) -> int& { return x; };
   int x = 0;
   CHECK(&g(x) == &x);
+}
+
+TEST_CASE("move_only_function: in_place_type construction")
+{
+  {
+    pf::move_only_function<int(int)> f(pf::in_place_type_t<Adder>{}, 20, 20);
+    CHECK(f(2) == 42);
+  }
+  {
+    pf::move_only_function<int()> f(pf::in_place_type_t<ListSum>{}, {10, 20}, 12);
+    CHECK(f() == 42);
+  }
+  {
+    // unlike the F&& constructor, a null function pointer still becomes the target
+    pf::move_only_function<void()> const f(pf::in_place_type_t<void (*)()>{}, nullptr);
+    CHECK(f);
+  }
+
+  STATIC_REQUIRE(std::is_constructible<pf::move_only_function<int(int)>, pf::in_place_type_t<Adder>, int, int>::value);
+  STATIC_REQUIRE_FALSE(std::is_constructible<pf::move_only_function<int(int)>, pf::in_place_type_t<Adder>, int>::value);
+  STATIC_REQUIRE_FALSE(std::is_constructible<pf::move_only_function<int()>, pf::in_place_type_t<Adder>, int, int>::value);
+  STATIC_REQUIRE_FALSE(std::is_constructible<pf::move_only_function<int(int) const>, pf::in_place_type_t<OnlyMutable>>::value);
+  STATIC_REQUIRE(std::is_constructible<pf::move_only_function<int()>, pf::in_place_type_t<ListSum>, std::initializer_list<int>, int>::value);
+  STATIC_REQUIRE_FALSE(std::is_constructible<pf::move_only_function<int()>, pf::in_place_type_t<ListSum>, std::initializer_list<int>>::value);
+  STATIC_REQUIRE_FALSE(std::is_convertible<pf::in_place_type_t<Counter>, pf::move_only_function<int()>>::value);
+}
+
+TEST_CASE("move_only_function: assignment")
+{
+  STATIC_REQUIRE_FALSE(std::is_copy_assignable<pf::move_only_function<void()>>::value);
+  STATIC_REQUIRE(std::is_nothrow_assignable<pf::move_only_function<void()>&, std::nullptr_t>::value);
+  STATIC_REQUIRE(std::is_assignable<pf::move_only_function<int(int)>&, int (*)(int)>::value);
+  STATIC_REQUIRE_FALSE(std::is_assignable<pf::move_only_function<int(int)>&, int>::value);
+  STATIC_REQUIRE_FALSE(std::is_assignable<pf::move_only_function<int(int) const>&, OnlyMutable>::value);
+
+  {
+    int destroyed = 0;
+    pf::move_only_function<void()> f = DestructionProbe(&destroyed);
+    pf::move_only_function<void()>& result = (f = nullptr);
+    CHECK(&result == &f);
+    CHECK_FALSE(f);
+    CHECK(destroyed == 1);
+  }
+  {
+    int destroyed_f = 0;
+    int destroyed_g = 0;
+    {
+      pf::move_only_function<void()> f = DestructionProbe(&destroyed_f);
+      pf::move_only_function<void()> g = DestructionProbe(&destroyed_g);
+      pf::move_only_function<void()>& result = (f = std::move(g));
+      CHECK(&result == &f);
+      REQUIRE(f);
+      CHECK(destroyed_f == 1);
+      CHECK(destroyed_g == 0);
+    }
+    CHECK(destroyed_g == 1);
+  }
+  {
+    // self-move-assignment keeps the target, as it is specified as move-and-swap
+    pf::move_only_function<int()> f = Counter{};
+    CHECK(f() == 1);
+    pf::move_only_function<int()>& alias = f;
+    f = std::move(alias);
+    REQUIRE(f);
+    CHECK(f() == 2);
+  }
+  {
+    pf::move_only_function<int(int)> f;
+    pf::move_only_function<int(int)>& result = (f = doubles);
+    CHECK(&result == &f);
+    CHECK(f(21) == 42);
+    f = [](int x) { return x + 1; };
+    CHECK(f(41) == 42);
+    int (*null_fp)(int) = nullptr;
+    f = null_fp;
+    CHECK_FALSE(f);
+  }
+}
+
+TEST_CASE("move_only_function: swap")
+{
+  STATIC_REQUIRE(noexcept(std::declval<pf::move_only_function<void()>&>().swap(std::declval<pf::move_only_function<void()>&>())));
+  STATIC_REQUIRE(pf::is_nothrow_swappable<pf::move_only_function<void()>>::value);
+
+  pf::move_only_function<int()> f = Counter{};
+  pf::move_only_function<int()> g = [] { return 42; };
+  CHECK(f() == 1);
+
+  f.swap(g);
+  CHECK(f() == 42);
+  CHECK(g() == 2);
+
+  swap(f, g);
+  CHECK(f() == 3);
+  CHECK(g() == 42);
+
+  f.swap(f);
+  CHECK(f() == 4);
+
+  pf::move_only_function<int()> empty;
+  f.swap(empty);
+  CHECK_FALSE(f);
+  REQUIRE(empty);
+  CHECK(empty() == 5);
+}
+
+TEST_CASE("move_only_function: comparison with nullptr")
+{
+  pf::move_only_function<void()> const empty;
+  pf::move_only_function<void()> const f = [] {};
+
+  CHECK(empty == nullptr);
+  CHECK(nullptr == empty);
+  CHECK_FALSE(empty != nullptr);
+  CHECK_FALSE(nullptr != empty);
+  CHECK_FALSE(f == nullptr);
+  CHECK_FALSE(nullptr == f);
+  CHECK(f != nullptr);
+  CHECK(nullptr != f);
+
+  STATIC_REQUIRE(noexcept(empty == nullptr));
+  STATIC_REQUIRE(noexcept(nullptr == empty));
+  STATIC_REQUIRE(noexcept(empty != nullptr));
+  STATIC_REQUIRE(noexcept(nullptr != empty));
+}
+
+TEST_CASE("move_only_function: small-buffer storage")
+{
+  using wrapper = pf::move_only_function<void const*() const>;
+  {
+    // up to three pointers with a non-throwing move are stored in place, and moved along with the wrapper
+    wrapper f = SelfAddress<3>{};
+    CHECK(is_within(f, f()));
+    wrapper g(std::move(f));
+    CHECK(is_within(g, g()));
+    wrapper h;
+    h = std::move(g);
+    CHECK(is_within(h, h()));
+  }
+  {
+    wrapper const f(pf::in_place_type_t<SelfAddress<1>>{});
+    CHECK(is_within(f, f()));
+  }
+  {
+    wrapper const f = SelfAddress<4>{};
+    CHECK_FALSE(is_within(f, f()));
+  }
+  {
+    wrapper const f = ThrowingMoveSelfAddress{};
+    CHECK_FALSE(is_within(f, f()));
+  }
+  {
+    wrapper const f = OverAlignedSelfAddress{};
+    void const* const p = f();
+    CHECK_FALSE(is_within(f, p));
+    CHECK(reinterpret_cast<std::uintptr_t>(p) % alignof(OverAlignedSelfAddress) == 0);
+  }
+  {
+    // swapping exchanges an in-place target with an allocated one
+    wrapper f = SelfAddress<1>{};
+    wrapper g = SelfAddress<4>{};
+    f.swap(g);
+    CHECK_FALSE(is_within(f, f()));
+    CHECK(is_within(g, g()));
+  }
 }
 
 TEST_CASE("move_only_function: allocation and deallocation of the target match")
