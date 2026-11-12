@@ -40,6 +40,10 @@ jobs:
           - name: Clang
             version: 21
             executable: clang++-21
+          - name: Clang
+            version: 21
+            executable: clang++-21
+            stdlib: libc++
           - name: MSVC
             version: 2022
             executable: cl
@@ -65,7 +69,7 @@ jobs:
           - compiler:
               name: MSVC
             cxx-version: 11
-    name: C++${{ matrix.cxx-version }} ${{ matrix.build-type }} (${{ matrix.compiler.name }} ${{ matrix.compiler.version }} on ${{ matrix.os.name }})
+    name: C++${{ matrix.cxx-version }} ${{ matrix.build-type }} (${{ matrix.compiler.name }}${{ matrix.compiler.stdlib && format(' {0}', matrix.compiler.stdlib) || '' }} ${{ matrix.compiler.version }} on ${{ matrix.os.name }})
     runs-on: ${{ matrix.os.name }}-${{ matrix.os.version }}
     steps:
       - uses: actions/checkout@v7
@@ -96,10 +100,10 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: build/_deps
-          key: ${{ matrix.cxx-version }}-${{ matrix.build-type }}-${{ matrix.compiler.name }}-${{ matrix.compiler.version }}-${{ matrix.os.name }}-${{ matrix.os.version }}
+          key: ${{ matrix.cxx-version }}-${{ matrix.build-type }}-${{ matrix.compiler.name }}-${{ matrix.compiler.version }}${{ matrix.compiler.stdlib && format('-{0}', matrix.compiler.stdlib) || '' }}-${{ matrix.os.name }}-${{ matrix.os.version }}
       - name: Configure
         run: |
-          cmake -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_STANDARD=${{ matrix.cxx-version }} -DCMAKE_CXX_COMPILER=${{ matrix.compiler.executable }} -DYK_POLYFILL_CI=ON -Bbuild .
+          cmake -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_STANDARD=${{ matrix.cxx-version }} -DCMAKE_CXX_COMPILER=${{ matrix.compiler.executable }} ${{ matrix.compiler.stdlib && format('-DCMAKE_CXX_FLAGS=-stdlib={0} -DCMAKE_EXE_LINKER_FLAGS=-stdlib={0}', matrix.compiler.stdlib) || '' }} -DYK_POLYFILL_CI=ON -Bbuild .
       - name: Build tests
         run: |
           echo "CPPWARNINGNOTIFIER_LOG_MARKER"
