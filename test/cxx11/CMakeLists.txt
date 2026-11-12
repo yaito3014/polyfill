@@ -32,6 +32,7 @@ target_sources(
         indirect.cpp
         polymorphic.cpp
         function_ref.cpp
+        move_only_function.cpp
         expected.cpp
 )
 
