@@ -5,8 +5,10 @@
 #endif
 
 #include <yk/polyfill/functional.hpp>
+#include <yk/polyfill/utility.hpp>
 
 #include <type_traits>
+#include <utility>
 
 namespace pf = yk::polyfill;
 
@@ -55,4 +57,25 @@ TEST_CASE("move_only_function: noexcept signatures")
 
   pf::move_only_function<int() const && noexcept> g = []() noexcept { return 42; };
   CHECK(std::move(g)() == 42);
+}
+
+TEST_CASE("move_only_function: noexcept signatures with in_place_type, assignment and swap")
+{
+  STATIC_REQUIRE_FALSE(std::is_constructible_v<pf::move_only_function<int() noexcept>, pf::in_place_type_t<NoexceptOnlyForLvalue>>);
+  STATIC_REQUIRE(std::is_constructible_v<pf::move_only_function<int() & noexcept>, pf::in_place_type_t<NoexceptOnlyForLvalue>>);
+  STATIC_REQUIRE_FALSE(std::is_assignable_v<pf::move_only_function<int(int) noexcept>&, int (*)(int)>);
+  STATIC_REQUIRE(std::is_assignable_v<pf::move_only_function<int(int) noexcept>&, int (*)(int) noexcept>);
+
+  pf::move_only_function<int() const noexcept> f(pf::in_place_type<NoexceptConversion (*)() noexcept>, []() noexcept { return NoexceptConversion{}; });
+  pf::move_only_function<int() const noexcept> g;
+  CHECK(g == nullptr);
+  f.swap(g);
+  CHECK(f == nullptr);
+  CHECK(g() == 42);
+  f = std::move(g);
+  CHECK(f() == 42);
+  f = []() noexcept { return 1; };
+  CHECK(f() == 1);
+  f = nullptr;
+  CHECK_FALSE(f);
 }
