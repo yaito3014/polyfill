@@ -15,6 +15,7 @@ All headers are included via `<yk/polyfill/...>`. Everything lives in the `yk::p
 | `functional.hpp` | `invoke`, `invoke_r`, `is_invocable`, `is_nothrow_invocable`, `is_invocable_r`, `is_nothrow_invocable_r`, `invoke_result` |
 | `utility.hpp` | `in_place_t`, `integer_sequence`, `make_index_sequence`, `exchange`, `as_const` |
 | `memory.hpp` | `make_unique`, `unique_ptr`, `construct_at` |
+| `new.hpp` | `launder` |
 | `tuple.hpp` | `apply` |
 | `optional.hpp` | `optional` with monadic operations and iterator support |
 | `variant.hpp` | `variant`, `visit`, `monostate` |
