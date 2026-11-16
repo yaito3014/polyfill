@@ -15,6 +15,14 @@
 #include <new>
 #include <utility>
 
+#if __cpp_aligned_new >= 201606L
+#ifdef _MSC_VER
+#include <malloc.h>
+#else
+#include <stdlib.h>
+#endif
+#endif
+
 namespace {
 
 std::size_t allocation_count = 0;
@@ -32,10 +40,34 @@ void counted_free(void* p) noexcept
   std::free(p);
 }
 
+#if __cpp_aligned_new >= 201606L
+void* counted_aligned_malloc(std::size_t size, std::align_val_t al) noexcept
+{
+  ++allocation_count;
+  std::size_t const alignment = static_cast<std::size_t>(al);
+#ifdef _MSC_VER
+  return _aligned_malloc(size == 0 ? 1 : size, alignment);
+#else
+  void* p = nullptr;
+  return posix_memalign(&p, alignment < sizeof(void*) ? sizeof(void*) : alignment, size == 0 ? 1 : size) == 0 ? p : nullptr;
+#endif
+}
+
+void counted_aligned_free(void* p) noexcept
+{
+  if (p) ++deallocation_count;
+#ifdef _MSC_VER
+  _aligned_free(p);
+#else
+  std::free(p);
+#endif
+}
+#endif
+
 }  // namespace
 
-// Every non-aligned form is replaced, so that no other allocation function (e.g. one provided by AddressSanitizer)
-// allocates memory that these deallocation functions free.
+// Every form is replaced, so that no other allocation function (e.g. one provided by AddressSanitizer) allocates
+// memory that these deallocation functions free.
 
 void* operator new(std::size_t size)
 {
@@ -60,6 +92,30 @@ void operator delete[](void* p, std::nothrow_t const&) noexcept { counted_free(p
 #if __cpp_sized_deallocation >= 201309L
 void operator delete(void* p, std::size_t) noexcept { counted_free(p); }
 void operator delete[](void* p, std::size_t) noexcept { counted_free(p); }
+#endif
+
+#if __cpp_aligned_new >= 201606L
+void* operator new(std::size_t size, std::align_val_t al)
+{
+  if (void* p = counted_aligned_malloc(size, al)) return p;
+  throw std::bad_alloc();
+}
+
+void* operator new[](std::size_t size, std::align_val_t al)
+{
+  if (void* p = counted_aligned_malloc(size, al)) return p;
+  throw std::bad_alloc();
+}
+
+void* operator new(std::size_t size, std::align_val_t al, std::nothrow_t const&) noexcept { return counted_aligned_malloc(size, al); }
+void* operator new[](std::size_t size, std::align_val_t al, std::nothrow_t const&) noexcept { return counted_aligned_malloc(size, al); }
+
+void operator delete(void* p, std::align_val_t) noexcept { counted_aligned_free(p); }
+void operator delete[](void* p, std::align_val_t) noexcept { counted_aligned_free(p); }
+void operator delete(void* p, std::size_t, std::align_val_t) noexcept { counted_aligned_free(p); }
+void operator delete[](void* p, std::size_t, std::align_val_t) noexcept { counted_aligned_free(p); }
+void operator delete(void* p, std::align_val_t, std::nothrow_t const&) noexcept { counted_aligned_free(p); }
+void operator delete[](void* p, std::align_val_t, std::nothrow_t const&) noexcept { counted_aligned_free(p); }
 #endif
 
 namespace pf = yk::polyfill;
@@ -123,6 +179,8 @@ TEST_CASE("move_only_function: function pointers and reference_wrapper are store
 TEST_CASE("move_only_function: the allocation is released when constructing the target throws")
 {
   // Before C++17 aligned new, a target with extended alignment is placed by hand in memory from operator new.
+  // From C++17, MSVC frees such memory with a non-aligned operator delete when a global-qualified new-expression
+  // throws, which the library works around (see mof_global_new).
   std::size_t const allocations_before = allocation_count;
   std::size_t const deallocations_before = deallocation_count;
   bool threw = false;

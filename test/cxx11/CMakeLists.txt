@@ -70,4 +70,11 @@ target_link_libraries(
     PRIVATE yk::polyfill Catch2::Catch2WithMain
 )
 
+# The replaced allocation functions update global counters, which GCC by default assumes they do not.
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag(-fno-assume-sane-operators-new-delete YK_POLYFILL_HAVE_FNO_ASSUME_SANE_OPERATORS_NEW_DELETE)
+if(YK_POLYFILL_HAVE_FNO_ASSUME_SANE_OPERATORS_NEW_DELETE)
+    target_compile_options(yk_polyfill_cxx11_allocation_test PRIVATE -fno-assume-sane-operators-new-delete)
+endif()
+
 add_test(NAME yk_polyfill_cxx11_allocation_test COMMAND yk_polyfill_cxx11_allocation_test)
