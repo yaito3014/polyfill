@@ -1,7 +1,7 @@
 #if YK_POLYFILL_CATCH2_MAJOR_VERSION < 3
-#include <catch2/catch.hpp>
+#  include <catch2/catch.hpp>
 #else
-#include <catch2/catch_test_macros.hpp>
+#  include <catch2/catch_test_macros.hpp>
 #endif
 
 #include <yk/polyfill/functional.hpp>
@@ -1000,20 +1000,20 @@ TEST_CASE("is_nothrow_invocable")
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::lvalue_ref_nothrow_variadic_member_function), S const&&, int>::value == false);
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::lvalue_ref_nothrow_variadic_member_function), S*, int>::value == true);
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::lvalue_ref_nothrow_variadic_member_function), int, int>::value == false);
-#if YK_POLYFILL_P0704R1
+#  if YK_POLYFILL_P0704R1
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_lvalue_ref_nothrow_variadic_member_function), S, int>::value == true);
-#else
+#  else
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_lvalue_ref_nothrow_variadic_member_function), S, int>::value == false);
-#endif
+#  endif
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_lvalue_ref_nothrow_variadic_member_function), S&, int>::value == true);
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_lvalue_ref_nothrow_variadic_member_function), S const&, int>::value == true);
-#if YK_POLYFILL_P0704R1
+#  if YK_POLYFILL_P0704R1
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_lvalue_ref_nothrow_variadic_member_function), S&&, int>::value == true);
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_lvalue_ref_nothrow_variadic_member_function), S const&&, int>::value == true);
-#else
+#  else
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_lvalue_ref_nothrow_variadic_member_function), S&&, int>::value == false);
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_lvalue_ref_nothrow_variadic_member_function), S const&&, int>::value == false);
-#endif
+#  endif
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_lvalue_ref_nothrow_variadic_member_function), S*, int>::value == true);
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::const_lvalue_ref_nothrow_variadic_member_function), int, int>::value == false);
   STATIC_REQUIRE(pf::is_nothrow_invocable<decltype(&S::volatile_lvalue_ref_nothrow_variadic_member_function), S, int>::value == false);

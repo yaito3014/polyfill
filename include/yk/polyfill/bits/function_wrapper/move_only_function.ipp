@@ -1,33 +1,33 @@
 #ifndef YK_POLYFILL_INCLUDE_MOVE_ONLY_FUNCTION
-#warning "Do not include this file directly."
+#  warning "Do not include this file directly."
 #else
 
 // Expanded once per specialization of [func.wrap.move.general], selected by the APPLY_* macros,
 // which this file undefines at the end.
 
-#ifdef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_CONST
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_CV const
-#else
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_CV
-#endif
+#  ifdef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_CONST
+#    define YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_CV const
+#  else
+#    define YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_CV
+#  endif
 
 // inv-quals is cv& when ref is empty, otherwise cv ref
-#if defined(YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_LVALUE_REF)
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_REF &
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_INV_QUALS YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_CV&
-#elif defined(YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_RVALUE_REF)
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_REF &&
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_INV_QUALS YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_CV&&
-#else
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_REF
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_INV_QUALS YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_CV&
-#endif
+#  if defined(YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_LVALUE_REF)
+#    define YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_REF &
+#    define YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_INV_QUALS YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_CV&
+#  elif defined(YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_RVALUE_REF)
+#    define YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_REF &&
+#    define YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_INV_QUALS YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_CV&&
+#  else
+#    define YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_REF
+#    define YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_INV_QUALS YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_CV&
+#  endif
 
-#ifdef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_NOEXCEPT noexcept
-#else
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_NOEXCEPT
-#endif
+#  ifdef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
+#    define YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_NOEXCEPT noexcept
+#  else
+#    define YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_NOEXCEPT
+#  endif
 
 namespace yk {
 
@@ -39,11 +39,11 @@ class move_only_function<
 private:
   template<class T>
   using is_invocable_using =
-#ifdef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
+#  ifdef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
       is_nothrow_invocable_r<R, T, Args...>
-#else
+#  else
       is_invocable_r<R, T, Args...>
-#endif
+#  endif
       ;
 
   template<class VT>
@@ -162,12 +162,12 @@ public:
 
   YK_POLYFILL_NODISCARD friend bool operator==(move_only_function const& f, std::nullptr_t) noexcept { return !f; }
 
-#if !(__cpp_impl_three_way_comparison >= 201907L)
+#  if !(__cpp_impl_three_way_comparison >= 201907L)
   // Since C++20, these are rewritten from the operator== above.
   YK_POLYFILL_NODISCARD friend bool operator==(std::nullptr_t, move_only_function const& f) noexcept { return !f; }
   YK_POLYFILL_NODISCARD friend bool operator!=(move_only_function const& f, std::nullptr_t) noexcept { return static_cast<bool>(f); }
   YK_POLYFILL_NODISCARD friend bool operator!=(std::nullptr_t, move_only_function const& f) noexcept { return static_cast<bool>(f); }
-#endif
+#  endif
 
 private:
   detail::mof_storage storage_ = {nullptr};
@@ -179,14 +179,14 @@ private:
 
 }  // namespace yk
 
-#undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_CV
-#undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_REF
-#undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_INV_QUALS
-#undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_NOEXCEPT
+#  undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_CV
+#  undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_REF
+#  undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_INV_QUALS
+#  undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_NOEXCEPT
 
-#undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_CONST
-#undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_LVALUE_REF
-#undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_RVALUE_REF
-#undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
+#  undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_CONST
+#  undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_LVALUE_REF
+#  undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_RVALUE_REF
+#  undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
 
 #endif

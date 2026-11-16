@@ -15,7 +15,7 @@
 #include <type_traits>
 #include <utility>
 #if __cpp_lib_three_way_comparison >= 201907L
-#include <compare>
+#  include <compare>
 #endif
 
 namespace yk {

@@ -20,7 +20,7 @@
 #include <utility>
 
 #if __cplusplus >= 202002L
-#include <compare>
+#  include <compare>
 #endif
 
 namespace yk {
