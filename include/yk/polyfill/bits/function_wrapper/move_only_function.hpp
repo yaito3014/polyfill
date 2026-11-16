@@ -14,6 +14,7 @@
 #include <utility>
 
 #include <cstddef>
+#include <cstring>
 
 namespace yk {
 
@@ -24,16 +25,9 @@ class move_only_function;
 
 namespace detail {
 
-// A target object placed within a larger allocation to align it, and that allocation.
-struct mof_aligned_allocation {
-  void* obj;
-  void* raw;
-};
-
 // Holds the target object in place if it is small enough, otherwise a pointer to it.
 union mof_storage {
   void* obj;
-  mof_aligned_allocation aligned;
   unsigned char buf[3 * sizeof(void*)];
 };
 
@@ -41,18 +35,6 @@ union mof_storage {
 template<class VT>
 struct mof_is_local
     : bool_constant<sizeof(VT) <= sizeof(mof_storage) && alignof(mof_storage) % alignof(VT) == 0 && std::is_nothrow_move_constructible<VT>::value> {};
-
-// Whether VT is over-aligned ([basic.align]) and ::new cannot allocate it aligned, as it then has no
-// alignment-aware allocation functions to call (they come with C++17 aligned new, P0035R4).
-template<class VT>
-struct mof_is_extended_aligned
-#if __cpp_aligned_new >= 201606L
-    : false_type
-#else
-    : bool_constant<(alignof(VT) > alignof(std::max_align_t))>
-#endif
-{
-};
 
 template<class T>
 T* mof_launder(T* p) noexcept
@@ -64,30 +46,36 @@ T* mof_launder(T* p) noexcept
 #endif
 }
 
-// mof_global_new_delete<T>::create(args...) is ::new T(args...), and destroy(p) is ::delete p.
+// mof_global_new_delete<T>::create(args...) is ::new T(args...), and destroy(p) is ::delete p, except that for
+// some over-aligned types they allocate, construct and clean up explicitly, because ::new cannot be used as is:
 //
-// They work around MSVC (observed on 19.44 to 19.52), which frees the memory of a global-qualified new-expression
-// of a type with new-extended alignment whose initialization throws with the non-aligned
-// operator delete(void*, std::size_t), although [expr.new] and [expr.delete] select an operator delete taking
-// std::align_val_t. For such types on MSVC, the allocation, construction and cleanup are spelled out instead.
-// clang-cl, which uses Clang's code generation, is not included.
-#if defined(_MSC_VER) && !defined(__clang__) && __cpp_aligned_new >= 201606L
-#define YK_POLYFILL_DETAIL_MOF_MSVC_ALIGNED_NEW_WORKAROUND 1
+// - Before C++17 aligned new (P0035R4), ::new can only call an allocation function that guarantees the fundamental
+//   alignment, so a type with extended alignment ([basic.align]) is placed by hand within a larger allocation.
+// - MSVC (observed on 19.44 to 19.52) frees the memory of a global-qualified new-expression of a type with
+//   new-extended alignment whose initialization throws with the non-aligned operator delete(void*, std::size_t),
+//   although [expr.new] and [expr.delete] select an operator delete taking std::align_val_t. clang-cl, which uses
+//   Clang's code generation, is not included.
+#if __cpp_aligned_new >= 201606L
+#if defined(_MSC_VER) && !defined(__clang__)
+#define YK_POLYFILL_DETAIL_MOF_PLAIN_NEW_MAX_ALIGNMENT __STDCPP_DEFAULT_NEW_ALIGNMENT__
+#endif
 #else
-#define YK_POLYFILL_DETAIL_MOF_MSVC_ALIGNED_NEW_WORKAROUND 0
+#define YK_POLYFILL_DETAIL_MOF_PLAIN_NEW_MAX_ALIGNMENT alignof(std::max_align_t)
 #endif
 
 template<class T>
-struct mof_needs_msvc_aligned_new_workaround
-#if YK_POLYFILL_DETAIL_MOF_MSVC_ALIGNED_NEW_WORKAROUND
-    : bool_constant<(alignof(T) > __STDCPP_DEFAULT_NEW_ALIGNMENT__)>
+struct mof_needs_explicit_new_delete
+#ifdef YK_POLYFILL_DETAIL_MOF_PLAIN_NEW_MAX_ALIGNMENT
+    : bool_constant<(alignof(T) > YK_POLYFILL_DETAIL_MOF_PLAIN_NEW_MAX_ALIGNMENT)>
 #else
     : false_type
 #endif
 {
 };
 
-template<class T, bool = mof_needs_msvc_aligned_new_workaround<T>::value>
+#undef YK_POLYFILL_DETAIL_MOF_PLAIN_NEW_MAX_ALIGNMENT
+
+template<class T, bool = mof_needs_explicit_new_delete<T>::value>
 struct mof_global_new_delete {
   template<class... Args>
   static T* create(Args&&... args)
@@ -98,17 +86,16 @@ struct mof_global_new_delete {
   static void destroy(T* p) noexcept { ::delete p; }
 };
 
-#if YK_POLYFILL_DETAIL_MOF_MSVC_ALIGNED_NEW_WORKAROUND
 template<class T>
-struct mof_global_new_delete<T, /* needs_msvc_aligned_new_workaround = */ true> {
+struct mof_global_new_delete<T, /* needs_explicit_new_delete = */ true> {
   template<class... Args>
   static T* create(Args&&... args)
   {
-    void* const p = ::operator new(sizeof(T), std::align_val_t{alignof(T)});
+    void* const p = allocate();
     try {
       return ::new (p) T(std::forward<Args>(args)...);
     } catch (...) {
-      ::operator delete(p, std::align_val_t{alignof(T)});
+      deallocate(p);
       throw;
     }
   }
@@ -116,16 +103,39 @@ struct mof_global_new_delete<T, /* needs_msvc_aligned_new_workaround = */ true> 
   static void destroy(T* p) noexcept
   {
     p->~T();
-    ::operator delete(p, sizeof(T), std::align_val_t{alignof(T)});
+    deallocate(p);
   }
-};
-#endif
 
-#undef YK_POLYFILL_DETAIL_MOF_MSVC_ALIGNED_NEW_WORKAROUND
+private:
+#if __cpp_aligned_new >= 201606L
+  static void* allocate() { return ::operator new(sizeof(T), std::align_val_t{alignof(T)}); }
+
+  static void deallocate(void* p) noexcept { ::operator delete(p, std::align_val_t{alignof(T)}); }
+#else
+  // The pointer that operator new returned is kept in front of the aligned storage, to be freed later.
+  static void* allocate()
+  {
+    std::size_t space = sizeof(void*) + alignof(T) - 1 + sizeof(T);
+    void* const raw = ::operator new(space);
+    void* p = static_cast<unsigned char*>(raw) + sizeof(void*);
+    space -= sizeof(void*);
+    std::align(alignof(T), sizeof(T), p, space);
+    std::memcpy(static_cast<unsigned char*>(p) - sizeof(void*), &raw, sizeof(void*));
+    return p;
+  }
+
+  static void deallocate(void* p) noexcept
+  {
+    void* raw;
+    std::memcpy(&raw, static_cast<unsigned char*>(p) - sizeof(void*), sizeof(void*));
+    ::operator delete(raw);
+  }
+#endif
+};
 
 // Creates, accesses, and relocates or destroys a target object of type VT held in mof_storage.
 // manage(src, dst) relocates the target into *dst if dst is non-null, otherwise destroys it.
-template<class VT, bool = mof_is_local<VT>::value, bool = mof_is_extended_aligned<VT>::value>
+template<class VT, bool = mof_is_local<VT>::value>
 struct mof_holder {
   // [func.wrap.move.ctor] does not allow bad_alloc for these.
   static_assert(
@@ -153,7 +163,7 @@ struct mof_holder {
 };
 
 template<class VT>
-struct mof_holder<VT, /* is_local = */ true, /* is_extended_aligned = */ false> {
+struct mof_holder<VT, /* is_local = */ true> {
   template<class... Args>
   static void create(mof_storage& storage, Args&&... args)
   {
@@ -167,39 +177,6 @@ struct mof_holder<VT, /* is_local = */ true, /* is_extended_aligned = */ false> 
     VT& target = get(src);
     if (dst) ::new (static_cast<void*>(dst->buf)) VT(std::move(target));
     target.~VT();
-  }
-};
-
-// Places the target object within a larger allocation, at an address aligned by hand.
-template<class VT>
-struct mof_holder<VT, /* is_local = */ false, /* is_extended_aligned = */ true> {
-  template<class... Args>
-  static void create(mof_storage& storage, Args&&... args)
-  {
-    std::size_t space = sizeof(VT) + alignof(VT) - 1;
-    void* const raw = ::operator new(space);
-    void* p = raw;
-    std::align(alignof(VT), sizeof(VT), p, space);
-    VT* obj;
-    try {
-      obj = ::new (p) VT(std::forward<Args>(args)...);
-    } catch (...) {
-      ::operator delete(raw);
-      throw;
-    }
-    storage.aligned = mof_aligned_allocation{obj, raw};
-  }
-
-  static VT& get(mof_storage const& storage) noexcept { return *static_cast<VT*>(storage.aligned.obj); }
-
-  static void manage(mof_storage& src, mof_storage* dst) noexcept
-  {
-    if (dst) {
-      dst->aligned = src.aligned;
-    } else {
-      static_cast<VT*>(src.aligned.obj)->~VT();
-      ::operator delete(src.aligned.raw);
-    }
   }
 };
 
