@@ -1,6 +1,8 @@
 #ifndef YK_ZZ_POLYFILL_BITS_FUNCTION_WRAPPER_MOVE_ONLY_FUNCTION_HPP
 #define YK_ZZ_POLYFILL_BITS_FUNCTION_WRAPPER_MOVE_ONLY_FUNCTION_HPP
 
+#include <yk/polyfill/config.hpp>
+
 #include <yk/polyfill/bits/core_traits.hpp>
 #include <yk/polyfill/bits/invoke.hpp>
 #include <yk/polyfill/extension/specialization_of.hpp>
@@ -25,7 +27,6 @@ class move_only_function;
 
 namespace detail {
 
-// Holds the target object in place if it is small enough, otherwise a pointer to it.
 union mof_storage {
   void* obj;
   unsigned char buf[3 * sizeof(void*)];
@@ -126,7 +127,6 @@ private:
 #endif
 };
 
-// Creates, accesses, and relocates or destroys a target object of type VT held in mof_storage.
 // manage(src, dst) relocates the target into *dst if dst is non-null, otherwise destroys it.
 template<class VT, bool = mof_is_local<VT>::value>
 struct mof_holder {

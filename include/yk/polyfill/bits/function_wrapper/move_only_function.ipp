@@ -131,8 +131,7 @@ public:
     return *this;
   }
 
-  // Constrained as in libstdc++ and MSVC STL, although [func.wrap.move.ctor] does not, so that
-  // move_only_function is not reported as assignable from what it cannot be constructed from (e.g. copies).
+  // Constrained, unlike in [func.wrap.move.ctor] but as in libstdc++ and MSVC STL, so that copies are not assignable.
   template<class F, typename std::enable_if<std::is_constructible<move_only_function, F>::value, std::nullptr_t>::type = nullptr>
   move_only_function& operator=(F&& f)
   {
@@ -145,7 +144,7 @@ public:
     if (manage_) manage_(storage_, nullptr);
   }
 
-  explicit operator bool() const noexcept { return invoke_ != nullptr; }
+  YK_POLYFILL_NODISCARD explicit operator bool() const noexcept { return invoke_ != nullptr; }
 
   R operator()(Args... args) YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_CV YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_REF YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_NOEXCEPT
   {
@@ -161,13 +160,13 @@ public:
 
   friend void swap(move_only_function& f1, move_only_function& f2) noexcept { f1.swap(f2); }
 
-  friend bool operator==(move_only_function const& f, std::nullptr_t) noexcept { return !f; }
+  YK_POLYFILL_NODISCARD friend bool operator==(move_only_function const& f, std::nullptr_t) noexcept { return !f; }
 
 #if !(__cpp_impl_three_way_comparison >= 201907L)
   // Since C++20, these are rewritten from the operator== above.
-  friend bool operator==(std::nullptr_t, move_only_function const& f) noexcept { return !f; }
-  friend bool operator!=(move_only_function const& f, std::nullptr_t) noexcept { return static_cast<bool>(f); }
-  friend bool operator!=(std::nullptr_t, move_only_function const& f) noexcept { return static_cast<bool>(f); }
+  YK_POLYFILL_NODISCARD friend bool operator==(std::nullptr_t, move_only_function const& f) noexcept { return !f; }
+  YK_POLYFILL_NODISCARD friend bool operator!=(move_only_function const& f, std::nullptr_t) noexcept { return static_cast<bool>(f); }
+  YK_POLYFILL_NODISCARD friend bool operator!=(std::nullptr_t, move_only_function const& f) noexcept { return static_cast<bool>(f); }
 #endif
 
 private:

@@ -178,9 +178,7 @@ TEST_CASE("move_only_function: function pointers and reference_wrapper are store
 
 TEST_CASE("move_only_function: the allocation is released when constructing the target throws")
 {
-  // Before C++17 aligned new, a target with extended alignment is placed by hand in memory from operator new.
-  // From C++17, MSVC frees such memory with a non-aligned operator delete when a global-qualified new-expression
-  // throws, which the library works around (see mof_global_new_delete).
+  // Covers the explicit allocation paths of mof_global_new_delete.
   std::size_t const allocations_before = allocation_count;
   std::size_t const deallocations_before = deallocation_count;
   bool threw = false;

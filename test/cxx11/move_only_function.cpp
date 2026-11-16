@@ -117,7 +117,7 @@ struct alignas(64) ExtendedAlignedSelfAddress {
   void const* operator()() const { return this; }
 };
 
-// Observes that the allocation and deallocation of the target match. Too large to be stored in place.
+// Too large to be stored in place.
 struct ClassAllocated {
   static int allocations;
   static int deallocations;
