@@ -4,13 +4,8 @@
 #include <new>
 #include <type_traits>
 
-// Before C++17, returning the pointer does not give launder's guarantee. For a pointer to an object that another
-// object has replaced, C++14's [basic.life] lets it refer to the new object only if the types are the same (among
-// other conditions), which conflicts with [basic.compound] making a pointer point to whatever object is at its
-// address; compilers follow the former (GCC devirtualizes calls through such a pointer at -O2). P0137R1 resolved
-// this together with introducing std::launder. GCC and Clang provide __builtin_launder, on which their std::launder
-// is built, also in earlier modes, so it is used where available. MSVC provides it only from C++17, so there, as
-// with any other compiler without it, returning the pointer is the last resort.
+// Before C++17, returning the pointer does not launder it; GCC and Clang provide the builtin in any mode, MSVC only
+// from C++17.
 #if __cpp_lib_launder >= 201606L
 #elif defined(__has_builtin)
 #if __has_builtin(__builtin_launder)
