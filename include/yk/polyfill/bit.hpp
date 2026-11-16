@@ -11,7 +11,7 @@
 #include <cstring>
 
 #if __cpp_lib_bit_cast >= 201806L
-#include <bit>
+#  include <bit>
 #endif
 
 namespace yk {

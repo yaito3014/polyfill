@@ -10,12 +10,12 @@
 // from C++17.
 #if __cpp_lib_launder >= 201606L
 #elif defined(__has_builtin)
-#if __has_builtin(__builtin_launder)
-#define YK_POLYFILL_DETAIL_BUILTIN_LAUNDER(p) __builtin_launder(p)
-#endif
+#  if __has_builtin(__builtin_launder)
+#    define YK_POLYFILL_DETAIL_BUILTIN_LAUNDER(p) __builtin_launder(p)
+#  endif
 #elif defined(__GNUC__) && __GNUC__ >= 7
 // GCC before 10 lacks __has_builtin.
-#define YK_POLYFILL_DETAIL_BUILTIN_LAUNDER(p) __builtin_launder(p)
+#  define YK_POLYFILL_DETAIL_BUILTIN_LAUNDER(p) __builtin_launder(p)
 #endif
 
 namespace yk {

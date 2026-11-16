@@ -1,5 +1,5 @@
 #ifndef YK_POLYFILL_INCLUDE_EXPECTED
-#warning "Do not include this file directly."
+#  warning "Do not include this file directly."
 #else
 
 // Included once per cv-qualification of void with YK_POLYFILL_EXPECTED_VOID_CV set to that

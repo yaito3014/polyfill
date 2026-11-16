@@ -1,9 +1,9 @@
 // Built as its own executable, since it replaces the global allocation functions to count allocations.
 
 #if YK_POLYFILL_CATCH2_MAJOR_VERSION < 3
-#include <catch2/catch.hpp>
+#  include <catch2/catch.hpp>
 #else
-#include <catch2/catch_test_macros.hpp>
+#  include <catch2/catch_test_macros.hpp>
 #endif
 
 #include <yk/polyfill/functional.hpp>
@@ -16,11 +16,11 @@
 #include <utility>
 
 #if __cpp_aligned_new >= 201606L
-#ifdef _MSC_VER
-#include <malloc.h>
-#else
-#include <stdlib.h>
-#endif
+#  ifdef _MSC_VER
+#    include <malloc.h>
+#  else
+#    include <stdlib.h>
+#  endif
 #endif
 
 namespace {
@@ -45,22 +45,22 @@ void* counted_aligned_malloc(std::size_t size, std::align_val_t al) noexcept
 {
   ++allocation_count;
   std::size_t const alignment = static_cast<std::size_t>(al);
-#ifdef _MSC_VER
+#  ifdef _MSC_VER
   return _aligned_malloc(size == 0 ? 1 : size, alignment);
-#else
+#  else
   void* p = nullptr;
   return posix_memalign(&p, alignment < sizeof(void*) ? sizeof(void*) : alignment, size == 0 ? 1 : size) == 0 ? p : nullptr;
-#endif
+#  endif
 }
 
 void counted_aligned_free(void* p) noexcept
 {
   if (p) ++deallocation_count;
-#ifdef _MSC_VER
+#  ifdef _MSC_VER
   _aligned_free(p);
-#else
+#  else
   std::free(p);
-#endif
+#  endif
 }
 #endif
 

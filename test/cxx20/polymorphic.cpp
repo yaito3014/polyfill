@@ -8,9 +8,9 @@
 // VS2022 (MSVC < 19.50) cannot evaluate polymorphic in a constant expression
 // because destroy() is not constexpr there (compiler bug workaround).
 #if defined(_MSC_VER) && _MSC_VER < 1950
-#define POLYMORPHIC_STATIC_REQUIRE(x) REQUIRE(x)
+#  define POLYMORPHIC_STATIC_REQUIRE(x) REQUIRE(x)
 #else
-#define POLYMORPHIC_STATIC_REQUIRE(x) STATIC_REQUIRE(x)
+#  define POLYMORPHIC_STATIC_REQUIRE(x) STATIC_REQUIRE(x)
 #endif
 
 namespace pf = yk::polyfill;

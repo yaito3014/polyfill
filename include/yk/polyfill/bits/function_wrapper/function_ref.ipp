@@ -1,22 +1,22 @@
 #ifndef YK_POLYFILL_INCLUDE_FUNCTION_REF
-#warning "Do not include this file directly."
+#  warning "Do not include this file directly."
 #else
 
-#ifdef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_CONST
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_CONST const
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_IS_CONST true
-#else
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_CONST
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_IS_CONST false
-#endif
+#  ifdef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_CONST
+#    define YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_CONST const
+#    define YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_IS_CONST true
+#  else
+#    define YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_CONST
+#    define YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_IS_CONST false
+#  endif
 
-#ifdef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_NOEXCEPT noexcept
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_IS_NOEXCEPT true
-#else
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_NOEXCEPT
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_IS_NOEXCEPT false
-#endif
+#  ifdef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
+#    define YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_NOEXCEPT noexcept
+#    define YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_IS_NOEXCEPT true
+#  else
+#    define YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_NOEXCEPT
+#    define YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_IS_NOEXCEPT false
+#  endif
 
 namespace yk {
 
@@ -27,11 +27,11 @@ class function_ref<R(Args...) YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_CON
 private:
   template<class... Ts>
   using is_invocable_using =
-#ifdef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
+#  ifdef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
       is_nothrow_invocable_r<R, Ts..., Args...>
-#else
+#  else
       is_invocable_r<R, Ts..., Args...>
-#endif
+#  endif
       ;
 
   template<class F>
@@ -77,7 +77,7 @@ public:
   {
   }
 
-#if __cplusplus >= 201703L
+#  if __cplusplus >= 201703L
   // Bind a compile-time constant callable (constant_wrapper<c, F>::value); no object is stored.
   template<auto c, class F, typename std::enable_if<is_invocable_using<F const&>::value, std::nullptr_t>::type = nullptr>
   constexpr function_ref(constant_wrapper<c, F>) noexcept
@@ -117,7 +117,7 @@ public:
   {
     static_assert(detail::cw_value_nonnull<c, F>::value, "the constant callable must not be a null (member) pointer");
   }
-#endif
+#  endif
 
   constexpr function_ref(function_ref const&) noexcept = default;
   YK_POLYFILL_CXX14_CONSTEXPR function_ref& operator=(function_ref const&) noexcept = default;
@@ -139,9 +139,9 @@ private:
 
 }  // namespace yk
 
-#undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_CONST
-#undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_IS_CONST
-#undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_NOEXCEPT
-#undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_IS_NOEXCEPT
+#  undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_CONST
+#  undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_IS_CONST
+#  undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_NOEXCEPT
+#  undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_FUNCTION_REF_IS_NOEXCEPT
 
 #endif

@@ -175,16 +175,16 @@ struct is_convertible_from_function_ref_specialization<function_ref<R(Args...) c
 #if __cpp_noexcept_function_type >= 201510L
 
 // #define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_CONST
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
-#include "yk/polyfill/bits/function_wrapper/function_ref.ipp"
-#undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_CONST
-#undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
+#  define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
+#  include "yk/polyfill/bits/function_wrapper/function_ref.ipp"
+#  undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_CONST
+#  undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
 
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_CONST
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
-#include "yk/polyfill/bits/function_wrapper/function_ref.ipp"
-#undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_CONST
-#undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
+#  define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_CONST
+#  define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
+#  include "yk/polyfill/bits/function_wrapper/function_ref.ipp"
+#  undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_CONST
+#  undef YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
 
 #endif
 
@@ -199,13 +199,13 @@ namespace polyfill {
 template<class F, typename std::enable_if<std::is_function<F>::value, std::nullptr_t>::type = nullptr>
 function_ref(F*) -> function_ref<F>;
 
-#if __cplusplus >= 201703L
+#  if __cplusplus >= 201703L
 template<auto c, class F0, typename std::enable_if<std::is_function<typename std::remove_pointer<F0>::type>::value, std::nullptr_t>::type = nullptr>
 function_ref(constant_wrapper<c, F0>) -> function_ref<typename std::remove_pointer<F0>::type>;
 
 template<auto c, class F, class T, class Sig = typename detail::cw_deduced_signature<F, T>::type>
 function_ref(constant_wrapper<c, F>, T&&) -> function_ref<Sig>;
-#endif
+#  endif
 
 #endif
 

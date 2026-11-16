@@ -41,11 +41,11 @@ struct mof_is_local
 // ::new T(args...) and ::delete p, except for over-aligned T: before C++17 ::new cannot align it, and MSVC frees a
 // throwing aligned new-expression with the non-aligned operator delete.
 #if __cpp_aligned_new >= 201606L
-#if defined(_MSC_VER) && !defined(__clang__)
-#define YK_POLYFILL_DETAIL_MOF_PLAIN_NEW_MAX_ALIGNMENT __STDCPP_DEFAULT_NEW_ALIGNMENT__
-#endif
+#  if defined(_MSC_VER) && !defined(__clang__)
+#    define YK_POLYFILL_DETAIL_MOF_PLAIN_NEW_MAX_ALIGNMENT __STDCPP_DEFAULT_NEW_ALIGNMENT__
+#  endif
 #else
-#define YK_POLYFILL_DETAIL_MOF_PLAIN_NEW_MAX_ALIGNMENT alignof(std::max_align_t)
+#  define YK_POLYFILL_DETAIL_MOF_PLAIN_NEW_MAX_ALIGNMENT alignof(std::max_align_t)
 #endif
 
 template<class T>
@@ -217,30 +217,30 @@ constexpr bool mof_is_null(T const&) noexcept
 
 #if __cpp_noexcept_function_type >= 201510L
 
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
-#include "yk/polyfill/bits/function_wrapper/move_only_function.ipp"
+#  define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
+#  include "yk/polyfill/bits/function_wrapper/move_only_function.ipp"
 
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_CONST
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
-#include "yk/polyfill/bits/function_wrapper/move_only_function.ipp"
+#  define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_CONST
+#  define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
+#  include "yk/polyfill/bits/function_wrapper/move_only_function.ipp"
 
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_LVALUE_REF
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
-#include "yk/polyfill/bits/function_wrapper/move_only_function.ipp"
+#  define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_LVALUE_REF
+#  define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
+#  include "yk/polyfill/bits/function_wrapper/move_only_function.ipp"
 
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_CONST
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_LVALUE_REF
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
-#include "yk/polyfill/bits/function_wrapper/move_only_function.ipp"
+#  define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_CONST
+#  define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_LVALUE_REF
+#  define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
+#  include "yk/polyfill/bits/function_wrapper/move_only_function.ipp"
 
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_RVALUE_REF
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
-#include "yk/polyfill/bits/function_wrapper/move_only_function.ipp"
+#  define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_RVALUE_REF
+#  define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
+#  include "yk/polyfill/bits/function_wrapper/move_only_function.ipp"
 
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_CONST
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_RVALUE_REF
-#define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
-#include "yk/polyfill/bits/function_wrapper/move_only_function.ipp"
+#  define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_CONST
+#  define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_RVALUE_REF
+#  define YK_POLYFILL_BITS_FUNCTION_WRAPPER_APPLY_NOEXCEPT
+#  include "yk/polyfill/bits/function_wrapper/move_only_function.ipp"
 
 #endif
 
