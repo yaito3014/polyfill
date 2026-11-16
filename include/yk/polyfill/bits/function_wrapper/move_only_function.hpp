@@ -47,10 +47,11 @@ struct mof_is_local
 template<class VT>
 struct mof_is_extended_aligned
 #if __cpp_aligned_new >= 201606L
-    : false_type {
+    : false_type
 #else
-    : bool_constant<(alignof(VT) > alignof(std::max_align_t))> {
+    : bool_constant<(alignof(VT) > alignof(std::max_align_t))>
 #endif
+{
 };
 
 template<class T>
@@ -63,7 +64,7 @@ T* mof_launder(T* p) noexcept
 #endif
 }
 
-// mof_global_new<T>(args...) is ::new T(args...), and mof_global_delete(p) is ::delete p.
+// mof_global_new_delete<T>::create(args...) is ::new T(args...), and destroy(p) is ::delete p.
 //
 // They work around MSVC (observed on 19.44 to 19.52), which frees the memory of a global-qualified new-expression
 // of a type with new-extended alignment whose initialization throws with the non-aligned
@@ -77,60 +78,50 @@ T* mof_launder(T* p) noexcept
 #endif
 
 template<class T>
-struct mof_needs_aligned_new_workaround
+struct mof_needs_msvc_aligned_new_workaround
 #if YK_POLYFILL_DETAIL_MOF_MSVC_ALIGNED_NEW_WORKAROUND
-    : bool_constant<(alignof(T) > __STDCPP_DEFAULT_NEW_ALIGNMENT__)> {
+    : bool_constant<(alignof(T) > __STDCPP_DEFAULT_NEW_ALIGNMENT__)>
 #else
-    : false_type {
+    : false_type
 #endif
+{
 };
 
-template<class T, class... Args>
-T* mof_global_new_impl(false_type, Args&&... args)
-{
-  return ::new T(std::forward<Args>(args)...);
-}
+template<class T, bool = mof_needs_msvc_aligned_new_workaround<T>::value>
+struct mof_global_new_delete {
+  template<class... Args>
+  static T* create(Args&&... args)
+  {
+    return ::new T(std::forward<Args>(args)...);
+  }
 
-template<class T>
-void mof_global_delete_impl(false_type, T* p) noexcept
-{
-  ::delete p;
-}
+  static void destroy(T* p) noexcept { ::delete p; }
+};
 
 #if YK_POLYFILL_DETAIL_MOF_MSVC_ALIGNED_NEW_WORKAROUND
-template<class T, class... Args>
-T* mof_global_new_impl(true_type, Args&&... args)
-{
-  void* const p = ::operator new(sizeof(T), std::align_val_t{alignof(T)});
-  try {
-    return ::new (p) T(std::forward<Args>(args)...);
-  } catch (...) {
-    ::operator delete(p, std::align_val_t{alignof(T)});
-    throw;
-  }
-}
-
 template<class T>
-void mof_global_delete_impl(true_type, T* p) noexcept
-{
-  p->~T();
-  ::operator delete(p, sizeof(T), std::align_val_t{alignof(T)});
-}
+struct mof_global_new_delete<T, /* needs_msvc_aligned_new_workaround = */ true> {
+  template<class... Args>
+  static T* create(Args&&... args)
+  {
+    void* const p = ::operator new(sizeof(T), std::align_val_t{alignof(T)});
+    try {
+      return ::new (p) T(std::forward<Args>(args)...);
+    } catch (...) {
+      ::operator delete(p, std::align_val_t{alignof(T)});
+      throw;
+    }
+  }
+
+  static void destroy(T* p) noexcept
+  {
+    p->~T();
+    ::operator delete(p, sizeof(T), std::align_val_t{alignof(T)});
+  }
+};
 #endif
 
 #undef YK_POLYFILL_DETAIL_MOF_MSVC_ALIGNED_NEW_WORKAROUND
-
-template<class T, class... Args>
-T* mof_global_new(Args&&... args)
-{
-  return mof_global_new_impl<T>(mof_needs_aligned_new_workaround<T>{}, std::forward<Args>(args)...);
-}
-
-template<class T>
-void mof_global_delete(T* p) noexcept
-{
-  mof_global_delete_impl(mof_needs_aligned_new_workaround<T>{}, p);
-}
 
 // Creates, accesses, and relocates or destroys a target object of type VT held in mof_storage.
 // manage(src, dst) relocates the target into *dst if dst is non-null, otherwise destroys it.
@@ -146,7 +137,7 @@ struct mof_holder {
   template<class... Args>
   static void create(mof_storage& storage, Args&&... args)
   {
-    storage.obj = mof_global_new<VT>(std::forward<Args>(args)...);
+    storage.obj = mof_global_new_delete<VT>::create(std::forward<Args>(args)...);
   }
 
   static VT& get(mof_storage const& storage) noexcept { return *static_cast<VT*>(storage.obj); }
@@ -156,7 +147,7 @@ struct mof_holder {
     if (dst) {
       dst->obj = src.obj;
     } else {
-      mof_global_delete(static_cast<VT*>(src.obj));
+      mof_global_new_delete<VT>::destroy(static_cast<VT*>(src.obj));
     }
   }
 };
