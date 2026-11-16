@@ -184,6 +184,12 @@ TEST_CASE("move_only_function: empty states")
     pf::move_only_function<int(int)> const f(std::move(empty));
     CHECK_FALSE(f);
   }
+  {
+    // so does an empty copyable_function
+    pf::copyable_function<int(int) const> empty;
+    pf::move_only_function<int(int)> const f(std::move(empty));
+    CHECK_FALSE(f);
+  }
 
   STATIC_REQUIRE(std::is_nothrow_default_constructible<pf::move_only_function<void()>>::value);
   STATIC_REQUIRE(std::is_nothrow_constructible<pf::move_only_function<void()>, std::nullptr_t>::value);

@@ -10,6 +10,7 @@ target_sources(
         variant.cpp
         function_ref.cpp
         move_only_function.cpp
+        copyable_function.cpp
         expected.cpp
         unique_ptr.cpp
         loose_swap.cpp

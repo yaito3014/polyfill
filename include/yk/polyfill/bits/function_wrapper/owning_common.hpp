@@ -21,7 +21,12 @@ namespace polyfill {
 template<class Signature>
 class move_only_function;
 
+template<class Signature>
+class copyable_function;
+
 namespace detail {
+
+enum class owning_op { relocate, copy, destroy };
 
 union owning_storage {
   void* obj;
@@ -135,6 +140,8 @@ struct owning_holder {
   static void relocate(owning_storage& src, owning_storage& dst) noexcept { dst.obj = src.obj; }
 
   static void destroy(owning_storage& storage) noexcept { owning_global_new_delete<VT>::destroy(static_cast<VT*>(storage.obj)); }
+
+  static void copy(owning_storage const& src, owning_storage& dst) { create(dst, static_cast<VT const&>(get(src))); }
 };
 
 template<class VT>
@@ -155,10 +162,16 @@ struct owning_holder<VT, /* is_local = */ true> {
   }
 
   static void destroy(owning_storage& storage) noexcept { get(storage).~VT(); }
+
+  static void copy(owning_storage const& src, owning_storage& dst) { create(dst, static_cast<VT const&>(get(src))); }
 };
 
-// [func.wrap.move.ctor] leaves *this with no target object for a null (member) pointer
-// or an empty move_only_function.
+// [func.wrap.move.ctor] and [func.wrap.copy.ctor] leave *this with no target object for a null (member) pointer or an
+// empty move_only_function or copyable_function.
+
+template<class T>
+struct owning_is_wrapper
+    : bool_constant<extension::is_specialization_of<T, move_only_function>::value || extension::is_specialization_of<T, copyable_function>::value> {};
 
 template<class T, typename std::enable_if<std::is_pointer<T>::value || std::is_member_pointer<T>::value, std::nullptr_t>::type = nullptr>
 constexpr bool owning_is_null(T const& f) noexcept
@@ -166,16 +179,15 @@ constexpr bool owning_is_null(T const& f) noexcept
   return f == nullptr;
 }
 
-template<class T, typename std::enable_if<extension::is_specialization_of<T, move_only_function>::value, std::nullptr_t>::type = nullptr>
+template<class T, typename std::enable_if<owning_is_wrapper<T>::value, std::nullptr_t>::type = nullptr>
 bool owning_is_null(T const& f) noexcept
 {
   return !f;
 }
 
 template<
-    class T, typename std::enable_if<
-                 !(std::is_pointer<T>::value || std::is_member_pointer<T>::value || extension::is_specialization_of<T, move_only_function>::value),
-                 std::nullptr_t>::type = nullptr>
+    class T,
+    typename std::enable_if<!(std::is_pointer<T>::value || std::is_member_pointer<T>::value || owning_is_wrapper<T>::value), std::nullptr_t>::type = nullptr>
 constexpr bool owning_is_null(T const&) noexcept
 {
   return false;
