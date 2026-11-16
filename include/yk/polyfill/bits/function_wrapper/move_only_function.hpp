@@ -6,6 +6,7 @@
 #include <yk/polyfill/bits/core_traits.hpp>
 #include <yk/polyfill/bits/invoke.hpp>
 #include <yk/polyfill/extension/specialization_of.hpp>
+#include <yk/polyfill/new.hpp>
 #include <yk/polyfill/utility.hpp>  // in_place_type_t
 
 #include <functional>
@@ -36,16 +37,6 @@ union mof_storage {
 template<class VT>
 struct mof_is_local
     : bool_constant<sizeof(VT) <= sizeof(mof_storage) && alignof(mof_storage) % alignof(VT) == 0 && std::is_nothrow_move_constructible<VT>::value> {};
-
-template<class T>
-T* mof_launder(T* p) noexcept
-{
-#if __cpp_lib_launder >= 201606L
-  return std::launder(p);
-#else
-  return p;
-#endif
-}
 
 // ::new T(args...) and ::delete p, except for over-aligned T: before C++17 ::new cannot align it, and MSVC frees a
 // throwing aligned new-expression with the non-aligned operator delete.
@@ -163,7 +154,7 @@ struct mof_holder<VT, /* is_local = */ true> {
     ::new (static_cast<void*>(storage.buf)) VT(std::forward<Args>(args)...);
   }
 
-  static VT& get(mof_storage const& storage) noexcept { return *mof_launder(reinterpret_cast<VT*>(const_cast<unsigned char*>(storage.buf))); }
+  static VT& get(mof_storage const& storage) noexcept { return *polyfill::launder(reinterpret_cast<VT*>(const_cast<unsigned char*>(storage.buf))); }
 
   static void manage(mof_storage& src, mof_storage* dst) noexcept
   {
