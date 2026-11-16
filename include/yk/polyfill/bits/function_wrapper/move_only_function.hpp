@@ -46,15 +46,8 @@ T* mof_launder(T* p) noexcept
 #endif
 }
 
-// mof_global_new_delete<T>::create(args...) is ::new T(args...), and destroy(p) is ::delete p, except that for
-// some over-aligned types they allocate, construct and clean up explicitly, because ::new cannot be used as is:
-//
-// - Before C++17 aligned new (P0035R4), ::new can only call an allocation function that guarantees the fundamental
-//   alignment, so a type with extended alignment ([basic.align]) is placed by hand within a larger allocation.
-// - MSVC (observed on 19.44 to 19.52) frees the memory of a global-qualified new-expression of a type with
-//   new-extended alignment whose initialization throws with the non-aligned operator delete(void*, std::size_t),
-//   although [expr.new] and [expr.delete] select an operator delete taking std::align_val_t. clang-cl, which uses
-//   Clang's code generation, is not included.
+// ::new T(args...) and ::delete p, except for over-aligned T: before C++17 ::new cannot align it, and MSVC frees a
+// throwing aligned new-expression with the non-aligned operator delete.
 #if __cpp_aligned_new >= 201606L
 #if defined(_MSC_VER) && !defined(__clang__)
 #define YK_POLYFILL_DETAIL_MOF_PLAIN_NEW_MAX_ALIGNMENT __STDCPP_DEFAULT_NEW_ALIGNMENT__
