@@ -33,6 +33,7 @@ target_sources(
         polymorphic.cpp
         function_ref.cpp
         launder.cpp
+        move_only_function.cpp
         expected.cpp
 )
 
@@ -50,3 +51,30 @@ target_link_libraries(
 )
 
 add_test(NAME yk_polyfill_cxx11_test COMMAND yk_polyfill_cxx11_test)
+
+# Replaces the global operator new, so it is kept out of the shared test executable.
+add_executable(yk_polyfill_cxx11_allocation_test)
+
+target_sources(yk_polyfill_cxx11_allocation_test PRIVATE move_only_function_allocation.cpp)
+
+set_target_properties(yk_polyfill_cxx11_allocation_test PROPERTIES CXX_EXTENSIONS OFF)
+
+target_compile_definitions(
+    yk_polyfill_cxx11_allocation_test
+    PRIVATE YK_POLYFILL_CATCH2_MAJOR_VERSION=${YK_POLYFILL_CATCH2_MAJOR_VERSION}
+)
+
+target_compile_features(yk_polyfill_cxx11_allocation_test PRIVATE cxx_std_11)
+target_link_libraries(
+    yk_polyfill_cxx11_allocation_test
+    PRIVATE yk::polyfill Catch2::Catch2WithMain
+)
+
+# The replaced allocation functions update global counters, which GCC by default assumes they do not.
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag(-fno-assume-sane-operators-new-delete YK_POLYFILL_HAVE_FNO_ASSUME_SANE_OPERATORS_NEW_DELETE)
+if(YK_POLYFILL_HAVE_FNO_ASSUME_SANE_OPERATORS_NEW_DELETE)
+    target_compile_options(yk_polyfill_cxx11_allocation_test PRIVATE -fno-assume-sane-operators-new-delete)
+endif()
+
+add_test(NAME yk_polyfill_cxx11_allocation_test COMMAND yk_polyfill_cxx11_allocation_test)
