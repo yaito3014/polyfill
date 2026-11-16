@@ -34,6 +34,7 @@ target_sources(
         function_ref.cpp
         launder.cpp
         move_only_function.cpp
+        copyable_function.cpp
         expected.cpp
 )
 

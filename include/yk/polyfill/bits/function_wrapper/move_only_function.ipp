@@ -52,18 +52,29 @@ private:
       is_invocable_using<VT YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_INV_QUALS>>;
 
   template<class VT>
-  static R invoke_target(detail::mof_storage const& storage, Args&&... args) YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_NOEXCEPT
+  static R invoke_target(detail::owning_storage const& storage, Args&&... args) YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_NOEXCEPT
   {
-    auto&& f = detail::mof_holder<VT>::get(storage);
+    auto&& f = detail::owning_holder<VT>::get(storage);
     return polyfill::invoke_r<R>(static_cast<VT YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_INV_QUALS>(f), std::forward<Args>(args)...);
+  }
+
+  // manage_(src, dst) relocates the target into *dst if dst is non-null, otherwise destroys it.
+  template<class VT>
+  static void manage_target(detail::owning_storage& src, detail::owning_storage* dst) noexcept
+  {
+    if (dst) {
+      detail::owning_holder<VT>::relocate(src, *dst);
+    } else {
+      detail::owning_holder<VT>::destroy(src);
+    }
   }
 
   template<class VT, class... CArgs>
   void construct_target(CArgs&&... args)
   {
-    detail::mof_holder<VT>::create(storage_, std::forward<CArgs>(args)...);
+    detail::owning_holder<VT>::create(storage_, std::forward<CArgs>(args)...);
     invoke_ = &invoke_target<VT>;
-    manage_ = &detail::mof_holder<VT>::manage;
+    manage_ = &manage_target<VT>;
   }
 
   // Moves the target object of other, if any, into *this, which has none, leaving other with none.
@@ -93,13 +104,15 @@ public:
   move_only_function(F&& f)
   {
     static_assert(std::is_constructible<VT, F>::value, "[func.wrap.move.ctor] mandates is_constructible_v<VT, F>");
-    if (detail::mof_is_null<typename remove_cvref<F>::type>(f)) return;
+    if (detail::owning_is_null<typename remove_cvref<F>::type>(f)) return;
     construct_target<VT>(std::forward<F>(f));
   }
 
+  // Not conjunction<..., is_callable_from<VT>>: MSVC (19.44 to 19.52) then fails deduction in whichever of
+  // move_only_function and copyable_function is declared second, as both declare this member alias.
   template<
       class T, class... CArgs, class VT = typename std::decay<T>::type,
-      typename std::enable_if<conjunction<std::is_constructible<VT, CArgs...>, is_callable_from<VT>>::value, std::nullptr_t>::type = nullptr>
+      typename std::enable_if<std::is_constructible<VT, CArgs...>::value && is_callable_from<VT>::value, std::nullptr_t>::type = nullptr>
   explicit move_only_function(in_place_type_t<T>, CArgs&&... args)
   {
     static_assert(std::is_same<VT, T>::value, "[func.wrap.move.ctor] mandates that VT is the same type as T");
@@ -108,7 +121,7 @@ public:
 
   template<
       class T, class U, class... CArgs, class VT = typename std::decay<T>::type,
-      typename std::enable_if<conjunction<std::is_constructible<VT, std::initializer_list<U>&, CArgs...>, is_callable_from<VT>>::value, std::nullptr_t>::type =
+      typename std::enable_if<std::is_constructible<VT, std::initializer_list<U>&, CArgs...>::value && is_callable_from<VT>::value, std::nullptr_t>::type =
           nullptr>
   explicit move_only_function(in_place_type_t<T>, std::initializer_list<U> ilist, CArgs&&... args)
   {
@@ -170,9 +183,9 @@ public:
 #  endif
 
 private:
-  detail::mof_storage storage_ = {nullptr};
-  R (*invoke_)(detail::mof_storage const&, Args&&...) YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_NOEXCEPT = nullptr;
-  void (*manage_)(detail::mof_storage&, detail::mof_storage*) noexcept = nullptr;
+  detail::owning_storage storage_ = {nullptr};
+  R (*invoke_)(detail::owning_storage const&, Args&&...) YK_POLYFILL_BITS_FUNCTION_WRAPPER_MOF_NOEXCEPT = nullptr;
+  void (*manage_)(detail::owning_storage&, detail::owning_storage*) noexcept = nullptr;
 };
 
 }  // namespace polyfill

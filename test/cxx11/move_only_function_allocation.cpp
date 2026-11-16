@@ -178,12 +178,52 @@ TEST_CASE("move_only_function: function pointers and reference_wrapper are store
 
 TEST_CASE("move_only_function: the allocation is released when constructing the target throws")
 {
-  // Covers the explicit allocation paths of mof_global_new_delete.
+  // Covers the explicit allocation paths of owning_global_new_delete.
   std::size_t const allocations_before = allocation_count;
   std::size_t const deallocations_before = deallocation_count;
   bool threw = false;
   try {
     pf::move_only_function<void()> const f(pf::in_place_type_t<ThrowingExtendedAligned>{}, 0);
+  } catch (int) {
+    threw = true;
+  }
+  std::size_t const allocations = allocation_count - allocations_before;
+  std::size_t const deallocations = deallocation_count - deallocations_before;
+  CHECK(threw);
+  CHECK(deallocations == allocations);
+}
+
+TEST_CASE("copyable_function: function pointers and reference_wrapper are stored without allocation")
+{
+  {
+    std::size_t const before = allocation_count;
+    pf::copyable_function<int(int)> f = doubles;
+    pf::copyable_function<int(int)> g(f);
+    f = g;
+    f.swap(g);
+    std::size_t const after = allocation_count;
+    CHECK(after == before);
+    CHECK(g(21) == 42);
+  }
+  {
+    Counter c;
+    std::size_t const before = allocation_count;
+    pf::copyable_function<int()> f = std::ref(c);
+    pf::copyable_function<int()> g(f);
+    std::size_t const after = allocation_count;
+    CHECK(after == before);
+    CHECK(f() == 1);
+    CHECK(g() == 2);
+  }
+}
+
+TEST_CASE("copyable_function: the allocation is released when constructing the target throws")
+{
+  std::size_t const allocations_before = allocation_count;
+  std::size_t const deallocations_before = deallocation_count;
+  bool threw = false;
+  try {
+    pf::copyable_function<void()> const f(pf::in_place_type_t<ThrowingExtendedAligned>{}, 0);
   } catch (int) {
     threw = true;
   }
