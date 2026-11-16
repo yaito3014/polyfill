@@ -108,9 +108,11 @@ public:
     construct_target<VT>(std::forward<F>(f));
   }
 
+  // Not conjunction<..., is_callable_from<VT>>: MSVC (19.44 to 19.52) then fails deduction in whichever of
+  // move_only_function and copyable_function is declared second, as both declare this member alias.
   template<
       class T, class... CArgs, class VT = typename std::decay<T>::type,
-      typename std::enable_if<conjunction<std::is_constructible<VT, CArgs...>, is_callable_from<VT>>::value, std::nullptr_t>::type = nullptr>
+      typename std::enable_if<std::is_constructible<VT, CArgs...>::value && is_callable_from<VT>::value, std::nullptr_t>::type = nullptr>
   explicit move_only_function(in_place_type_t<T>, CArgs&&... args)
   {
     static_assert(std::is_same<VT, T>::value, "[func.wrap.move.ctor] mandates that VT is the same type as T");
@@ -119,7 +121,7 @@ public:
 
   template<
       class T, class U, class... CArgs, class VT = typename std::decay<T>::type,
-      typename std::enable_if<conjunction<std::is_constructible<VT, std::initializer_list<U>&, CArgs...>, is_callable_from<VT>>::value, std::nullptr_t>::type =
+      typename std::enable_if<std::is_constructible<VT, std::initializer_list<U>&, CArgs...>::value && is_callable_from<VT>::value, std::nullptr_t>::type =
           nullptr>
   explicit move_only_function(in_place_type_t<T>, std::initializer_list<U> ilist, CArgs&&... args)
   {
