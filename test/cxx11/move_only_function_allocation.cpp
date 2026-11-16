@@ -178,7 +178,7 @@ TEST_CASE("move_only_function: function pointers and reference_wrapper are store
 
 TEST_CASE("move_only_function: the allocation is released when constructing the target throws")
 {
-  // Covers the explicit allocation paths of mof_global_new_delete.
+  // Covers the explicit allocation paths of owning_global_new_delete.
   std::size_t const allocations_before = allocation_count;
   std::size_t const deallocations_before = deallocation_count;
   bool threw = false;
