@@ -69,6 +69,9 @@ jobs:
           - compiler:
               name: MSVC
             cxx-version: 11
+          - compiler:
+              name: MSVC
+            cxx-version: 26
     name: C++${{ matrix.cxx-version }} ${{ matrix.build-type }} (${{ matrix.compiler.name }}${{ matrix.compiler.stdlib && format(' {0}', matrix.compiler.stdlib) || '' }} ${{ matrix.compiler.version }} on ${{ matrix.os.name }})
     runs-on: ${{ matrix.os.name }}-${{ matrix.os.version }}
     steps:
