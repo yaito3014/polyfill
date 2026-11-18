@@ -26,6 +26,12 @@ struct integral_constant {
   [[nodiscard]] constexpr value_type operator()() const noexcept { return value; }
 };
 
+#if !(__cpp_inline_variables >= 201606L)
+// Before C++17, an odr-used static constexpr data member needs a definition at namespace scope.
+template<class T, T X>
+constexpr T integral_constant<T, X>::value;
+#endif
+
 template<bool X>
 using bool_constant = integral_constant<bool, X>;
 

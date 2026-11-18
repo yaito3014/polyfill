@@ -6,6 +6,7 @@
 
 #include <yk/polyfill/extension/invocable_traits.hpp>
 
+#include <cstddef>
 #include <tuple>
 #include <type_traits>
 
@@ -66,4 +67,19 @@ TEST_CASE("invocable_traits member object pointer")
   using T = ext::invocable_traits<int S::*>;
   STATIC_REQUIRE(std::is_same<T::class_type, S>::value);
   STATIC_REQUIRE(std::is_same<T::member_type, int>::value);
+}
+
+TEST_CASE("invocable_traits members can be odr-used")
+{
+  // Taking the address odr-uses a member, which needs a definition at namespace scope before C++17.
+  using T = ext::invocable_traits<int (S::*)(double, ...) const&&>;
+  std::size_t const* volatile arity = &T::arity;
+  CHECK(*arity == 1);
+  bool const* volatile flags[] = {&T::is_const, &T::is_volatile, &T::is_lvalue_reference, &T::is_rvalue_reference, &T::is_noexcept, &T::is_variadic};
+  CHECK(*flags[0]);
+  CHECK_FALSE(*flags[1]);
+  CHECK_FALSE(*flags[2]);
+  CHECK(*flags[3]);
+  CHECK_FALSE(*flags[4]);
+  CHECK(*flags[5]);
 }

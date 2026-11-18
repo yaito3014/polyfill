@@ -52,6 +52,24 @@ struct invocable_traits_function {
   using function_type = typename invocable_function_type<R, IsNoexcept, IsVariadic, Args...>::type;
 };
 
+#if !(__cpp_inline_variables >= 201606L)
+// Before C++17, an odr-used static constexpr data member needs a definition at namespace scope.
+template<class R, bool IsConst, bool IsVolatile, bool IsLvalueRef, bool IsRvalueRef, bool IsNoexcept, bool IsVariadic, class... Args>
+constexpr std::size_t invocable_traits_function<R, IsConst, IsVolatile, IsLvalueRef, IsRvalueRef, IsNoexcept, IsVariadic, Args...>::arity;
+template<class R, bool IsConst, bool IsVolatile, bool IsLvalueRef, bool IsRvalueRef, bool IsNoexcept, bool IsVariadic, class... Args>
+constexpr bool invocable_traits_function<R, IsConst, IsVolatile, IsLvalueRef, IsRvalueRef, IsNoexcept, IsVariadic, Args...>::is_const;
+template<class R, bool IsConst, bool IsVolatile, bool IsLvalueRef, bool IsRvalueRef, bool IsNoexcept, bool IsVariadic, class... Args>
+constexpr bool invocable_traits_function<R, IsConst, IsVolatile, IsLvalueRef, IsRvalueRef, IsNoexcept, IsVariadic, Args...>::is_volatile;
+template<class R, bool IsConst, bool IsVolatile, bool IsLvalueRef, bool IsRvalueRef, bool IsNoexcept, bool IsVariadic, class... Args>
+constexpr bool invocable_traits_function<R, IsConst, IsVolatile, IsLvalueRef, IsRvalueRef, IsNoexcept, IsVariadic, Args...>::is_lvalue_reference;
+template<class R, bool IsConst, bool IsVolatile, bool IsLvalueRef, bool IsRvalueRef, bool IsNoexcept, bool IsVariadic, class... Args>
+constexpr bool invocable_traits_function<R, IsConst, IsVolatile, IsLvalueRef, IsRvalueRef, IsNoexcept, IsVariadic, Args...>::is_rvalue_reference;
+template<class R, bool IsConst, bool IsVolatile, bool IsLvalueRef, bool IsRvalueRef, bool IsNoexcept, bool IsVariadic, class... Args>
+constexpr bool invocable_traits_function<R, IsConst, IsVolatile, IsLvalueRef, IsRvalueRef, IsNoexcept, IsVariadic, Args...>::is_noexcept;
+template<class R, bool IsConst, bool IsVolatile, bool IsLvalueRef, bool IsRvalueRef, bool IsNoexcept, bool IsVariadic, class... Args>
+constexpr bool invocable_traits_function<R, IsConst, IsVolatile, IsLvalueRef, IsRvalueRef, IsNoexcept, IsVariadic, Args...>::is_variadic;
+#endif
+
 template<class R, class C, bool IsConst, bool IsVolatile, bool IsLvalueRef, bool IsRvalueRef, bool IsNoexcept, bool IsVariadic, class... Args>
 struct invocable_traits_memfn : invocable_traits_function<R, IsConst, IsVolatile, IsLvalueRef, IsRvalueRef, IsNoexcept, IsVariadic, Args...> {
   using class_type = C;
