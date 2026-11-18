@@ -538,7 +538,7 @@ public:
     using U = typename invoke_result<F, decltype(**this)>::type;
     static_assert(detail::is_optional<typename remove_cvref<U>::type>::value, "result type of F must be specialization of optional");
     if (has_value()) {
-      return invoke(std::forward<F>(f), **this);
+      return polyfill::invoke(std::forward<F>(f), **this);
     } else {
       return nullopt;
     }
@@ -551,7 +551,7 @@ public:
     using U = typename invoke_result<F, decltype(**this)>::type;
     static_assert(detail::is_optional<typename remove_cvref<U>::type>::value, "result type of F must be specialization of optional");
     if (has_value()) {
-      return invoke(std::forward<F>(f), **this);
+      return polyfill::invoke(std::forward<F>(f), **this);
     } else {
       return nullopt;
     }
@@ -564,7 +564,7 @@ public:
     using U = typename invoke_result<F, decltype(std::move(**this))>::type;
     static_assert(detail::is_optional<typename remove_cvref<U>::type>::value, "result type of F must be specialization of optional");
     if (has_value()) {
-      return invoke(std::forward<F>(f), std::move(**this));
+      return polyfill::invoke(std::forward<F>(f), std::move(**this));
     } else {
       return nullopt;
     }
@@ -577,7 +577,7 @@ public:
     using U = typename invoke_result<F, decltype(std::move(**this))>::type;
     static_assert(detail::is_optional<typename remove_cvref<U>::type>::value, "result type of F must be specialization of optional");
     if (has_value()) {
-      return invoke(std::forward<F>(f), std::move(**this));
+      return polyfill::invoke(std::forward<F>(f), std::move(**this));
     } else {
       return nullopt;
     }
@@ -590,7 +590,7 @@ public:
     using U = typename std::remove_cv<typename invoke_result<F, decltype(**this)>::type>::type;
     static_assert(std::is_constructible<U, typename invoke_result<F, decltype(**this)>::type>::value, "result type of F must be copy/move constructible");
     if (has_value()) {
-      return optional<U>(invoke(std::forward<F>(f), **this));
+      return optional<U>(polyfill::invoke(std::forward<F>(f), **this));
     } else {
       return nullopt;
     }
@@ -603,7 +603,7 @@ public:
     using U = typename std::remove_cv<typename invoke_result<F, decltype(**this)>::type>::type;
     static_assert(std::is_constructible<U, typename invoke_result<F, decltype(**this)>::type>::value, "result type of F must be copy/move constructible");
     if (has_value()) {
-      return optional<U>(invoke(std::forward<F>(f), **this));
+      return optional<U>(polyfill::invoke(std::forward<F>(f), **this));
     } else {
       return nullopt;
     }
@@ -618,7 +618,7 @@ public:
         std::is_constructible<U, typename invoke_result<F, decltype(std::move(**this))>::type>::value, "result type of F must be copy/move constructible"
     );
     if (has_value()) {
-      return optional<U>(invoke(std::forward<F>(f), std::move(**this)));
+      return optional<U>(polyfill::invoke(std::forward<F>(f), std::move(**this)));
     } else {
       return nullopt;
     }
@@ -633,7 +633,7 @@ public:
         std::is_constructible<U, typename invoke_result<F, decltype(std::move(**this))>::type>::value, "result type of F must be copy/move constructible"
     );
     if (has_value()) {
-      return optional<U>(invoke(std::forward<F>(f), std::move(**this)));
+      return optional<U>(polyfill::invoke(std::forward<F>(f), std::move(**this)));
     } else {
       return nullopt;
     }
@@ -646,7 +646,7 @@ public:
     if (has_value()) {
       return *this;
     } else {
-      return invoke(std::forward<F>(f));
+      return polyfill::invoke(std::forward<F>(f));
     }
   }
 
@@ -657,7 +657,7 @@ public:
     if (has_value()) {
       return std::move(*this);
     } else {
-      return invoke(std::forward<F>(f));
+      return polyfill::invoke(std::forward<F>(f));
     }
   }
 
@@ -845,7 +845,7 @@ public:
     using U = typename invoke_result<F, T&>::type;
     static_assert(detail::is_optional<typename remove_cvref<U>::type>::value, "result of F must be specialization of optional");
     if (has_value()) {
-      return invoke(std::forward<F>(f), **this);
+      return polyfill::invoke(std::forward<F>(f), **this);
     } else {
       return nullopt;
     }
@@ -858,7 +858,7 @@ public:
     using U = typename std::remove_cv<typename invoke_result<F, T&>::type>::type;
     static_assert(std::is_constructible<U, typename invoke_result<F, T&>::type>::value, "result type of F must be copy/move constructible");
     if (has_value()) {
-      return optional<U>(invoke(std::forward<F>(f), **this));
+      return optional<U>(polyfill::invoke(std::forward<F>(f), **this));
     } else {
       return nullopt;
     }
@@ -873,7 +873,7 @@ public:
     if (has_value()) {
       return *this;
     } else {
-      return invoke(std::forward<F>(f));
+      return polyfill::invoke(std::forward<F>(f));
     }
   }
 
