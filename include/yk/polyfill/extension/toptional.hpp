@@ -19,7 +19,7 @@
 #include <type_traits>
 #include <utility>
 
-#if __cplusplus >= 202002L
+#if YK_POLYFILL_CXX_VERSION >= 202002L
 #  include <compare>
 #endif
 
@@ -121,7 +121,7 @@ public:
 
   friend constexpr bool operator>=(toptional_iterator const& a, toptional_iterator const& b) noexcept { return a.ptr_ >= b.ptr_; }
 
-#if __cplusplus >= 202002L
+#if YK_POLYFILL_CXX_VERSION >= 202002L
   friend constexpr std::strong_ordering operator<=>(toptional_iterator const& a, toptional_iterator const& b) noexcept { return a.ptr_ <=> b.ptr_; }
 #endif
 
@@ -825,7 +825,7 @@ constexpr bool operator>=(T const& t, toptional<U, UTraits> const& opt) noexcept
   return opt.has_value() ? t >= *opt : true;
 }
 
-#if __cplusplus >= 202002L
+#if YK_POLYFILL_CXX_VERSION >= 202002L
 
 // Three-way comparison between toptional objects
 template<class T, class TTraits, class U, class UTraits>

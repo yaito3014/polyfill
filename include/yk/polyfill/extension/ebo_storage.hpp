@@ -17,7 +17,7 @@ namespace extension {
 template<class T>
 struct can_ebo : std::integral_constant<
                      bool, std::is_empty<T>::value
-#if __cplusplus >= 201402L
+#if YK_POLYFILL_CXX_VERSION >= 201402L
                                && !std::is_final<T>::value
 #endif
                      > {

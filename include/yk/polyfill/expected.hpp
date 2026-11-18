@@ -134,7 +134,7 @@ public:
     return lhs.error() == rhs.error();
   }
 
-#if __cplusplus < 202002L
+#if YK_POLYFILL_CXX_VERSION < 202002L
   template<class E2>
   friend constexpr bool operator!=(unexpected const& lhs, unexpected<E2> const& rhs) noexcept(noexcept(!(lhs == rhs)))
   {
@@ -1250,7 +1250,7 @@ YK_POLYFILL_CXX14_CONSTEXPR
   return !lhs.has_value() && static_cast<bool>(lhs.error() == rhs.error());
 }
 
-#if __cplusplus < 202002L
+#if YK_POLYFILL_CXX_VERSION < 202002L
 
 template<class T1, class E1, class T2, class E2>
 YK_POLYFILL_CXX14_CONSTEXPR typename std::enable_if<

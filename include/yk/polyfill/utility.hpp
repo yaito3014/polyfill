@@ -135,7 +135,7 @@ void as_const(T const&&) = delete;
 
 // constant_wrapper core requires C++17 (auto NTTP); richer pieces are gated on newer
 // features individually (concepts, three-way comparison, explicit object parameters).
-#if __cplusplus >= 201703L
+#if YK_POLYFILL_CXX_VERSION >= 201703L
 
 template<auto X, class = decltype(X)>
 struct constant_wrapper;
@@ -310,7 +310,7 @@ struct constant_wrapper : public xo::cw_operators {
   static_assert(std::is_same<T, value_type>::value, "constant_wrapper's second template argument must be its value_type");
 
   // Uses a lambda in a template-argument to compute the assigned value, so it requires C++20.
-#  if __cplusplus >= 202002L
+#  if YK_POLYFILL_CXX_VERSION >= 202002L
   template<xo::constexpr_param R>
   [[nodiscard]] constexpr auto operator=(R) const noexcept
     requires requires(value_type x) { x = R::value; }

@@ -3,6 +3,8 @@
 
 #include "yk/polyfill/bits/function_wrapper/common.hpp"
 
+#include <yk/polyfill/config.hpp>
+
 #include <yk/polyfill/extension/invocable_traits.hpp>
 #include <yk/polyfill/utility.hpp>  // constant_wrapper
 
@@ -18,7 +20,7 @@ namespace detail {
 template<class T>
 struct is_specialization_of_constant_wrapper : false_type {};
 
-#if __cplusplus >= 201703L
+#if YK_POLYFILL_CXX_VERSION >= 201703L
 template<auto X, class C>
 struct is_specialization_of_constant_wrapper<constant_wrapper<X, C>> : true_type {};
 
@@ -199,7 +201,7 @@ namespace polyfill {
 template<class F, typename std::enable_if<std::is_function<F>::value, std::nullptr_t>::type = nullptr>
 function_ref(F*) -> function_ref<F>;
 
-#  if __cplusplus >= 201703L
+#  if YK_POLYFILL_CXX_VERSION >= 201703L
 template<auto c, class F0, typename std::enable_if<std::is_function<typename std::remove_pointer<F0>::type>::value, std::nullptr_t>::type = nullptr>
 function_ref(constant_wrapper<c, F0>) -> function_ref<typename std::remove_pointer<F0>::type>;
 

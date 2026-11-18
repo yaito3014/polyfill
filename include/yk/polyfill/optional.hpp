@@ -20,7 +20,7 @@
 #include <type_traits>
 #include <utility>
 
-#if __cplusplus >= 202002L
+#if YK_POLYFILL_CXX_VERSION >= 202002L
 #  include <compare>
 #endif
 
@@ -114,7 +114,7 @@ public:
 
   friend constexpr bool operator>=(optional_iterator const& a, optional_iterator const& b) noexcept { return a.ptr_ >= b.ptr_; }
 
-#if __cplusplus >= 202002L
+#if YK_POLYFILL_CXX_VERSION >= 202002L
   friend constexpr std::strong_ordering operator<=>(optional_iterator const& a, optional_iterator const& b) noexcept { return a.ptr_ <=> b.ptr_; }
 #endif
 
@@ -288,7 +288,7 @@ struct allow_unwrapping_assignment {
       std::is_assignable<T&, optional<U> const&>, std::is_assignable<T&, optional<U> const&&>>::value;
 };
 
-#if __cplusplus >= 202002L
+#if YK_POLYFILL_CXX_VERSION >= 202002L
 
 template<class T>
 concept is_derived_from_optional = requires(T const& t) { []<class U>(optional<U> const&) {}(t); };
@@ -1154,7 +1154,7 @@ constexpr bool operator>=(T const& t, optional<U> const& opt) noexcept(noexcept(
   return opt.has_value() ? t >= *opt : true;
 }
 
-#if __cplusplus >= 202002L
+#if YK_POLYFILL_CXX_VERSION >= 202002L
 
 // Three-way comparison between optional objects
 template<class T, class U>

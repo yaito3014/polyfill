@@ -77,7 +77,7 @@ public:
   {
   }
 
-#  if __cplusplus >= 201703L
+#  if YK_POLYFILL_CXX_VERSION >= 201703L
   // Bind a compile-time constant callable (constant_wrapper<c, F>::value); no object is stored.
   template<auto c, class F, typename std::enable_if<is_invocable_using<F const&>::value, std::nullptr_t>::type = nullptr>
   constexpr function_ref(constant_wrapper<c, F>) noexcept

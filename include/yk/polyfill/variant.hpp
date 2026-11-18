@@ -21,7 +21,7 @@
 #include <cstddef>
 #include <cstdint>
 
-#if __cplusplus >= 202002L
+#if YK_POLYFILL_CXX_VERSION >= 202002L
 #  include <compare>
 #endif
 
@@ -50,7 +50,7 @@ struct variant_alternative<I, T const> : variant_alternative<I, T> {};
 template<std::size_t I, class... Ts>
 struct variant_alternative<I, variant<Ts...>> : extension::pack_indexing<I, Ts...> {};
 
-#if __cplusplus >= 201402L
+#if YK_POLYFILL_CXX_VERSION >= 201402L
 
 template<class T>
 constexpr std::size_t variant_size_v = variant_size<T>::value;
@@ -1240,7 +1240,7 @@ constexpr bool operator<=(monostate, monostate) noexcept { return true; }
 constexpr bool operator>(monostate, monostate) noexcept { return false; }
 constexpr bool operator>=(monostate, monostate) noexcept { return true; }
 
-#if __cplusplus >= 202002L
+#if YK_POLYFILL_CXX_VERSION >= 202002L
 constexpr std::strong_ordering operator<=>(monostate, monostate) noexcept { return std::strong_ordering::equal; }
 #endif
 
@@ -1342,7 +1342,7 @@ using gt_visitor = cmp_visitor<gt_operation, false, Ts...>;
 template<class... Ts>
 using ge_visitor = cmp_visitor<ge_operation, true, Ts...>;
 
-#if __cplusplus >= 202002L
+#if YK_POLYFILL_CXX_VERSION >= 202002L
 
 template<class ResultType>
 struct three_way_operation {
@@ -1392,7 +1392,7 @@ YK_POLYFILL_CXX14_CONSTEXPR
   return lhs.raw_visit(detail::eq_visitor<Ts...>{rhs});
 }
 
-#if __cplusplus < 202002L
+#if YK_POLYFILL_CXX_VERSION < 202002L
 
 template<
     class... Ts,
@@ -1453,7 +1453,7 @@ YK_POLYFILL_CXX14_CONSTEXPR
   return lhs.raw_visit(detail::ge_visitor<Ts...>{rhs});
 }
 
-#if __cplusplus >= 202002L
+#if YK_POLYFILL_CXX_VERSION >= 202002L
 
 // Three-way comparison for variant
 template<class... Ts>
