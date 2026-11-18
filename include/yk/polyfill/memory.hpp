@@ -558,7 +558,7 @@ YK_POLYFILL_NODISCARD YK_POLYFILL_CXX20_CONSTEXPR unique_ptr<T> make_unique(Args
 template<class T, class = typename std::enable_if<is_unbounded_array<T>::value>::type>
 YK_POLYFILL_NODISCARD YK_POLYFILL_CXX20_CONSTEXPR unique_ptr<T> make_unique(std::size_t size)
 {
-  return unique_ptr<T>(new typename std::remove_extent<T>::type[size]);
+  return unique_ptr<T>(new typename std::remove_extent<T>::type[size]());
 }
 
 template<class T, class... Args, class = typename std::enable_if<is_bounded_array<T>::value>::type>

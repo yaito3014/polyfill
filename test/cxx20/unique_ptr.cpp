@@ -78,6 +78,13 @@ constexpr bool test_make_unique_array()
   return p[0] == 10 && p[1] == 20 && p[2] == 30;
 }
 
+// Reading a default-initialized element would not be a constant expression.
+constexpr bool test_make_unique_array_value_initializes()
+{
+  auto p = pf::make_unique<int[]>(3);
+  return p[0] == 0 && p[1] == 0 && p[2] == 0;
+}
+
 TEST_CASE("unique_ptr - constexpr")
 {
   SECTION("make_unique") { STATIC_REQUIRE(test_make_unique()); }
@@ -89,4 +96,5 @@ TEST_CASE("unique_ptr - constexpr")
   SECTION("nullptr assign") { STATIC_REQUIRE(test_unique_ptr_nullptr_assign()); }
   SECTION("comparisons") { STATIC_REQUIRE(test_unique_ptr_comparisons()); }
   SECTION("array") { STATIC_REQUIRE(test_make_unique_array()); }
+  SECTION("array value-initialization") { STATIC_REQUIRE(test_make_unique_array_value_initializes()); }
 }
