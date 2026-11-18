@@ -1405,6 +1405,9 @@ YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(variant<Ts...> const& lhs, variant<T
   return lhs.raw_visit(detail::ne_visitor<Ts...>{rhs});
 }
 
+#endif
+
+// Kept in C++20, as in [variant.relops]: a rewrite from operator<=> would need every alternative to be three_way_comparable.
 template<
     class... Ts,
     typename std::enable_if<
@@ -1453,7 +1456,7 @@ YK_POLYFILL_CXX14_CONSTEXPR bool operator>=(variant<Ts...> const& lhs, variant<T
   return lhs.raw_visit(detail::ge_visitor<Ts...>{rhs});
 }
 
-#else  // C++20
+#if __cplusplus >= 202002L
 
 // Three-way comparison for variant
 template<class... Ts>
