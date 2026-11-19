@@ -1,6 +1,7 @@
 name: Test
 
 permissions:
+  contents: read
   id-token: write
 
 concurrency:
@@ -21,121 +22,8 @@ on:
     paths: *paths-to-detect
 
 jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - name: ubuntu
-            version: 24.04
-          - name: windows
-            version: 2025-vs2026
-        build-type:
-          - Debug
-          - Release
-        compiler:
-          - name: GCC
-            version: 14
-            executable: g++-14
-          - name: Clang
-            version: 21
-            executable: clang++-21
-          - name: Clang
-            version: 21
-            executable: clang++-21
-            stdlib: libc++
-          - name: MSVC
-            version: 2022
-            executable: cl
-            platform-toolset: v143
-            toolset-prefix: "14.44"
-          - name: MSVC
-            version: 2026
-            executable: cl
-            platform-toolset: v145
-            toolset-prefix: "14.5"
-        cxx-version: [11, 14, 17, 20, 23, 26]
-        exclude:
-          - os:
-              name: windows
-            compiler:
-              name: GCC
-          - os:
-              name: windows
-            compiler:
-              name: Clang
-          - os:
-              name: ubuntu
-            compiler:
-              name: MSVC
-          - compiler:
-              name: MSVC
-            cxx-version: 11
-          - compiler:
-              name: MSVC
-            cxx-version: 26
-    name: C++${{ matrix.cxx-version }} ${{ matrix.build-type }} (${{ matrix.compiler.name }}${{ matrix.compiler.stdlib && format(' {0}', matrix.compiler.stdlib) || '' }} ${{ matrix.compiler.version }} on ${{ matrix.os.name }})
-    runs-on: ${{ matrix.os.name }}-${{ matrix.os.version }}
-    steps:
-      - uses: actions/checkout@v7
-      - name: Init Ubuntu
-        if: matrix.os.name == 'ubuntu'
-        run: |
-          echo "set man-db/auto-update false" | sudo debconf-communicate
-          sudo dpkg-reconfigure man-db
-          sudo apt-get update
-      - name: Setup GCC
-        if: matrix.compiler.name == 'GCC'
-        run: |
-          sudo apt-get install g++-${{ matrix.compiler.version }}
-      - name: Setup Clang
-        if: matrix.compiler.name == 'Clang'
-        run: |
-          wget https://apt.llvm.org/llvm.sh
-          chmod +x ./llvm.sh
-          sudo ./llvm.sh ${{ matrix.compiler.version }} all
-      # Runner images replace toolsets on update (e.g. 14.51 by 14.52), so use
-      # the newest installed one matching the prefix instead of a fixed version.
-      - name: Setup MSVC
-        id: setup-msvc
-        if: matrix.compiler.name == 'MSVC'
-        uses: yaito3014/setup-msvc@v0.1.1
-        with:
-          toolset-prefix: ${{ matrix.compiler.toolset-prefix }}
-      # The cached FetchContent sub-builds record the exact -T value they were
-      # configured with, and CMake refuses to reuse them with any other one.
-      - name: Restore deps from cache
-        id: cache-restore
-        uses: actions/cache/restore@v6
-        with:
-          path: build/_deps
-          key: ${{ matrix.cxx-version }}-${{ matrix.build-type }}-${{ matrix.compiler.name }}-${{ matrix.compiler.version }}${{ matrix.compiler.stdlib && format('-{0}', matrix.compiler.stdlib) || '' }}-${{ matrix.os.name }}-${{ matrix.os.version }}${{ steps.setup-msvc.outputs.toolset && format('-{0}-{1}', matrix.compiler.platform-toolset, steps.setup-msvc.outputs.toolset) || '' }}
-      - name: Configure
-        run: |
-          cmake -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_STANDARD=${{ matrix.cxx-version }} -DCMAKE_CXX_COMPILER=${{ matrix.compiler.executable }} ${{ matrix.compiler.stdlib && format('-DCMAKE_CXX_FLAGS=-stdlib={0} -DCMAKE_EXE_LINKER_FLAGS=-stdlib={0}', matrix.compiler.stdlib) || '' }} ${{ matrix.compiler.name == 'MSVC' && format('-T {0},version={1}', matrix.compiler.platform-toolset, steps.setup-msvc.outputs.toolset) || '' }} -DYK_POLYFILL_CI=ON -Bbuild .
-      - name: Build tests
-        run: |
-          echo "CPPWARNINGNOTIFIER_LOG_MARKER"
-          cmake --build build --config ${{ matrix.build-type }}
-      - name: Save deps to cache
-        if: steps.cache-restore.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v6
-        with:
-          path: build/_deps
-          key: ${{ steps.cache-restore.outputs.cache-primary-key }}
-      - name: Run test
-        working-directory: build/test
-        run: |
-          ctest -C ${{ matrix.build-type }}
-  run-notifier:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: iris-cpp/cpp-warning-notifier@v0.7
-        with:
-          RUN_ID: ${{ github.run_id }}
-          JOB_ID: ${{ job.check_run_id }}
-          JOB_REGEX: C\+\+(?<cppVersion>\d+) (?<config>.+) \((?<vendorName>.+) (?<vendorVersion>.+) on (?<osName>.+)\)
-          STEP_REGEX: Build.+
-          ROW_HEADERS: '["osName", "vendorName", "vendorVersion", "config"]'
-          COLUMN_HEADER: cppVersion
+  test:
+    uses: yaito3014/cpp-ci/.github/workflows/cmake-test.yml@v0.1.0
+    with:
+      cxx-versions: "[11, 14, 17, 20, 23, 26]"
+      cmake-args: -DYK_POLYFILL_CI=ON
