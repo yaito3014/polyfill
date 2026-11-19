@@ -31,3 +31,12 @@ TEST_CASE("integral_constant")
     STATIC_REQUIRE(bc() == true);
   }
 }
+
+TEST_CASE("integral_constant::value can be odr-used")
+{
+  // Taking the address odr-uses value, which needs a definition at namespace scope before C++17.
+  int const* volatile p = &pf::integral_constant<int, 42>::value;
+  CHECK(*p == 42);
+  bool const* volatile b = &pf::true_type::value;
+  CHECK(*b);
+}
