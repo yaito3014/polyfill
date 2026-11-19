@@ -55,21 +55,39 @@ using index_sequence = integer_sequence<std::size_t, Is...>;
 
 namespace detail {
 
-template<class T, T N, T Current, class IntegerSequence>
-struct make_integer_sequence_impl;
+template<class T, class First, class Second>
+struct integer_sequence_concat;
 
-template<class T, T N, T... Is>
-struct make_integer_sequence_impl<T, N, N, integer_sequence<T, Is...>> {
-  using type = integer_sequence<T, Is...>;
+template<class T, T... Is, T... Js>
+struct integer_sequence_concat<T, integer_sequence<T, Is...>, integer_sequence<T, Js...>> {
+  using type = integer_sequence<T, Is..., static_cast<T>(sizeof...(Is) + Js)...>;
 };
 
-template<class T, T N, T I, T... Is>
-struct make_integer_sequence_impl<T, N, I, integer_sequence<T, Is...>> : make_integer_sequence_impl<T, N, I + 1, integer_sequence<T, Is..., I>> {};
+// Splitting N in halves keeps the instantiation depth logarithmic in N.
+template<class T, std::size_t N>
+struct make_integer_sequence_impl
+    : integer_sequence_concat<T, typename make_integer_sequence_impl<T, N / 2>::type, typename make_integer_sequence_impl<T, N - N / 2>::type> {};
+
+template<class T>
+struct make_integer_sequence_impl<T, 0> {
+  using type = integer_sequence<T>;
+};
+
+template<class T>
+struct make_integer_sequence_impl<T, 1> {
+  using type = integer_sequence<T, 0>;
+};
+
+template<class T, T N>
+struct make_integer_sequence_checked {
+  static_assert(!(N < 0), "[intseq.make] mandates N >= 0");
+  using type = typename make_integer_sequence_impl<T, (N < 0 ? 0 : static_cast<std::size_t>(N))>::type;
+};
 
 }  // namespace detail
 
 template<class T, T N>
-using make_integer_sequence = typename detail::make_integer_sequence_impl<T, N, 0, integer_sequence<T>>::type;
+using make_integer_sequence = typename detail::make_integer_sequence_checked<T, N>::type;
 
 template<std::size_t N>
 using make_index_sequence = make_integer_sequence<std::size_t, N>;

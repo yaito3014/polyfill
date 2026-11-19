@@ -49,3 +49,10 @@ TEST_CASE("integer_sequence")
   STATIC_REQUIRE(pf::get<1>(pf::integer_sequence<int, 3, 1, 4>{}) == 1);
   STATIC_REQUIRE(pf::get<2>(pf::integer_sequence<int, 3, 1, 4>{}) == 4);
 }
+
+TEST_CASE("make_integer_sequence beyond the template instantiation depth limit")
+{
+  // Larger than the default instantiation depth of GCC (900) and Clang (1024).
+  STATIC_REQUIRE(pf::make_index_sequence<2000>::size() == 2000);
+  STATIC_REQUIRE(pf::make_integer_sequence<int, 2001>::size() == 2001);
+}
