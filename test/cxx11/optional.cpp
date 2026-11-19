@@ -7,8 +7,10 @@
 #include <yk/polyfill/optional.hpp>
 #include <yk/polyfill/utility.hpp>
 
+#include <functional>
 #include <memory>
 #include <stdexcept>
+#include <string>
 #include <type_traits>
 #include <utility>
 
@@ -1476,6 +1478,32 @@ TEST_CASE("optional constexpr C++11")
     STATIC_REQUIRE(empty < 42);
     STATIC_REQUIRE(42 > empty);
   }
+}
+
+// Since C++17, argument-dependent lookup also finds std::invoke for these arguments.
+TEST_CASE("optional monadic operations with arguments from namespace std")
+{
+  pf::optional<std::string> opt{std::string("abc")};
+  auto const size_of = [](std::string const& s) { return s.size(); };
+  auto const size_opt = [](std::string const& s) { return pf::optional<std::size_t>(s.size()); };
+
+  CHECK(*opt.transform(size_of) == 3);
+  CHECK(*pf::as_const(opt).transform(size_of) == 3);
+  CHECK(*pf::optional<std::string>(opt).transform(size_of) == 3);
+  CHECK(*opt.and_then(size_opt) == 3);
+  CHECK(*pf::as_const(opt).and_then(size_opt) == 3);
+  CHECK(*pf::optional<std::string>(opt).and_then(size_opt) == 3);
+
+  std::function<pf::optional<std::string>()> const fallback = [] { return pf::optional<std::string>(std::string("x")); };
+  CHECK(*pf::optional<std::string>().or_else(fallback) == "x");
+  CHECK(*pf::as_const(opt).or_else(fallback) == "abc");
+
+  std::string s = "abcd";
+  pf::optional<std::string&> ref{s};
+  CHECK(*ref.transform(size_of) == 4);
+  CHECK(*ref.and_then(size_opt) == 4);
+  std::function<pf::optional<std::string&>()> const ref_fallback = [&s] { return pf::optional<std::string&>(s); };
+  CHECK(&*pf::optional<std::string&>().or_else(ref_fallback) == &s);
 }
 
 TEST_CASE("optional<T&> constexpr C++11")

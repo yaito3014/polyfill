@@ -6,6 +6,7 @@
 
 #include <yk/polyfill/extension/toptional.hpp>
 
+#include <functional>
 #include <stdexcept>
 #include <vector>
 
@@ -1101,4 +1102,22 @@ TEST_CASE("toptional - emplace exception safety")
     CHECK(opt.has_value());
     CHECK(opt->value == 200);
   }
+}
+
+// Since C++17, argument-dependent lookup also finds std::invoke for an F from namespace std.
+TEST_CASE("toptional - monadic operations with a callable from namespace std")
+{
+  std::function<ext::toptional<int>(int)> const twice = [](int x) { return ext::toptional<int>{x * 2}; };
+  std::function<int(int)> const plus_one = [](int x) { return x + 1; };
+  std::function<ext::toptional<int>()> const fallback = [] { return ext::toptional<int>{7}; };
+
+  ext::toptional<int> opt = 21;
+  CHECK(*opt.and_then(twice) == 42);
+  CHECK(*static_cast<ext::toptional<int> const&>(opt).and_then(twice) == 42);
+  CHECK(*ext::toptional<int>(opt).and_then(twice) == 42);
+  CHECK(*opt.transform(plus_one) == 22);
+  CHECK(*static_cast<ext::toptional<int> const&>(opt).transform(plus_one) == 22);
+  CHECK(*ext::toptional<int>(opt).transform(plus_one) == 22);
+  CHECK(*ext::toptional<int>().or_else(fallback) == 7);
+  CHECK(*static_cast<ext::toptional<int> const&>(opt).or_else(fallback) == 21);
 }

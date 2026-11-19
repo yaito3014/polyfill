@@ -417,7 +417,7 @@ public:
     using U = typename invoke_result<F, decltype(**this)>::type;
     static_assert(detail::is_toptional<typename remove_cvref<U>::type>::value, "result type of F must be specialization of toptional");
     if (has_value()) {
-      return invoke(std::forward<F>(f), **this);
+      return polyfill::invoke(std::forward<F>(f), **this);
     } else {
       return nullopt;
     }
@@ -430,7 +430,7 @@ public:
     using U = typename invoke_result<F, decltype(**this)>::type;
     static_assert(detail::is_toptional<typename remove_cvref<U>::type>::value, "result type of F must be specialization of toptional");
     if (has_value()) {
-      return invoke(std::forward<F>(f), **this);
+      return polyfill::invoke(std::forward<F>(f), **this);
     } else {
       return nullopt;
     }
@@ -443,7 +443,7 @@ public:
     using U = typename invoke_result<F, decltype(std::move(**this))>::type;
     static_assert(detail::is_toptional<typename remove_cvref<U>::type>::value, "result type of F must be specialization of toptional");
     if (has_value()) {
-      return invoke(std::forward<F>(f), std::move(**this));
+      return polyfill::invoke(std::forward<F>(f), std::move(**this));
     } else {
       return nullopt;
     }
@@ -456,7 +456,7 @@ public:
     using U = typename invoke_result<F, decltype(std::move(**this))>::type;
     static_assert(detail::is_toptional<typename remove_cvref<U>::type>::value, "result type of F must be specialization of toptional");
     if (has_value()) {
-      return invoke(std::forward<F>(f), std::move(**this));
+      return polyfill::invoke(std::forward<F>(f), std::move(**this));
     } else {
       return nullopt;
     }
@@ -471,7 +471,7 @@ public:
     using ResultType = typename std::conditional<std::is_void<UTraits>::value, toptional<U>, toptional<U, UTraits>>::type;
     static_assert(std::is_constructible<U, typename invoke_result<F, decltype(**this)>::type>::value, "result type of F must be copy/move constructible");
     if (has_value()) {
-      return ResultType(invoke(std::forward<F>(f), **this));
+      return ResultType(polyfill::invoke(std::forward<F>(f), **this));
     } else {
       return nullopt;
     }
@@ -486,7 +486,7 @@ public:
     using ResultType = typename std::conditional<std::is_void<UTraits>::value, toptional<U>, toptional<U, UTraits>>::type;
     static_assert(std::is_constructible<U, typename invoke_result<F, decltype(**this)>::type>::value, "result type of F must be copy/move constructible");
     if (has_value()) {
-      return ResultType(invoke(std::forward<F>(f), **this));
+      return ResultType(polyfill::invoke(std::forward<F>(f), **this));
     } else {
       return nullopt;
     }
@@ -503,7 +503,7 @@ public:
         std::is_constructible<U, typename invoke_result<F, decltype(std::move(**this))>::type>::value, "result type of F must be copy/move constructible"
     );
     if (has_value()) {
-      return ResultType(invoke(std::forward<F>(f), std::move(**this)));
+      return ResultType(polyfill::invoke(std::forward<F>(f), std::move(**this)));
     } else {
       return nullopt;
     }
@@ -520,7 +520,7 @@ public:
         std::is_constructible<U, typename invoke_result<F, decltype(std::move(**this))>::type>::value, "result type of F must be copy/move constructible"
     );
     if (has_value()) {
-      return ResultType(invoke(std::forward<F>(f), std::move(**this)));
+      return ResultType(polyfill::invoke(std::forward<F>(f), std::move(**this)));
     } else {
       return nullopt;
     }
@@ -535,7 +535,7 @@ public:
     if (has_value()) {
       return *this;
     } else {
-      return invoke(std::forward<F>(f));
+      return polyfill::invoke(std::forward<F>(f));
     }
   }
 
@@ -548,7 +548,7 @@ public:
     if (has_value()) {
       return std::move(*this);
     } else {
-      return invoke(std::forward<F>(f));
+      return polyfill::invoke(std::forward<F>(f));
     }
   }
 
