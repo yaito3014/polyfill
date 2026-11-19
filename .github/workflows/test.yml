@@ -96,43 +96,23 @@ jobs:
           sudo ./llvm.sh ${{ matrix.compiler.version }} all
       # Runner images replace toolsets on update (e.g. 14.51 by 14.52), so use
       # the newest installed one matching the prefix instead of a fixed version.
-      - name: Detect MSVC toolset
-        id: msvc-toolset
-        if: matrix.compiler.name == 'MSVC'
-        shell: pwsh
-        env:
-          TOOLSET_PREFIX: ${{ matrix.compiler.toolset-prefix }}
-        run: |
-          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-          $vs = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
-          $available = Get-ChildItem "$vs\VC\Tools\MSVC" -Directory | ForEach-Object Name
-          Write-Output "Installed MSVC toolsets: $($available -join ', ')"
-          $match = $available | Where-Object { $_.StartsWith("$env:TOOLSET_PREFIX") } | Sort-Object { [version]$_ } | Select-Object -Last 1
-          if (-not $match) {
-            Write-Output "::error::No installed MSVC toolset starts with $env:TOOLSET_PREFIX"
-            exit 1
-          }
-          $version = ([version]$match).ToString(2)
-          Write-Output "Using MSVC toolset $version ($match)"
-          "version=$version" >> $env:GITHUB_OUTPUT
-          "full-version=$match" >> $env:GITHUB_OUTPUT
       - name: Setup MSVC
+        id: setup-msvc
         if: matrix.compiler.name == 'MSVC'
-        uses: TheMrMilchmann/setup-msvc-dev@v4
+        uses: yaito3014/setup-msvc@v0.1.1
         with:
-          arch: x64
-          toolset: ${{ steps.msvc-toolset.outputs.version }}
-      # The cached FetchContent sub-builds record the MSVC toolset they were
-      # configured with, and CMake refuses to reuse them with another one.
+          toolset-prefix: ${{ matrix.compiler.toolset-prefix }}
+      # The cached FetchContent sub-builds record the exact -T value they were
+      # configured with, and CMake refuses to reuse them with any other one.
       - name: Restore deps from cache
         id: cache-restore
         uses: actions/cache/restore@v6
         with:
           path: build/_deps
-          key: ${{ matrix.cxx-version }}-${{ matrix.build-type }}-${{ matrix.compiler.name }}-${{ matrix.compiler.version }}${{ matrix.compiler.stdlib && format('-{0}', matrix.compiler.stdlib) || '' }}-${{ matrix.os.name }}-${{ matrix.os.version }}${{ steps.msvc-toolset.outputs.full-version && format('-{0}', steps.msvc-toolset.outputs.full-version) || '' }}
+          key: ${{ matrix.cxx-version }}-${{ matrix.build-type }}-${{ matrix.compiler.name }}-${{ matrix.compiler.version }}${{ matrix.compiler.stdlib && format('-{0}', matrix.compiler.stdlib) || '' }}-${{ matrix.os.name }}-${{ matrix.os.version }}${{ steps.setup-msvc.outputs.toolset && format('-{0}-{1}', matrix.compiler.platform-toolset, steps.setup-msvc.outputs.toolset) || '' }}
       - name: Configure
         run: |
-          cmake -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_STANDARD=${{ matrix.cxx-version }} -DCMAKE_CXX_COMPILER=${{ matrix.compiler.executable }} ${{ matrix.compiler.stdlib && format('-DCMAKE_CXX_FLAGS=-stdlib={0} -DCMAKE_EXE_LINKER_FLAGS=-stdlib={0}', matrix.compiler.stdlib) || '' }} ${{ matrix.compiler.name == 'MSVC' && format('-T {0},version={1}', matrix.compiler.platform-toolset, steps.msvc-toolset.outputs.version) || '' }} -DYK_POLYFILL_CI=ON -Bbuild .
+          cmake -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_CXX_STANDARD=${{ matrix.cxx-version }} -DCMAKE_CXX_COMPILER=${{ matrix.compiler.executable }} ${{ matrix.compiler.stdlib && format('-DCMAKE_CXX_FLAGS=-stdlib={0} -DCMAKE_EXE_LINKER_FLAGS=-stdlib={0}', matrix.compiler.stdlib) || '' }} ${{ matrix.compiler.name == 'MSVC' && format('-T {0},version={1}', matrix.compiler.platform-toolset, steps.setup-msvc.outputs.toolset) || '' }} -DYK_POLYFILL_CI=ON -Bbuild .
       - name: Build tests
         run: |
           echo "CPPWARNINGNOTIFIER_LOG_MARKER"
