@@ -633,6 +633,39 @@ TEST_CASE("invoke")
   }
 }
 
+// Dereferencing yields a different object, so invoking through it would be observable.
+struct Dereferenceable {
+  int value;
+  Dereferenceable* next;
+
+  Dereferenceable& operator*() const noexcept { return *next; }
+  int get() const noexcept { return value; }
+};
+
+struct DerivedDereferenceable : Dereferenceable {
+  DerivedDereferenceable(int v, Dereferenceable* n) : Dereferenceable{v, n} {}
+};
+
+TEST_CASE("invoke on an object of the class that is also dereferenceable")
+{
+  // [func.require] uses the object itself when it is of the class or a class derived from it.
+  Dereferenceable next{2, nullptr};
+  Dereferenceable self{1, &next};
+  CHECK(pf::invoke(&Dereferenceable::value, self) == 1);
+  CHECK(pf::invoke(&Dereferenceable::get, self) == 1);
+  CHECK(pf::invoke(&Dereferenceable::value, std::ref(self)) == 1);
+  CHECK(pf::invoke(&Dereferenceable::get, std::ref(self)) == 1);
+  CHECK(pf::invoke(&Dereferenceable::value, &self) == 1);
+  CHECK(pf::invoke(&Dereferenceable::get, &self) == 1);
+
+  DerivedDereferenceable derived{3, &next};
+  CHECK(pf::invoke(&Dereferenceable::value, derived) == 3);
+  CHECK(pf::invoke(&Dereferenceable::get, derived) == 3);
+
+  STATIC_REQUIRE(pf::is_invocable<int Dereferenceable::*, Dereferenceable&>::value);
+  STATIC_REQUIRE(pf::is_invocable<int (Dereferenceable::*)() const, Dereferenceable&>::value);
+}
+
 TEST_CASE("invoke_r")
 {
   // invoke_r with implicit conversion

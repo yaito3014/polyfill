@@ -35,25 +35,29 @@ enum class invoke_kind {
   dereferenceable,
 };
 
+template<class C, class Param>
+struct is_object_of_class : disjunction<std::is_same<C, Param>, std::is_base_of<C, Param>> {};
+
+// Each case applies only if the previous ones do not, in the order of [func.require].
 template<class C, class Param, class = void>
 struct check_invoke_kind {};
 
 template<class C, class Param>
-struct check_invoke_kind<C, Param, typename std::enable_if<disjunction<std::is_same<C, Param>, std::is_base_of<C, Param>>::value>::type> {
+struct check_invoke_kind<C, Param, typename std::enable_if<is_object_of_class<C, Param>::value>::type> {
   static constexpr invoke_kind value = invoke_kind::reference_to_object;
 };
 
 template<class C, class Param>
-struct check_invoke_kind<C, Param, typename std::enable_if<is_reference_wrapper<Param>::value>::type> {
+struct check_invoke_kind<C, Param, typename std::enable_if<!is_object_of_class<C, Param>::value && is_reference_wrapper<Param>::value>::type> {
   static constexpr invoke_kind value = invoke_kind::reference_wrapper;
 };
 
 template<class C, class Param>
 struct check_invoke_kind<
     C, Param,
-    typename std::enable_if<disjunction<
-        std::is_same<C, typename remove_cvref<decltype(*std::declval<Param>())>::type>,
-        std::is_base_of<C, typename remove_cvref<decltype(*std::declval<Param>())>::type>>::value>::type> {
+    typename std::enable_if<
+        !is_object_of_class<C, Param>::value && !is_reference_wrapper<Param>::value
+        && is_object_of_class<C, typename remove_cvref<decltype(*std::declval<Param>())>::type>::value>::type> {
   static constexpr invoke_kind value = invoke_kind::dereferenceable;
 };
 
