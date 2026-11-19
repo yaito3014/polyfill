@@ -20,6 +20,7 @@ All headers are included via `<yk/polyfill/...>`. Everything lives in the `yk::p
 | `optional.hpp` | `optional` with monadic operations and iterator support |
 | `variant.hpp` | `variant`, `visit`, `monostate` |
 | `bit.hpp` | `bit_cast` |
+| `span.hpp` | `span`, `dynamic_extent`, `as_bytes`, `as_writable_bytes` (the latter two require C++17) |
 | `indirect.hpp` | `indirect` |
 | `polymorphic.hpp` | `polymorphic` |
 
