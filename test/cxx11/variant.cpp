@@ -1113,6 +1113,29 @@ TEST_CASE("variant comparison operators")
   }
 }
 
+// Has no operator<=>, so since C++20 only variant's relational operators can order variants of it.
+struct OrderedWithoutThreeWay {
+  int value;
+  friend bool operator==(OrderedWithoutThreeWay a, OrderedWithoutThreeWay b) { return a.value == b.value; }
+  friend bool operator!=(OrderedWithoutThreeWay a, OrderedWithoutThreeWay b) { return a.value != b.value; }
+  friend bool operator<(OrderedWithoutThreeWay a, OrderedWithoutThreeWay b) { return a.value < b.value; }
+  friend bool operator<=(OrderedWithoutThreeWay a, OrderedWithoutThreeWay b) { return a.value <= b.value; }
+  friend bool operator>(OrderedWithoutThreeWay a, OrderedWithoutThreeWay b) { return a.value > b.value; }
+  friend bool operator>=(OrderedWithoutThreeWay a, OrderedWithoutThreeWay b) { return a.value >= b.value; }
+};
+
+TEST_CASE("variant relational operators without a three-way comparable alternative")
+{
+  pf::variant<int, OrderedWithoutThreeWay> const a = OrderedWithoutThreeWay{1};
+  pf::variant<int, OrderedWithoutThreeWay> const b = OrderedWithoutThreeWay{2};
+  CHECK((a < b));
+  CHECK((a <= b));
+  CHECK(!(a > b));
+  CHECK(!(a >= b));
+  CHECK((b > a));
+  CHECK((b >= a));
+}
+
 TEST_CASE("trivially copyable variant emplace (same index)")
 {
   SECTION("only trivial move ctor")

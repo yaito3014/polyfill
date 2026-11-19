@@ -1405,11 +1405,14 @@ YK_POLYFILL_CXX14_CONSTEXPR bool operator!=(variant<Ts...> const& lhs, variant<T
   return lhs.raw_visit(detail::ne_visitor<Ts...>{rhs});
 }
 
-template<
-    class... Ts,
-    typename std::enable_if<
-        conjunction<std::is_convertible<decltype(std::declval<Ts const&>() < std::declval<Ts const&>()), bool>...>::value, std::nullptr_t>::type = nullptr>
-YK_POLYFILL_CXX14_CONSTEXPR bool operator<(variant<Ts...> const& lhs, variant<Ts...> const& rhs)
+#endif
+
+// Kept in C++20, as in [variant.relops]: a rewrite from operator<=> would need every alternative to be three_way_comparable.
+// SFINAE is in the return type for the same MSVC bug as for operator== above.
+template<class... Ts>
+YK_POLYFILL_CXX14_CONSTEXPR
+    typename std::enable_if<conjunction<std::is_convertible<decltype(std::declval<Ts const&>() < std::declval<Ts const&>()), bool>...>::value, bool>::type
+    operator<(variant<Ts...> const& lhs, variant<Ts...> const& rhs)
 {
   if (rhs.valueless_by_exception()) return false;
   if (lhs.valueless_by_exception()) return true;
@@ -1417,11 +1420,10 @@ YK_POLYFILL_CXX14_CONSTEXPR bool operator<(variant<Ts...> const& lhs, variant<Ts
   return lhs.raw_visit(detail::lt_visitor<Ts...>{rhs});
 }
 
-template<
-    class... Ts,
-    typename std::enable_if<
-        conjunction<std::is_convertible<decltype(std::declval<Ts const&>() <= std::declval<Ts const&>()), bool>...>::value, std::nullptr_t>::type = nullptr>
-YK_POLYFILL_CXX14_CONSTEXPR bool operator<=(variant<Ts...> const& lhs, variant<Ts...> const& rhs)
+template<class... Ts>
+YK_POLYFILL_CXX14_CONSTEXPR
+    typename std::enable_if<conjunction<std::is_convertible<decltype(std::declval<Ts const&>() <= std::declval<Ts const&>()), bool>...>::value, bool>::type
+    operator<=(variant<Ts...> const& lhs, variant<Ts...> const& rhs)
 {
   if (lhs.valueless_by_exception()) return true;
   if (rhs.valueless_by_exception()) return false;
@@ -1429,11 +1431,10 @@ YK_POLYFILL_CXX14_CONSTEXPR bool operator<=(variant<Ts...> const& lhs, variant<T
   return lhs.raw_visit(detail::le_visitor<Ts...>{rhs});
 }
 
-template<
-    class... Ts,
-    typename std::enable_if<
-        conjunction<std::is_convertible<decltype(std::declval<Ts const&>() > std::declval<Ts const&>()), bool>...>::value, std::nullptr_t>::type = nullptr>
-YK_POLYFILL_CXX14_CONSTEXPR bool operator>(variant<Ts...> const& lhs, variant<Ts...> const& rhs)
+template<class... Ts>
+YK_POLYFILL_CXX14_CONSTEXPR
+    typename std::enable_if<conjunction<std::is_convertible<decltype(std::declval<Ts const&>() > std::declval<Ts const&>()), bool>...>::value, bool>::type
+    operator>(variant<Ts...> const& lhs, variant<Ts...> const& rhs)
 {
   if (lhs.valueless_by_exception()) return false;
   if (rhs.valueless_by_exception()) return true;
@@ -1441,11 +1442,10 @@ YK_POLYFILL_CXX14_CONSTEXPR bool operator>(variant<Ts...> const& lhs, variant<Ts
   return lhs.raw_visit(detail::gt_visitor<Ts...>{rhs});
 }
 
-template<
-    class... Ts,
-    typename std::enable_if<
-        conjunction<std::is_convertible<decltype(std::declval<Ts const&>() >= std::declval<Ts const&>()), bool>...>::value, std::nullptr_t>::type = nullptr>
-YK_POLYFILL_CXX14_CONSTEXPR bool operator>=(variant<Ts...> const& lhs, variant<Ts...> const& rhs)
+template<class... Ts>
+YK_POLYFILL_CXX14_CONSTEXPR
+    typename std::enable_if<conjunction<std::is_convertible<decltype(std::declval<Ts const&>() >= std::declval<Ts const&>()), bool>...>::value, bool>::type
+    operator>=(variant<Ts...> const& lhs, variant<Ts...> const& rhs)
 {
   if (rhs.valueless_by_exception()) return true;
   if (lhs.valueless_by_exception()) return false;
@@ -1453,7 +1453,7 @@ YK_POLYFILL_CXX14_CONSTEXPR bool operator>=(variant<Ts...> const& lhs, variant<T
   return lhs.raw_visit(detail::ge_visitor<Ts...>{rhs});
 }
 
-#else  // C++20
+#if __cplusplus >= 202002L
 
 // Three-way comparison for variant
 template<class... Ts>
