@@ -1,6 +1,6 @@
 add_executable(yk_polyfill_cxx23_test)
 
-target_sources(yk_polyfill_cxx23_test PRIVATE constant_wrapper.cpp)
+target_sources(yk_polyfill_cxx23_test PRIVATE constant_wrapper.cpp span.cpp)
 
 set_target_properties(yk_polyfill_cxx23_test PROPERTIES CXX_EXTENSIONS OFF)
 

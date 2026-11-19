@@ -14,6 +14,7 @@ target_sources(
         expected.cpp
         unique_ptr.cpp
         loose_swap.cpp
+        span.cpp
 )
 
 set_target_properties(yk_polyfill_cxx17_test PROPERTIES CXX_EXTENSIONS OFF)
