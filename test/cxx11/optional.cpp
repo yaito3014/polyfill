@@ -13,6 +13,7 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 namespace pf = yk::polyfill;
 
@@ -161,6 +162,20 @@ TEST_CASE("optional")
     a.emplace(33 - 4);
     CHECK(a.has_value());
     CHECK(*a == 29);
+  }
+  {
+    pf::optional<int> a;
+    STATIC_REQUIRE(std::is_same<decltype(a.emplace(1)), int&>::value);
+    int& r = a.emplace(1);
+    CHECK(&r == &*a);
+    r += 2;
+    CHECK(*a == 3);
+
+    pf::optional<std::vector<int>> v;
+    STATIC_REQUIRE(std::is_same<decltype(v.emplace({1, 2})), std::vector<int>&>::value);
+    std::vector<int>& vr = v.emplace({1, 2});
+    CHECK(&vr == &*v);
+    CHECK(vr.size() == 2);
   }
 
   // swap
