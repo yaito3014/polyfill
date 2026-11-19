@@ -555,11 +555,47 @@ YK_POLYFILL_NODISCARD YK_POLYFILL_CXX20_CONSTEXPR unique_ptr<T> make_unique(Args
   return unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
 
+// MSVC before 19.52 rejects new E[n]() in constant evaluation (C2131), while new E[n] is accepted.
+#if defined(_MSC_VER) && _MSC_VER < 1952 && !defined(__clang__) && __cpp_lib_is_constant_evaluated >= 201811L
+#  define YK_POLYFILL_DETAIL_MAKE_UNIQUE_ARRAY_VALUE_INIT_IN_PLACE
+#endif
+
+#ifdef YK_POLYFILL_DETAIL_MAKE_UNIQUE_ARRAY_VALUE_INIT_IN_PLACE
+namespace detail {
+
+// Replaces a default-initialized object with a value-initialized one.
+template<class T>
+constexpr void reinitialize_with_value(T& obj)
+{
+  if constexpr (std::is_array_v<T>) {
+    for (auto& e : obj) detail::reinitialize_with_value(e);
+  } else {
+    std::destroy_at(std::addressof(obj));
+    std::construct_at(std::addressof(obj));
+  }
+}
+
+}  // namespace detail
+#endif
+
 template<class T, class = typename std::enable_if<is_unbounded_array<T>::value>::type>
 YK_POLYFILL_NODISCARD YK_POLYFILL_CXX20_CONSTEXPR unique_ptr<T> make_unique(std::size_t size)
 {
-  return unique_ptr<T>(new typename std::remove_extent<T>::type[size]());
+  using element_type = typename std::remove_extent<T>::type;
+#ifdef YK_POLYFILL_DETAIL_MAKE_UNIQUE_ARRAY_VALUE_INIT_IN_PLACE
+  // cv-qualified elements keep new E[n](), since a const one generally cannot be default-initialized.
+  if constexpr (!std::is_const_v<std::remove_all_extents_t<element_type>> && !std::is_volatile_v<std::remove_all_extents_t<element_type>>) {
+    if (std::is_constant_evaluated()) {
+      element_type* const p = new element_type[size];
+      for (std::size_t i = 0; i != size; ++i) detail::reinitialize_with_value(p[i]);
+      return unique_ptr<T>(p);
+    }
+  }
+#endif
+  return unique_ptr<T>(new element_type[size]());
 }
+
+#undef YK_POLYFILL_DETAIL_MAKE_UNIQUE_ARRAY_VALUE_INIT_IN_PLACE
 
 template<class T, class... Args, class = typename std::enable_if<is_bounded_array<T>::value>::type>
 void make_unique(Args&&...) = delete;
