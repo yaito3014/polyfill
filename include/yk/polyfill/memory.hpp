@@ -15,7 +15,7 @@
 
 #include <cstddef>
 
-#if __cplusplus >= 202002L
+#if YK_POLYFILL_CXX_VERSION >= 202002L
 #  include <compare>
 #endif
 
@@ -445,7 +445,7 @@ YK_POLYFILL_CXX14_CONSTEXPR bool operator>=(unique_ptr<T1, D1> const& x, unique_
   return !(x < y);
 }
 
-#if __cplusplus >= 202002L
+#if YK_POLYFILL_CXX_VERSION >= 202002L
 template<class T1, class D1, class T2, class D2>
   requires std::three_way_comparable_with<typename unique_ptr<T1, D1>::pointer, typename unique_ptr<T2, D2>::pointer>
 constexpr std::compare_three_way_result_t<typename unique_ptr<T1, D1>::pointer, typename unique_ptr<T2, D2>::pointer> operator<=>(
@@ -530,7 +530,7 @@ YK_POLYFILL_CXX14_CONSTEXPR bool operator>=(std::nullptr_t, unique_ptr<T, D> con
   return !(nullptr < x);
 }
 
-#if __cplusplus >= 202002L
+#if YK_POLYFILL_CXX_VERSION >= 202002L
 template<class T, class D>
   requires std::three_way_comparable<typename unique_ptr<T, D>::pointer>
 constexpr std::compare_three_way_result_t<typename unique_ptr<T, D>::pointer> operator<=>(unique_ptr<T, D> const& x, std::nullptr_t)

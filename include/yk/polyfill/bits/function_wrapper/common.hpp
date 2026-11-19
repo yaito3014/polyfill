@@ -1,6 +1,8 @@
 #ifndef YK_ZZ_POLYFILL_BITS_FUNCTION_WRAPPER_COMMON_HPP
 #define YK_ZZ_POLYFILL_BITS_FUNCTION_WRAPPER_COMMON_HPP
 
+#include <yk/polyfill/config.hpp>
+
 #include <yk/polyfill/bits/invoke.hpp>
 
 #include <memory>
@@ -35,7 +37,7 @@ union bound_entity {
   {
   }
 
-#if __cplusplus >= 201703L
+#if YK_POLYFILL_CXX_VERSION >= 201703L
   // Stores a pointer value directly (as opposed to obj_tag, which stores addressof(obj)).
   struct ptr_tag {
     explicit ptr_tag() = default;
@@ -68,7 +70,7 @@ struct invoker {
     return polyfill::invoke_r<R>(*static_cast<Obj*>(const_cast<void*>(entity.obj_ptr)), std::forward<Args>(args)...);
   }
 
-#if __cplusplus >= 201703L
+#if YK_POLYFILL_CXX_VERSION >= 201703L
   // Invokes the compile-time constant callable C, which is not stored in bound-entity.
   template<auto C>
   static R invoke_constant(bound_entity, Args&&... args) noexcept(Noexcept)

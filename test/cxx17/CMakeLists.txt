@@ -30,3 +30,12 @@ target_link_libraries(
 )
 
 add_test(NAME yk_polyfill_cxx17_test COMMAND yk_polyfill_cxx17_test)
+
+# Without the yk::polyfill target, which adds /Zc:__cplusplus, MSVC leaves __cplusplus at 199711L.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    add_library(yk_polyfill_cxx17_without_zc_cplusplus OBJECT without_zc_cplusplus.cpp)
+    set_target_properties(yk_polyfill_cxx17_without_zc_cplusplus PROPERTIES CXX_EXTENSIONS OFF)
+    target_compile_features(yk_polyfill_cxx17_without_zc_cplusplus PRIVATE cxx_std_17)
+    target_compile_options(yk_polyfill_cxx17_without_zc_cplusplus PRIVATE /Zc:__cplusplus-)
+    target_include_directories(yk_polyfill_cxx17_without_zc_cplusplus PRIVATE ${PROJECT_SOURCE_DIR}/include)
+endif()
