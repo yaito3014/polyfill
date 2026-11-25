@@ -334,6 +334,8 @@ template<std::size_t Extent, std::size_t Offset, std::size_t Count>
 struct span_subspan_extent
     : std::integral_constant<std::size_t, Count != dynamic_extent ? Count : (Extent != dynamic_extent ? Extent - Offset : dynamic_extent)> {};
 
+[[noreturn]] inline void throw_span_out_of_range() { throw std::out_of_range("yk::polyfill::span::at: idx >= size()"); }
+
 }  // namespace detail
 
 template<class ElementType, std::size_t Extent>
@@ -501,7 +503,9 @@ public:
 
   constexpr reference operator[](size_type idx) const { return data_[idx]; }
 
-  constexpr reference at(size_type idx) const { return idx < size() ? data_[idx] : throw std::out_of_range("yk::polyfill::span::at: idx >= size()"); }
+  // Not `cond ? data_[idx] : throw ...`: without /Zc:ternary (off before /std:c++20), MSVC appears to yield a temporary copy
+  // there, so the returned reference would dangle.
+  constexpr reference at(size_type idx) const { return idx < size() ? data_[idx] : (detail::throw_span_out_of_range(), data_[idx]); }
 
   constexpr reference front() const { return *data_; }
 
