@@ -36,6 +36,7 @@ target_sources(
         move_only_function.cpp
         copyable_function.cpp
         expected.cpp
+        span.cpp
 )
 
 set_target_properties(yk_polyfill_cxx11_test PROPERTIES CXX_EXTENSIONS OFF)

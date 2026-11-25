@@ -10,6 +10,7 @@ target_sources(
         variant.cpp
         expected.cpp
         integer_sequence.cpp
+        span.cpp
 )
 
 set_target_properties(yk_polyfill_cxx14_test PROPERTIES CXX_EXTENSIONS OFF)
